@@ -51,6 +51,21 @@ The sections below represent a **logical structure** (conceptual grouping), not 
 
 The Architecture layer explains how GhostClaw is designed at a conceptual and structural level.
 
+
+All GhostClaw system documents currently live in a single folder:
+
+```text
+docs/ghostclaw-system/
+```
+
+The sections below represent a **logical structure** (conceptual grouping), not separate physical subdirectories.
+
+## Logical structure
+
+### Architecture
+
+The Architecture layer explains how GhostClaw is designed at a conceptual and structural level.
+
 - [ghostclaw_system_map.md](./ghostclaw_system_map.md)
 - [ghostclaw_master_control_system.md](./ghostclaw_master_control_system.md)
 - [ghostclaw_infrastructure_blueprint.md](./ghostclaw_infrastructure_blueprint.md)
