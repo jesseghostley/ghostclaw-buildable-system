@@ -85,6 +85,30 @@ export function applyRuntimeCollections(state: PersistedRuntimeState): void {
   );
 }
 
+
+
+type StarterSeedInput = {
+  signals?: Signal[];
+  artifacts?: Artifact[];
+};
+
+export function seedStarterRecords(input: StarterSeedInput): void {
+  if (input.signals && input.signals.length > 0) {
+    runtimeStore.signals.push(...input.signals.map((signal) => ({
+      ...signal,
+      workspaceId: normalizeWorkspaceId(signal.workspaceId),
+    })));
+  }
+
+  if (input.artifacts && input.artifacts.length > 0) {
+    runtimeStore.artifacts.push(...input.artifacts.map((artifact) => ({
+      ...artifact,
+      workspaceId: normalizeWorkspaceId(artifact.workspaceId),
+      status: artifact.status ?? 'draft',
+    })));
+  }
+}
+
 export function clearRuntimeCollections(): void {
   runtimeStore.signals.length = 0;
   runtimeStore.plans.length = 0;

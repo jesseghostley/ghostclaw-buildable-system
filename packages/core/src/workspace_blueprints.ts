@@ -1,4 +1,5 @@
 import type { WorkspaceBlueprint } from '../../shared/src/types/workspace_blueprint';
+import { initializeWorkspace } from './workspace_initializer';
 import { createWorkspaceWithPolicy, getWorkspace, getWorkspacePolicy } from './workspace_registry';
 
 const BLUEPRINTS: WorkspaceBlueprint[] = [
@@ -85,7 +86,7 @@ export function getBlueprint(id: string): WorkspaceBlueprint | undefined {
   return BLUEPRINTS.find((blueprint) => blueprint.id === id && blueprint.status === 'active');
 }
 
-export function createWorkspaceFromBlueprint(blueprintId: string, workspaceName: string, workspaceId?: string) {
+export function createWorkspaceFromBlueprint(blueprintId: string, workspaceName: string, workspaceId?: string, initialize = false) {
   const blueprint = getBlueprint(blueprintId);
   if (!blueprint) {
     return { success: false as const, error: `Blueprint not found: ${blueprintId}` };
@@ -116,10 +117,16 @@ export function createWorkspaceFromBlueprint(blueprintId: string, workspaceName:
     },
   );
 
+  const initializer = initialize ? initializeWorkspace(resolvedWorkspaceId, blueprint.id) : undefined;
+  if (initializer && !initializer.success) {
+    return initializer;
+  }
+
   return {
     success: true as const,
     workspace,
     policy: getWorkspacePolicy(resolvedWorkspaceId),
     blueprint,
+    starterPackSummary: initializer?.starterPackSummary,
   };
 }
