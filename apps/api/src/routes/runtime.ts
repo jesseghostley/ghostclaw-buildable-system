@@ -3,6 +3,7 @@ import {
   getAgentStatus,
   getArtifactStatus,
   getEventStatus,
+  getPublishStatus,
   getQueueStatus,
   getRuntimeStatus,
   getSkillStatus,
@@ -33,6 +34,10 @@ router.get('/agents', (_req, res) => {
 
 router.get('/skills', (_req, res) => {
   res.json(getSkillStatus());
+});
+
+router.get('/publish', (_req, res) => {
+  res.json(getPublishStatus());
 });
 
 router.get('/artifacts', (_req, res) => {

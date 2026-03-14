@@ -1,5 +1,6 @@
 import type { Job } from './runtime_loop';
 import { logEvent } from './event_log';
+import { publishArtifact } from './publisher';
 import { saveRuntimeState } from './runtime_persistence';
 import { runtimeStore } from './state_store';
 
@@ -96,7 +97,7 @@ export function rejectJob(jobId: string, reason?: string): ApprovalResult {
   return { success: true, job };
 }
 
-export function publishJob(jobId: string): ApprovalResult {
+export function publishJob(jobId: string, targetId?: string): ApprovalResult {
   const job = getJob(jobId);
   if (!job) {
     return { success: false, error: `Job not found: ${jobId}` };
@@ -109,11 +110,23 @@ export function publishJob(jobId: string): ApprovalResult {
   job.lifecycleState = 'published';
   job.updatedAt = Date.now();
   syncArtifactsForJob(jobId, 'published');
+
+  if (targetId) {
+    const artifacts = runtimeStore.artifacts.filter((artifact) => artifact.jobId === jobId);
+    for (const artifact of artifacts) {
+      const result = publishArtifact(artifact.id, targetId);
+      if (!result.success) {
+        return { success: false, error: result.error };
+      }
+    }
+  }
+
   logEvent({
     type: 'job_published',
     entityType: 'job',
     entityId: job.id,
-    message: `Job ${job.id} published`,
+    message: `Job ${job.id} published${targetId ? ` to ${targetId}` : ''}`,
+    metadata: targetId ? { targetId } : undefined,
   });
   saveRuntimeState();
 

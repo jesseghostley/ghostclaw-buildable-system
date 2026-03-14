@@ -1,5 +1,6 @@
 import type { RuntimeEvent } from '../../shared/src/types/runtime_event';
 import type { Artifact, Job, Plan, Signal } from './runtime_loop';
+import type { PublishedOutput } from './publisher';
 
 export type PersistedQueueState = {
   queue: string[];
@@ -12,6 +13,7 @@ export type PersistedRuntimeState = {
   jobs: Job[];
   artifacts: Artifact[];
   events: RuntimeEvent[];
+  publishedOutputs: PublishedOutput[];
   queue: PersistedQueueState;
 };
 
@@ -21,6 +23,7 @@ export const runtimeStore = {
   jobs: [] as Job[],
   artifacts: [] as Artifact[],
   events: [] as RuntimeEvent[],
+  publishedOutputs: [] as PublishedOutput[],
 };
 
 export function applyRuntimeCollections(state: PersistedRuntimeState): void {
@@ -51,6 +54,9 @@ export function applyRuntimeCollections(state: PersistedRuntimeState): void {
 
   runtimeStore.events.length = 0;
   runtimeStore.events.push(...(state.events ?? []));
+
+  runtimeStore.publishedOutputs.length = 0;
+  runtimeStore.publishedOutputs.push(...(state.publishedOutputs ?? []));
 }
 
 export function clearRuntimeCollections(): void {
@@ -59,4 +65,5 @@ export function clearRuntimeCollections(): void {
   runtimeStore.jobs.length = 0;
   runtimeStore.artifacts.length = 0;
   runtimeStore.events.length = 0;
+  runtimeStore.publishedOutputs.length = 0;
 }

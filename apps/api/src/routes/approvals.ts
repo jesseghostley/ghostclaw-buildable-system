@@ -39,7 +39,7 @@ router.post('/jobs/:id/reject', (req, res) => {
 });
 
 router.post('/jobs/:id/publish', (req, res) => {
-  const result = publishJob(req.params.id);
+  const result = publishJob(req.params.id, req.body?.targetId);
   if (!result.success) {
     res.status(400).json(result);
     return;

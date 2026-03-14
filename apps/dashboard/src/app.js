@@ -27,10 +27,15 @@ const el = {
   approveJobButton: document.getElementById('approve-job'),
   rejectJobButton: document.getElementById('reject-job'),
   publishJobButton: document.getElementById('publish-job'),
+  publishedOutputs: document.getElementById('published-outputs'),
+  publishResult: document.getElementById('publish-result'),
+  publishArtifactButton: document.getElementById('publish-artifact'),
+  publishTargetSelect: document.getElementById('publish-target-select'),
 };
 
 let selectedJobId = null;
 let selectedArtifactId = null;
+let selectedPublishTargetId = 'local_files';
 
 function ensureRecentEventsSection() {
   let panel = document.getElementById('events-panel');
@@ -56,6 +61,46 @@ function ensureRecentEventsSection() {
 }
 
 ensureRecentEventsSection();
+
+function ensurePublishSections() {
+  const layout = document.querySelector('.layout');
+  if (!layout) {
+    return;
+  }
+
+  if (!document.getElementById('publish-panel')) {
+    const panel = document.createElement('section');
+    panel.id = 'publish-panel';
+    panel.className = 'panel wide';
+    panel.innerHTML = `
+      <h2>Publish Targets</h2>
+      <div class="row">
+        <select id="publish-target-select"></select>
+        <button id="publish-artifact">Publish Selected Artifact</button>
+      </div>
+      <pre id="publish-result">No publish actions yet.</pre>
+    `;
+    layout.appendChild(panel);
+  }
+
+  if (!document.getElementById('published-outputs-panel')) {
+    const panel = document.createElement('section');
+    panel.id = 'published-outputs-panel';
+    panel.className = 'panel wide';
+    panel.innerHTML = `
+      <h2>Published Outputs</h2>
+      <pre id="published-outputs">Loading...</pre>
+    `;
+    layout.appendChild(panel);
+  }
+
+  el.publishTargetSelect = document.getElementById('publish-target-select');
+  el.publishArtifactButton = document.getElementById('publish-artifact');
+  el.publishResult = document.getElementById('publish-result');
+  el.publishedOutputs = document.getElementById('published-outputs');
+}
+
+ensurePublishSections();
 
 function toJsonText(value) {
   return JSON.stringify(value, null, 2);
@@ -211,6 +256,22 @@ el.publishJobButton.addEventListener('click', () =>
   }, el.approvalResult),
 );
 
+if (el.publishTargetSelect) {
+  el.publishTargetSelect.addEventListener('change', () => {
+    selectedPublishTargetId = el.publishTargetSelect.value;
+  });
+}
+
+if (el.publishArtifactButton) {
+  el.publishArtifactButton.addEventListener('click', () =>
+    runAction(() => {
+      if (!selectedArtifactId) throw new Error('Select an artifact first.');
+      return postJson(`/api/publish/artifacts/${selectedArtifactId}`, { targetId: selectedPublishTargetId });
+    }, el.publishResult),
+  );
+}
+
+
 async function refreshDashboard() {
   const startedAt = new Date();
   let hadError = false;
@@ -273,6 +334,40 @@ async function refreshDashboard() {
     hadError = true;
     el.events.classList.add('error');
     el.events.textContent = `Failed to fetch events: ${error.message}`;
+  }
+
+
+  try {
+    const publishTargets = await fetchJson('/api/publish/targets');
+    if (el.publishTargetSelect) {
+      el.publishTargetSelect.innerHTML = publishTargets.targets
+        .map((target) => `<option value="${target.id}">${target.name} (${target.id})</option>`)
+        .join('');
+      if (selectedPublishTargetId) {
+        el.publishTargetSelect.value = selectedPublishTargetId;
+      }
+      selectedPublishTargetId = el.publishTargetSelect.value || selectedPublishTargetId;
+    }
+  } catch (error) {
+    hadError = true;
+    if (el.publishResult) {
+      el.publishResult.className = 'error';
+      el.publishResult.textContent = `Failed to fetch publish targets: ${error.message}`;
+    }
+  }
+
+  try {
+    const published = await fetchJson('/api/publish/outputs');
+    if (el.publishedOutputs) {
+      el.publishedOutputs.textContent = toJsonText(published);
+      el.publishedOutputs.classList.remove('error');
+    }
+  } catch (error) {
+    hadError = true;
+    if (el.publishedOutputs) {
+      el.publishedOutputs.classList.add('error');
+      el.publishedOutputs.textContent = `Failed to fetch published outputs: ${error.message}`;
+    }
   }
 
   try {

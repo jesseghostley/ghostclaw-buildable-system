@@ -1,6 +1,7 @@
 import { agentRegistry } from './agent_registry';
 import { listEvents } from './event_log';
 import { jobQueue } from './job_queue';
+import { listPublishTargets, listPublishedOutputs } from './publisher';
 import { skillRegistry } from './skill_registry';
 import { runtimeStore } from './state_store';
 import { getWorkflowStatus } from './workflow_orchestrator';
@@ -68,6 +69,8 @@ export function getRuntimeStatus() {
     blockedDependencySummary: getBlockedDependencySummary(),
     totalEventCount: runtimeStore.events.length,
     recentEvents: getRecentEvents(10),
+    publishTargetCount: listPublishTargets().length,
+    publishedOutputCount: runtimeStore.publishedOutputs.length,
   };
 }
 
@@ -113,6 +116,15 @@ export function getSkillStatus() {
   return {
     registeredSkills: skills.length,
     skills,
+  };
+}
+
+
+export function getPublishStatus() {
+  return {
+    targets: listPublishTargets(),
+    publishedOutputCount: runtimeStore.publishedOutputs.length,
+    outputs: listPublishedOutputs(),
   };
 }
 
