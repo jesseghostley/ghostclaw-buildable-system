@@ -1,213 +1,136 @@
-GhostClaw Documentation Structure Brief
-Purpose
+# GhostClaw Documentation Structure Brief
+
+## Purpose
 
 GhostClaw is designed as a modular AI operating system and ecosystem platform capable of orchestrating agents, launching autonomous companies, and distributing capabilities through a marketplace.
 
 As the system grows, the documentation must remain:
 
-understandable for developers
-
-navigable for contributors
-
-interpretable by AI agents
-
-scalable as the ecosystem expands
+- understandable for developers
+- navigable for contributors
+- interpretable by AI agents
+- scalable as the ecosystem expands
 
 To achieve this, GhostClaw documentation follows the same structural philosophy used by large systems such as:
 
-Kubernetes
-
-Linux
-
-Stripe
-
-Terraform
-
-OpenAI SDKs
+- Kubernetes
+- Linux
+- Stripe
+- Terraform
+- OpenAI SDKs
 
 These systems organize documentation into clear conceptual layers, separating architecture, execution behavior, ecosystem usage, and reference material.
 
-This approach prevents documentation from becoming a flat list of files and instead creates a logical operating system manual.
-
-Why Large Systems Use This Structure
+## Why large systems use this structure
 
 Large technical systems organize documentation into layers because each audience approaches the system differently.
 
-Audience	What they need
-Architects	Understand system design
-Developers	Understand runtime behavior
-Operators	Understand how systems interact
-Ecosystem builders	Understand expansion and integrations
-Contributors	Understand definitions and terminology
+| Audience | What they need |
+| --- | --- |
+| Architects | Understand system design |
+| Developers | Understand runtime behavior |
+| Operators | Understand how systems interact |
+| Ecosystem builders | Understand expansion and integrations |
+| Contributors | Understand definitions and terminology |
 
 Without layered documentation, users must search through unrelated files to understand the system.
 
-Projects like Kubernetes and Stripe solve this by separating documentation into categories such as:
+## Current repository layout (actual)
 
-architecture
+All GhostClaw system documents currently live in a single folder:
 
-runtime behavior
+```text
+docs/ghostclaw-system/
+```
 
-integrations
+The sections below represent a **logical structure** (conceptual grouping), not separate physical subdirectories.
 
-ecosystem
+## Logical structure
 
-reference material
+### Architecture
 
-GhostClaw follows the same approach.
+The Architecture layer explains how GhostClaw is designed at a conceptual and structural level.
 
-GhostClaw Documentation Structure
-
-The GhostClaw system documentation is organized into four core sections.
-
-docs
-└ ghostclaw-system
-   ├ architecture
-   ├ runtime
-   ├ ecosystem
-   └ reference
-
-Each section represents a different layer of understanding.
-
-Architecture
-
-The Architecture section explains how GhostClaw is designed at a conceptual and structural level.
-
-These documents describe the system’s major components and how they relate to one another.
-
-Files:
-
-architecture
-├ ghostclaw_system_map.md
-├ ghostclaw_master_control_system.md
-├ ghostclaw_infrastructure_blueprint.md
-├ ghostclaw_archetype_framework.md
-└ ghostclaw_canonical_identity.md
+- [ghostclaw_system_map.md](./ghostclaw_system_map.md)
+- [ghostclaw_master_control_system.md](./ghostclaw_master_control_system.md)
+- [ghostclaw_infrastructure_blueprint.md](./ghostclaw_infrastructure_blueprint.md)
+- [ghostclaw_archetype_framework.md](./ghostclaw_archetype_framework.md)
+- [ghostclaw_canonical_identity.md](./ghostclaw_canonical_identity.md)
+- [ghostclaw_system_architecture.md](./ghostclaw_system_architecture.md)
+- [ghostclaw_system_layers.md](./ghostclaw_system_layers.md)
 
 This layer answers questions such as:
 
-What is GhostClaw?
+- What is GhostClaw?
+- How are system components connected?
+- What are the architectural principles?
 
-How are the system components connected?
+### Runtime
 
-What are the guiding principles of the architecture?
+The Runtime layer describes how GhostClaw behaves during execution.
 
-This section is equivalent to the system design documentation used in large infrastructure platforms.
-
-Runtime
-
-The Runtime section describes how GhostClaw behaves during execution.
-
-This layer defines the operational rules that govern agents, signals, and workflows.
-
-Files:
-
-runtime
-├ ghostclaw_runtime_execution_spec.md
-├ ghostclaw_runtime_signals.md
-├ ghostclaw_planner_actions.md
-├ ghostclaw_agent_registry.md
-└ ghostclaw_skill_registry.md
+- [ghostclaw_runtime_execution_spec.md](./ghostclaw_runtime_execution_spec.md)
+- [ghostclaw_runtime_signals.md](./ghostclaw_runtime_signals.md)
+- [ghostclaw_planner_actions.md](./ghostclaw_planner_actions.md)
+- [ghostclaw_agent_registry.md](./ghostclaw_agent_registry.md)
+- [ghostclaw_skill_registry.md](./ghostclaw_skill_registry.md)
 
 This layer answers questions such as:
 
-How do agents execute tasks?
+- How do agents execute tasks?
+- What signals trigger system actions?
+- How are skills registered and used?
+- How does the planner coordinate agents?
 
-What signals trigger system actions?
+### Ecosystem
 
-How are skills registered and used?
+The Ecosystem layer describes how GhostClaw expands beyond the core runtime.
 
-How does the planner coordinate agents?
+- [ghostclaw_company_factory.md](./ghostclaw_company_factory.md)
+- [ghostclaw_marketplace_schema.md](./ghostclaw_marketplace_schema.md)
+- [ghostclaw_ghost_mart_launch_catalog.md](./ghostclaw_ghost_mart_launch_catalog.md)
 
-In large platforms like Kubernetes, this layer corresponds to control loops, scheduling logic, and runtime behavior.
+This layer answers questions such as:
 
-Ecosystem
+- How are autonomous companies created?
+- How are capabilities distributed through Ghost Mart?
 
-The Ecosystem section describes how GhostClaw expands beyond the core system.
+### Reference
 
-GhostClaw is not only a runtime engine but also a platform for launching companies, automation systems, and marketplaces.
+The Reference layer provides canonical definitions used across the system.
 
-Files:
+- [ghostclaw_system_glossary.md](./ghostclaw_system_glossary.md)
+- [ghostclaw_naming_and_origin.md](./ghostclaw_naming_and_origin.md)
 
-ecosystem
-├ ghostclaw_company_factory.md
-├ ghostclaw_ecosystem_growth_engine.md
-├ ghostclaw_marketplace_schema.md
-└ ghostclaw_ghost_mart_launch_catalog.md
+This layer helps ensure consistency in terminology, core concepts, and naming conventions.
 
-This section answers questions such as:
+## Benefits of this structure
 
-How are autonomous companies created?
+Organizing GhostClaw documentation into layered sections provides several advantages:
 
-How does GhostClaw grow its ecosystem?
+1. **Scalability**
+   As GhostClaw grows to include more agents, skills, and companies, documentation remains organized and navigable.
 
-How are capabilities distributed through Ghost Mart?
+2. **Developer clarity**
+   New contributors can read architecture first, then runtime behavior.
 
-This layer represents the economic and expansion model of the platform.
+3. **AI readability**
+   A clear hierarchy improves machine interpretation for AI-assisted workflows.
 
-Reference
+4. **Ecosystem expansion**
+   Separating ecosystem materials from runtime materials makes the platform easier to extend.
 
-The Reference section provides canonical definitions used across the system.
+5. **Professional system documentation**
+   This organization aligns with common documentation practices used by major infrastructure platforms.
 
-Files:
+## Long-term vision
 
-reference
-└ ghostclaw_system_glossary.md
+As GhostClaw evolves, this structure will support growth of:
 
-This section ensures consistency across documentation by defining:
+- autonomous agents
+- reusable skills
+- digital company blueprints
+- distributed marketplaces
+- AI-driven infrastructure
 
-system terminology
-
-core concepts
-
-naming conventions
-
-Large projects use this layer to prevent terminology drift and inconsistent language.
-
-Benefits of This Structure
-
-Organizing GhostClaw documentation into layered sections provides several advantages.
-
-1. Scalability
-
-As GhostClaw grows to include more agents, skills, and companies, the documentation remains organized and navigable.
-
-2. Developer Clarity
-
-New contributors can understand the system quickly by reading the architecture layer before diving into runtime details.
-
-3. AI Readability
-
-Since GhostClaw is an AI-driven system, the documentation must also be interpretable by AI agents that may analyze the repository.
-
-A structured hierarchy improves machine readability.
-
-4. Ecosystem Expansion
-
-GhostClaw aims to support autonomous digital businesses.
-
-Separating ecosystem documentation from runtime documentation makes the system easier to extend.
-
-5. Professional System Documentation
-
-This structure aligns GhostClaw with industry-standard documentation practices used by major infrastructure platforms.
-
-It helps position GhostClaw as a serious open system rather than a collection of disconnected notes.
-
-Long-Term Vision
-
-As GhostClaw evolves, the documentation structure will support the growth of:
-
-autonomous agents
-
-reusable skills
-
-digital company blueprints
-
-distributed marketplaces
-
-AI-driven infrastructure
-
-The documentation itself becomes a living manual for the GhostClaw operating system.
-
-By following the same structural principles used by large technical platforms, GhostClaw can scale both technically and organizationally while remaining understandable to developers, contributors, and AI systems alike.
+The documentation becomes a living manual for the GhostClaw operating system.
