@@ -87,12 +87,14 @@ This layer answers questions such as:
 The Ecosystem layer describes how GhostClaw expands beyond the core runtime.
 
 - [ghostclaw_company_factory.md](./ghostclaw_company_factory.md)
+- [ghostclaw_ecosystem_growth_engine.md](./ghostclaw_ecosystem_growth_engine.md)
 - [ghostclaw_marketplace_schema.md](./ghostclaw_marketplace_schema.md)
 - [ghostclaw_ghost_mart_launch_catalog.md](./ghostclaw_ghost_mart_launch_catalog.md)
 
 This layer answers questions such as:
 
 - How are autonomous companies created?
+- How does GhostClaw grow its ecosystem?
 - How are capabilities distributed through Ghost Mart?
 
 ### Reference
