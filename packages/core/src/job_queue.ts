@@ -19,6 +19,11 @@ export type QueueJob = {
   updatedAt: number;
 };
 
+export type PersistedQueueState = {
+  queue: string[];
+  executing: string[];
+};
+
 const MAX_RETRIES = 2;
 
 class InMemoryJobQueue {
@@ -121,7 +126,10 @@ class InMemoryJobQueue {
 
     if (job.retryCount <= MAX_RETRIES) {
       job.status = 'queued';
-      this.queue.push(job.id);
+      job.updatedAt = Date.now();
+      if (!this.queue.includes(job.id)) {
+        this.queue.push(job.id);
+      }
       return;
     }
 
@@ -143,6 +151,34 @@ class InMemoryJobQueue {
     }
 
     return job;
+  }
+
+  getState(): PersistedQueueState {
+    return {
+      queue: [...this.queue],
+      executing: Array.from(this.executing.values()),
+    };
+  }
+
+  restore(jobs: QueueJob[], state: PersistedQueueState): void {
+    this.reset();
+
+    jobs.forEach((job) => {
+      this.jobsById.set(job.id, job);
+    });
+
+    this.queue.push(
+      ...state.queue.filter((jobId) => {
+        const job = this.jobsById.get(jobId);
+        return Boolean(job) && job?.status === 'queued';
+      }),
+    );
+
+    state.executing.forEach((jobId) => {
+      if (this.jobsById.has(jobId)) {
+        this.executing.add(jobId);
+      }
+    });
   }
 
   reset(): void {

@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { runtimeStore } from '../../../../packages/core/src/runtime_loop';
+import { runtimeStore } from '../../../../packages/core/src/state_store';
 
 const router = Router();
 

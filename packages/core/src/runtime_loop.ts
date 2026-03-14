@@ -1,6 +1,8 @@
 import { routeSignalToPlannerAction, type PlannerAction } from '../../planner/src/signal_router';
 import { executeJobs } from './job_executor';
 import { jobQueue, type QueueJob } from './job_queue';
+import { saveRuntimeState } from './runtime_persistence';
+import { runtimeStore } from './state_store';
 
 export type Signal = {
   id: string;
@@ -26,13 +28,6 @@ export type Artifact = {
   content: string;
   status: 'created' | 'published';
   createdAt: number;
-};
-
-export const runtimeStore = {
-  signals: [] as Signal[],
-  plans: [] as Plan[],
-  jobs: [] as Job[],
-  artifacts: [] as Artifact[],
 };
 
 function nextId(prefix: string, index: number): string {
@@ -95,6 +90,7 @@ export function processSignal(input: Pick<Signal, 'name' | 'payload'>): {
 
   const artifacts = executeJobs();
   runtimeStore.artifacts.push(...artifacts);
+  saveRuntimeState();
 
   return { signal, plan, jobs, artifacts };
 }

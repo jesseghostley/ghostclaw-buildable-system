@@ -4,8 +4,11 @@ import controlRouter from './routes/control';
 import jobsRouter from './routes/jobs';
 import runtimeRouter from './routes/runtime';
 import signalsRouter from './routes/signals';
+import { loadRuntimeState } from '../../../packages/core/src/runtime_persistence';
 
 const app = express();
+
+loadRuntimeState();
 
 app.use(express.json());
 

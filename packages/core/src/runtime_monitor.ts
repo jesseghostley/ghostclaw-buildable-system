@@ -1,6 +1,6 @@
 import { agentRegistry } from './agent_registry';
 import { jobQueue } from './job_queue';
-import { runtimeStore } from './runtime_loop';
+import { runtimeStore } from './state_store';
 
 function getJobCounts() {
   const jobs = jobQueue.list();

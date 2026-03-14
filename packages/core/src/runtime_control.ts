@@ -1,6 +1,8 @@
 import { executeJobs } from './job_executor';
 import { jobQueue } from './job_queue';
-import { processSignal, runtimeStore } from './runtime_loop';
+import { resetPersistedState, saveRuntimeState } from './runtime_persistence';
+import { processSignal } from './runtime_loop';
+import { runtimeStore } from './state_store';
 
 type ControlResult<T> = {
   success: boolean;
@@ -11,6 +13,7 @@ type ControlResult<T> = {
 function runQueueAndStoreArtifacts() {
   const artifacts = executeJobs();
   runtimeStore.artifacts.push(...artifacts);
+  saveRuntimeState();
   return artifacts;
 }
 
@@ -66,11 +69,6 @@ export function submitTestSignal(signalName: string): ControlResult<{ signalId: 
 }
 
 export function resetRuntimeState(): ControlResult<{ reset: true }> {
-  runtimeStore.signals.length = 0;
-  runtimeStore.plans.length = 0;
-  runtimeStore.jobs.length = 0;
-  runtimeStore.artifacts.length = 0;
-  jobQueue.reset();
-
+  resetPersistedState();
   return { success: true, data: { reset: true } };
 }
