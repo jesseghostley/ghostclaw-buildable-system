@@ -1,5 +1,6 @@
 import { agentRegistry } from './agent_registry';
 import { jobQueue } from './job_queue';
+import { skillRegistry } from './skill_registry';
 import type { Artifact } from './runtime_loop';
 
 export type JobHandler = (inputPayload: Record<string, unknown>) => Record<string, unknown>;
@@ -25,19 +26,26 @@ export function executeJobs(): Artifact[] {
       break;
     }
 
-    const assignedAgent = agentRegistry.findAgentForJob(job.jobType);
-    if (!assignedAgent) {
-      jobQueue.markBlocked(job.id);
+    const requiredSkills = skillRegistry.findSkillsForJobType(job.jobType);
+    if (requiredSkills.length === 0) {
+      jobQueue.markBlocked(job.id, 'missing_skill');
       continue;
     }
 
-    job.assignedAgent = assignedAgent.agentName;
+    const skill = requiredSkills[0];
+    const assignedAgent = agentRegistry.findAgentForJobAndSkill(job.jobType, skill.id);
+    if (!assignedAgent) {
+      jobQueue.markBlocked(job.id, 'missing_agent');
+      continue;
+    }
+
+    job.assignedAgent = assignedAgent.name;
     job.updatedAt = Date.now();
     jobQueue.markRunning(job.id);
 
     const handler = JOB_HANDLERS[job.jobType];
     if (!handler) {
-      jobQueue.markBlocked(job.id);
+      jobQueue.markBlocked(job.id, 'missing_handler');
       continue;
     }
 
@@ -52,7 +60,16 @@ export function executeJobs(): Artifact[] {
         jobId: job.id,
         type: job.jobType,
         title: `${job.jobType} output`,
-        content: JSON.stringify(outputPayload, null, 2),
+        content: JSON.stringify(
+          {
+            skillId: skill.id,
+            agentId: assignedAgent.id,
+            agentName: assignedAgent.name,
+            result: outputPayload,
+          },
+          null,
+          2,
+        ),
         status: 'draft',
         createdAt: Date.now(),
       });

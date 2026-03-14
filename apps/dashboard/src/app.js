@@ -5,6 +5,7 @@ const el = {
   meta: document.getElementById('meta'),
   runtimeStatus: document.getElementById('runtime-status'),
   agents: document.getElementById('agents'),
+  skills: document.getElementById('skills'),
   jobsTableBody: document.getElementById('jobs-table-body'),
   artifactsTableBody: document.getElementById('artifacts-table-body'),
   jobDetails: document.getElementById('job-details'),
@@ -73,7 +74,9 @@ async function runAction(action, targetElement) {
 
 function setSelectedJobDetails(job) {
   el.jobDetails.textContent = toJsonText(job);
-  el.jobReviewState.textContent = `Review state: ${job.lifecycleState ?? 'draft'}`;
+  const review = job.lifecycleState ?? 'draft';
+  const blocked = job.blockedReason ? ` | blocked: ${job.blockedReason}` : '';
+  el.jobReviewState.textContent = `Review state: ${review}${blocked}`;
 }
 
 function renderJobsTable(jobs) {
@@ -88,6 +91,7 @@ function renderJobsTable(jobs) {
       <td>${job.jobType}</td>
       <td>${job.assignedAgent ?? '-'}</td>
       <td>${job.status}</td>
+      <td>${job.blockedReason ?? '-'}</td>
       <td>${job.lifecycleState ?? 'draft'}</td>
       <td>${job.retryCount}</td>
     `;
@@ -202,6 +206,16 @@ async function refreshDashboard() {
     hadError = true;
     el.agents.classList.add('error');
     el.agents.textContent = `Failed to fetch agents: ${error.message}`;
+  }
+
+  try {
+    const skills = await fetchJson('/api/runtime/skills');
+    el.skills.textContent = toJsonText(skills);
+    el.skills.classList.remove('error');
+  } catch (error) {
+    hadError = true;
+    el.skills.classList.add('error');
+    el.skills.textContent = `Failed to fetch skills: ${error.message}`;
   }
 
   try {

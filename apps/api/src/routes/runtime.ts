@@ -4,6 +4,7 @@ import {
   getArtifactStatus,
   getQueueStatus,
   getRuntimeStatus,
+  getSkillStatus,
 } from '../../../../packages/core/src/runtime_monitor';
 
 const router = Router();
@@ -18,6 +19,10 @@ router.get('/queue', (_req, res) => {
 
 router.get('/agents', (_req, res) => {
   res.json(getAgentStatus());
+});
+
+router.get('/skills', (_req, res) => {
+  res.json(getSkillStatus());
 });
 
 router.get('/artifacts', (_req, res) => {

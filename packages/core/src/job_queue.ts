@@ -16,6 +16,7 @@ export type QueueJob = {
   status: JobStatus;
   lifecycleState: ReviewState;
   reviewReason?: string;
+  blockedReason?: 'missing_skill' | 'missing_agent' | 'missing_handler';
   inputPayload: Record<string, unknown>;
   outputPayload: Record<string, unknown> | null;
   retryCount: number;
@@ -92,6 +93,7 @@ class InMemoryJobQueue {
     }
 
     job.status = 'running';
+    job.blockedReason = undefined;
     job.updatedAt = Date.now();
     this.executing.add(jobId);
   }
@@ -103,17 +105,19 @@ class InMemoryJobQueue {
     }
 
     job.status = 'completed';
+    job.blockedReason = undefined;
     job.updatedAt = Date.now();
     this.executing.delete(jobId);
   }
 
-  markBlocked(jobId: string): void {
+  markBlocked(jobId: string, reason: 'missing_skill' | 'missing_agent' | 'missing_handler' = 'missing_agent'): void {
     const job = this.jobsById.get(jobId);
     if (!job) {
       return;
     }
 
     job.status = 'blocked';
+    job.blockedReason = reason;
     job.updatedAt = Date.now();
     this.executing.delete(jobId);
   }
@@ -148,6 +152,7 @@ class InMemoryJobQueue {
 
     this.executing.delete(jobId);
     job.status = 'queued';
+    job.blockedReason = undefined;
     job.updatedAt = Date.now();
 
     if (!this.queue.includes(job.id)) {
@@ -171,6 +176,7 @@ class InMemoryJobQueue {
       const normalized = {
         ...job,
         lifecycleState: job.lifecycleState ?? 'draft',
+        blockedReason: job.blockedReason,
       };
       this.jobsById.set(job.id, normalized);
     });
