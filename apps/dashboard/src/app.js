@@ -6,6 +6,7 @@ const el = {
   runtimeStatus: document.getElementById('runtime-status'),
   agents: document.getElementById('agents'),
   skills: document.getElementById('skills'),
+  workflows: document.getElementById('workflows'),
   jobsTableBody: document.getElementById('jobs-table-body'),
   artifactsTableBody: document.getElementById('artifacts-table-body'),
   jobDetails: document.getElementById('job-details'),
@@ -216,6 +217,17 @@ async function refreshDashboard() {
     hadError = true;
     el.skills.classList.add('error');
     el.skills.textContent = `Failed to fetch skills: ${error.message}`;
+  }
+
+
+  try {
+    const workflows = await fetchJson('/api/runtime/workflows');
+    el.workflows.textContent = toJsonText(workflows);
+    el.workflows.classList.remove('error');
+  } catch (error) {
+    hadError = true;
+    el.workflows.classList.add('error');
+    el.workflows.textContent = `Failed to fetch workflows: ${error.message}`;
   }
 
   try {

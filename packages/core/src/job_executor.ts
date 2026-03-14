@@ -1,13 +1,29 @@
 import { agentRegistry } from './agent_registry';
 import { jobQueue } from './job_queue';
 import { skillRegistry } from './skill_registry';
+import { unblockDependentJobs } from './workflow_orchestrator';
 import type { Artifact } from './runtime_loop';
 
 export type JobHandler = (inputPayload: Record<string, unknown>) => Record<string, unknown>;
 
 const JOB_HANDLERS: Record<string, JobHandler> = {
+  research_keyword_cluster: (inputPayload) => ({
+    result: `Keyword cluster researched for ${String(inputPayload.signalName ?? 'unknown_signal')}`,
+  }),
   draft_cluster_outline: (inputPayload) => ({
     result: `Cluster outline generated for ${String(inputPayload.signalName ?? 'unknown_signal')}`,
+  }),
+  write_article: (inputPayload) => ({
+    result: `Article drafted for ${String(inputPayload.signalName ?? 'unknown_signal')}`,
+  }),
+  write_service_page: (inputPayload) => ({
+    result: `Service page drafted for ${String(inputPayload.signalName ?? 'unknown_signal')}`,
+  }),
+  generate_metadata: (inputPayload) => ({
+    result: `Metadata generated for ${String(inputPayload.signalName ?? 'unknown_signal')}`,
+  }),
+  generate_schema: (inputPayload) => ({
+    result: `Schema generated for ${String(inputPayload.signalName ?? 'unknown_signal')}`,
   }),
   refresh_page_sections: (inputPayload) => ({
     result: `Page sections refreshed for ${String(inputPayload.signalName ?? 'unknown_signal')}`,
@@ -54,6 +70,7 @@ export function executeJobs(): Artifact[] {
       job.outputPayload = outputPayload;
       job.updatedAt = Date.now();
       jobQueue.markComplete(job.id);
+      unblockDependentJobs(job.id);
 
       artifacts.push({
         id: `artifact_${job.id}`,
@@ -65,6 +82,7 @@ export function executeJobs(): Artifact[] {
             skillId: skill.id,
             agentId: assignedAgent.id,
             agentName: assignedAgent.name,
+            workflowId: job.workflowId,
             result: outputPayload,
           },
           null,
@@ -75,6 +93,7 @@ export function executeJobs(): Artifact[] {
       });
     } catch {
       jobQueue.markFailed(job.id);
+      unblockDependentJobs(job.id);
     }
   }
 

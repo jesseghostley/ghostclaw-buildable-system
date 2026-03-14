@@ -32,6 +32,9 @@ export function applyRuntimeCollections(state: PersistedRuntimeState): void {
     ...state.jobs.map((job) => ({
       ...job,
       lifecycleState: job.lifecycleState ?? 'draft',
+      workflowState: job.workflowState ?? 'draft',
+      dependencyJobIds: job.dependencyJobIds ?? [],
+      blockedReason: job.blockedReason,
     })),
   );
 

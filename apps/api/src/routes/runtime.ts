@@ -5,6 +5,7 @@ import {
   getQueueStatus,
   getRuntimeStatus,
   getSkillStatus,
+  getWorkflowStatuses,
 } from '../../../../packages/core/src/runtime_monitor';
 
 const router = Router();
@@ -15,6 +16,10 @@ router.get('/status', (_req, res) => {
 
 router.get('/queue', (_req, res) => {
   res.json(getQueueStatus());
+});
+
+router.get('/workflows', (_req, res) => {
+  res.json(getWorkflowStatuses());
 });
 
 router.get('/agents', (_req, res) => {

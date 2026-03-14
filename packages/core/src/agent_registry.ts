@@ -59,7 +59,7 @@ agentRegistry.registerAgent({
 agentRegistry.registerAgent({
   id: 'content_writer_agent',
   name: 'ContentWriterAgent',
-  capabilities: ['write_article'],
+  capabilities: ['write_article', 'write_service_page'],
   supportedSkills: ['article_writing'],
   status: 'active',
 });

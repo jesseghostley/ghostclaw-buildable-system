@@ -46,7 +46,7 @@ skillRegistry.registerSkill({
   name: 'Article Writing',
   category: 'content',
   description: 'Write complete article drafts.',
-  supportedJobTypes: ['write_article'],
+  supportedJobTypes: ['write_article', 'write_service_page'],
   status: 'active',
 });
 skillRegistry.registerSkill({

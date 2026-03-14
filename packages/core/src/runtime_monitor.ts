@@ -2,6 +2,7 @@ import { agentRegistry } from './agent_registry';
 import { jobQueue } from './job_queue';
 import { skillRegistry } from './skill_registry';
 import { runtimeStore } from './state_store';
+import { getWorkflowStatus } from './workflow_orchestrator';
 
 function getJobCounts() {
   const jobs = jobQueue.list();
@@ -28,6 +29,25 @@ function getBlockedJobReasonsSummary() {
   return summary;
 }
 
+function getWorkflowIds(): string[] {
+  return Array.from(new Set(runtimeStore.jobs.map((job) => job.workflowId).filter(Boolean))) as string[];
+}
+
+function getWorkflowStatusSummary() {
+  return getWorkflowIds().map((workflowId) => getWorkflowStatus(workflowId));
+}
+
+function getBlockedDependencySummary() {
+  const blocked = jobQueue
+    .list()
+    .filter((job) => job.status === 'blocked' && (job.blockedReason === 'dependency_incomplete' || job.blockedReason === 'dependency_failed'));
+
+  return {
+    dependency_incomplete: blocked.filter((job) => job.blockedReason === 'dependency_incomplete').length,
+    dependency_failed: blocked.filter((job) => job.blockedReason === 'dependency_failed').length,
+  };
+}
+
 export function getRuntimeStatus() {
   const queueCounts = getJobCounts();
 
@@ -38,7 +58,9 @@ export function getRuntimeStatus() {
     totalArtifacts: runtimeStore.artifacts.length,
     registeredAgents: agentRegistry.listAgents().length,
     registeredSkills: skillRegistry.listSkills().length,
+    workflowCount: getWorkflowIds().length,
     blockedJobReasons: getBlockedJobReasonsSummary(),
+    blockedDependencySummary: getBlockedDependencySummary(),
   };
 }
 
@@ -48,7 +70,15 @@ export function getQueueStatus() {
   return {
     ...queueCounts,
     blockedJobReasons: getBlockedJobReasonsSummary(),
+    blockedDependencySummary: getBlockedDependencySummary(),
     jobs: jobQueue.list(),
+  };
+}
+
+export function getWorkflowStatuses() {
+  return {
+    workflowCount: getWorkflowIds().length,
+    workflows: getWorkflowStatusSummary(),
   };
 }
 
