@@ -3,7 +3,7 @@ import { processSignal, runtimeStore } from '../../../../packages/core/src/runti
 
 const router = Router();
 
-router.post('/', (req, res) => {
+router.post('/api/signals', (req, res) => {
   const name = req.body?.name;
 
   if (typeof name !== 'string' || !name.trim()) {
