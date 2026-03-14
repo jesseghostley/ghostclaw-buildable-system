@@ -1,4 +1,5 @@
 import { agentRegistry } from './agent_registry';
+import { listEvents } from './event_log';
 import { jobQueue } from './job_queue';
 import { skillRegistry } from './skill_registry';
 import { runtimeStore } from './state_store';
@@ -48,6 +49,10 @@ function getBlockedDependencySummary() {
   };
 }
 
+function getRecentEvents(limit = 25) {
+  return [...listEvents()].sort((a, b) => b.timestamp - a.timestamp).slice(0, limit);
+}
+
 export function getRuntimeStatus() {
   const queueCounts = getJobCounts();
 
@@ -61,6 +66,8 @@ export function getRuntimeStatus() {
     workflowCount: getWorkflowIds().length,
     blockedJobReasons: getBlockedJobReasonsSummary(),
     blockedDependencySummary: getBlockedDependencySummary(),
+    totalEventCount: runtimeStore.events.length,
+    recentEvents: getRecentEvents(10),
   };
 }
 
@@ -79,6 +86,13 @@ export function getWorkflowStatuses() {
   return {
     workflowCount: getWorkflowIds().length,
     workflows: getWorkflowStatusSummary(),
+  };
+}
+
+export function getEventStatus() {
+  return {
+    totalEventCount: runtimeStore.events.length,
+    events: getRecentEvents(100),
   };
 }
 

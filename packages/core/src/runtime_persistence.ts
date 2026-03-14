@@ -10,6 +10,7 @@ const FILES = {
   plans: path.join(DATA_DIR, 'plans.json'),
   jobs: path.join(DATA_DIR, 'jobs.json'),
   artifacts: path.join(DATA_DIR, 'artifacts.json'),
+  events: path.join(DATA_DIR, 'events.json'),
   queue: path.join(DATA_DIR, 'queue.json'),
 };
 
@@ -44,6 +45,7 @@ export function loadRuntimeState(): PersistedRuntimeState {
     plans: readJsonFile(FILES.plans, []),
     jobs: readJsonFile(FILES.jobs, []),
     artifacts: readJsonFile(FILES.artifacts, []),
+    events: readJsonFile(FILES.events, []),
     queue: readJsonFile(FILES.queue, { queue: [], executing: [] }),
   };
 
@@ -61,6 +63,7 @@ export function saveRuntimeState(): PersistedRuntimeState {
     plans: runtimeStore.plans,
     jobs: runtimeStore.jobs,
     artifacts: runtimeStore.artifacts,
+    events: runtimeStore.events,
     queue: jobQueue.getState(),
   };
 
@@ -68,6 +71,7 @@ export function saveRuntimeState(): PersistedRuntimeState {
   writeJsonFile(FILES.plans, state.plans);
   writeJsonFile(FILES.jobs, state.jobs);
   writeJsonFile(FILES.artifacts, state.artifacts);
+  writeJsonFile(FILES.events, state.events);
   writeJsonFile(FILES.queue, state.queue);
 
   return state;

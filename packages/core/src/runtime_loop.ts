@@ -1,4 +1,5 @@
 import { routeSignalToPlannerAction, type PlannerAction } from '../../planner/src/signal_router';
+import { logEvent } from './event_log';
 import { executeJobs } from './job_executor';
 import { jobQueue, type QueueJob, type ReviewState } from './job_queue';
 import { saveRuntimeState } from './runtime_persistence';
@@ -41,12 +42,22 @@ function nextId(prefix: string, index: number): string {
 }
 
 function createPlan(signal: Signal): Plan {
-  return {
+  const plan = {
     id: nextId('plan', runtimeStore.plans.length),
     signalId: signal.id,
     action: routeSignalToPlannerAction(signal),
     createdAt: Date.now(),
   };
+
+  logEvent({
+    type: 'plan_created',
+    entityType: 'plan',
+    entityId: plan.id,
+    message: `Plan ${plan.id} created for signal ${signal.id}`,
+    metadata: { action: plan.action },
+  });
+
+  return plan;
 }
 
 function actionToJobTemplates(action: PlannerAction): JobTemplate[] {
@@ -116,6 +127,13 @@ export function processSignal(input: Pick<Signal, 'name' | 'payload'>): {
     createdAt: Date.now(),
   };
   runtimeStore.signals.push(signal);
+  logEvent({
+    type: 'signal_received',
+    entityType: 'signal',
+    entityId: signal.id,
+    message: `Signal received: ${signal.name}`,
+    metadata: { payload: signal.payload ?? null },
+  });
 
   const plan = createPlan(signal);
   runtimeStore.plans.push(plan);

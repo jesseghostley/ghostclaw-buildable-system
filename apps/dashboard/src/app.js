@@ -7,6 +7,7 @@ const el = {
   agents: document.getElementById('agents'),
   skills: document.getElementById('skills'),
   workflows: document.getElementById('workflows'),
+  events: document.getElementById('events'),
   jobsTableBody: document.getElementById('jobs-table-body'),
   artifactsTableBody: document.getElementById('artifacts-table-body'),
   jobDetails: document.getElementById('job-details'),
@@ -30,6 +31,31 @@ const el = {
 
 let selectedJobId = null;
 let selectedArtifactId = null;
+
+function ensureRecentEventsSection() {
+  let panel = document.getElementById('events-panel');
+  if (panel) {
+    return;
+  }
+
+  const layout = document.querySelector('.layout');
+  if (!layout) {
+    return;
+  }
+
+  panel = document.createElement('section');
+  panel.id = 'events-panel';
+  panel.className = 'panel wide';
+  panel.innerHTML = `
+    <h2>Recent Events</h2>
+    <pre id="events">Loading...</pre>
+  `;
+  layout.appendChild(panel);
+
+  el.events = document.getElementById('events');
+}
+
+ensureRecentEventsSection();
 
 function toJsonText(value) {
   return JSON.stringify(value, null, 2);
@@ -228,6 +254,25 @@ async function refreshDashboard() {
     hadError = true;
     el.workflows.classList.add('error');
     el.workflows.textContent = `Failed to fetch workflows: ${error.message}`;
+  }
+
+
+  try {
+    const events = await fetchJson('/api/runtime/events');
+    const formatted = events.events
+      .slice(0, 20)
+      .map((event) => {
+        const time = new Date(event.timestamp).toLocaleTimeString();
+        return `[${time}] ${event.type} - ${event.message}`;
+      })
+      .join('\n');
+
+    el.events.textContent = formatted || 'No events yet.';
+    el.events.classList.remove('error');
+  } catch (error) {
+    hadError = true;
+    el.events.classList.add('error');
+    el.events.textContent = `Failed to fetch events: ${error.message}`;
   }
 
   try {

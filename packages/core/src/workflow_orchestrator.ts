@@ -1,4 +1,5 @@
 import type { JobDependencyMeta } from '../../shared/src/types/job';
+import { logEvent } from './event_log';
 import { jobQueue } from './job_queue';
 import { runtimeStore } from './state_store';
 
@@ -26,6 +27,14 @@ export function createWorkflow(
     } else {
       runtimeJob.workflowState = 'ready';
     }
+  });
+
+  logEvent({
+    type: 'workflow_created',
+    entityType: 'workflow',
+    entityId: workflowId,
+    message: `Workflow ${workflowId} created for plan ${plan.id}`,
+    metadata: { action: plan.action, jobCount: jobs.length },
   });
 
   return workflowId;
@@ -74,6 +83,13 @@ export function unblockDependentJobs(completedJobId: string): string[] {
       job.workflowState = 'ready';
       job.blockedReason = undefined;
       jobQueue.requeue(job.id);
+      logEvent({
+        type: 'job_unblocked',
+        entityType: 'job',
+        entityId: job.id,
+        message: `Job ${job.id} dependencies satisfied and unblocked`,
+        metadata: { completedDependencyId: completedJobId, workflowId: job.workflowId },
+      });
       unblocked.push(job.id);
     }
   });

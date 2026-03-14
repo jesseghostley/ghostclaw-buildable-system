@@ -2,6 +2,7 @@ import { Router } from 'express';
 import {
   getAgentStatus,
   getArtifactStatus,
+  getEventStatus,
   getQueueStatus,
   getRuntimeStatus,
   getSkillStatus,
@@ -20,6 +21,10 @@ router.get('/queue', (_req, res) => {
 
 router.get('/workflows', (_req, res) => {
   res.json(getWorkflowStatuses());
+});
+
+router.get('/events', (_req, res) => {
+  res.json(getEventStatus());
 });
 
 router.get('/agents', (_req, res) => {

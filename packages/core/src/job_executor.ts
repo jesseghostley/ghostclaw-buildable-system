@@ -1,4 +1,5 @@
 import { agentRegistry } from './agent_registry';
+import { logEvent } from './event_log';
 import { jobQueue } from './job_queue';
 import { skillRegistry } from './skill_registry';
 import { unblockDependentJobs } from './workflow_orchestrator';
@@ -72,7 +73,7 @@ export function executeJobs(): Artifact[] {
       jobQueue.markComplete(job.id);
       unblockDependentJobs(job.id);
 
-      artifacts.push({
+      const artifact = {
         id: `artifact_${job.id}`,
         jobId: job.id,
         type: job.jobType,
@@ -88,8 +89,16 @@ export function executeJobs(): Artifact[] {
           null,
           2,
         ),
-        status: 'draft',
+        status: 'draft' as const,
         createdAt: Date.now(),
+      };
+      artifacts.push(artifact);
+      logEvent({
+        type: 'artifact_created',
+        entityType: 'artifact',
+        entityId: artifact.id,
+        message: `Artifact ${artifact.id} created for job ${job.id}`,
+        metadata: { jobId: job.id, workflowId: job.workflowId },
       });
     } catch {
       jobQueue.markFailed(job.id);

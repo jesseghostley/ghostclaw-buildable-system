@@ -1,4 +1,5 @@
 import { executeJobs } from './job_executor';
+import { logEvent } from './event_log';
 import { jobQueue } from './job_queue';
 import { resetPersistedState, saveRuntimeState } from './runtime_persistence';
 import { processSignal } from './runtime_loop';
@@ -70,5 +71,12 @@ export function submitTestSignal(signalName: string): ControlResult<{ signalId: 
 
 export function resetRuntimeState(): ControlResult<{ reset: true }> {
   resetPersistedState();
+  logEvent({
+    type: 'runtime_reset',
+    entityType: 'runtime',
+    entityId: 'runtime',
+    message: 'Runtime state reset by operator',
+  });
+  saveRuntimeState();
   return { success: true, data: { reset: true } };
 }

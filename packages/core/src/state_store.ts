@@ -1,3 +1,4 @@
+import type { RuntimeEvent } from '../../shared/src/types/runtime_event';
 import type { Artifact, Job, Plan, Signal } from './runtime_loop';
 
 export type PersistedQueueState = {
@@ -10,6 +11,7 @@ export type PersistedRuntimeState = {
   plans: Plan[];
   jobs: Job[];
   artifacts: Artifact[];
+  events: RuntimeEvent[];
   queue: PersistedQueueState;
 };
 
@@ -18,6 +20,7 @@ export const runtimeStore = {
   plans: [] as Plan[],
   jobs: [] as Job[],
   artifacts: [] as Artifact[],
+  events: [] as RuntimeEvent[],
 };
 
 export function applyRuntimeCollections(state: PersistedRuntimeState): void {
@@ -45,6 +48,9 @@ export function applyRuntimeCollections(state: PersistedRuntimeState): void {
       status: artifact.status ?? 'draft',
     })),
   );
+
+  runtimeStore.events.length = 0;
+  runtimeStore.events.push(...(state.events ?? []));
 }
 
 export function clearRuntimeCollections(): void {
@@ -52,4 +58,5 @@ export function clearRuntimeCollections(): void {
   runtimeStore.plans.length = 0;
   runtimeStore.jobs.length = 0;
   runtimeStore.artifacts.length = 0;
+  runtimeStore.events.length = 0;
 }

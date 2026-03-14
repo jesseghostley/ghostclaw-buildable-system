@@ -1,4 +1,5 @@
 import type { DependencyBlockedReason, JobDependencyMeta } from '../../shared/src/types/job';
+import { logEvent } from './event_log';
 
 export type JobStatus =
   | 'queued'
@@ -47,6 +48,14 @@ class InMemoryJobQueue {
     if (job.status === 'queued') {
       this.queue.push(job.id);
     }
+
+    logEvent({
+      type: 'job_queued',
+      entityType: 'job',
+      entityId: job.id,
+      message: `Job ${job.id} queued (${job.jobType})`,
+      metadata: { workflowId: job.workflowId, dependencyJobIds: job.dependencyJobIds ?? [] },
+    });
 
     return job;
   }
@@ -111,6 +120,14 @@ class InMemoryJobQueue {
     job.workflowState = 'running';
     job.updatedAt = Date.now();
     this.executing.add(jobId);
+
+    logEvent({
+      type: 'job_started',
+      entityType: 'job',
+      entityId: job.id,
+      message: `Job ${job.id} started`,
+      metadata: { jobType: job.jobType, workflowId: job.workflowId },
+    });
   }
 
   markComplete(jobId: string): void {
@@ -124,6 +141,14 @@ class InMemoryJobQueue {
     job.workflowState = 'completed';
     job.updatedAt = Date.now();
     this.executing.delete(jobId);
+
+    logEvent({
+      type: 'job_completed',
+      entityType: 'job',
+      entityId: job.id,
+      message: `Job ${job.id} completed`,
+      metadata: { workflowId: job.workflowId },
+    });
   }
 
   markBlocked(jobId: string, reason: DependencyBlockedReason = 'missing_agent'): void {
@@ -137,6 +162,14 @@ class InMemoryJobQueue {
     job.workflowState = 'blocked';
     job.updatedAt = Date.now();
     this.executing.delete(jobId);
+
+    logEvent({
+      type: 'job_blocked',
+      entityType: 'job',
+      entityId: job.id,
+      message: `Job ${job.id} blocked (${reason})`,
+      metadata: { workflowId: job.workflowId, reason },
+    });
   }
 
   markFailed(jobId: string): void {
@@ -156,11 +189,25 @@ class InMemoryJobQueue {
       if (!this.queue.includes(job.id)) {
         this.queue.push(job.id);
       }
+      logEvent({
+        type: 'job_failed',
+        entityType: 'job',
+        entityId: job.id,
+        message: `Job ${job.id} failed and requeued for retry`,
+        metadata: { retryCount: job.retryCount },
+      });
       return;
     }
 
     job.status = 'failed';
     job.workflowState = 'failed';
+    logEvent({
+      type: 'job_failed',
+      entityType: 'job',
+      entityId: job.id,
+      message: `Job ${job.id} failed permanently`,
+      metadata: { retryCount: job.retryCount },
+    });
   }
 
   requeue(jobId: string): QueueJob | undefined {
@@ -178,6 +225,14 @@ class InMemoryJobQueue {
     if (!this.queue.includes(job.id)) {
       this.queue.push(job.id);
     }
+
+    logEvent({
+      type: 'job_unblocked',
+      entityType: 'job',
+      entityId: job.id,
+      message: `Job ${job.id} unblocked/requeued`,
+      metadata: { workflowId: job.workflowId },
+    });
 
     return job;
   }
