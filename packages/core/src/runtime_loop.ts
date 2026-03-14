@@ -1,6 +1,6 @@
 import { routeSignalToPlannerAction, type PlannerAction } from '../../planner/src/signal_router';
 import { executeJobs } from './job_executor';
-import { jobQueue, type QueueJob } from './job_queue';
+import { jobQueue, type QueueJob, type ReviewState } from './job_queue';
 import { saveRuntimeState } from './runtime_persistence';
 import { runtimeStore } from './state_store';
 
@@ -26,7 +26,7 @@ export type Artifact = {
   type: string;
   title: string;
   content: string;
-  status: 'created' | 'published';
+  status: ReviewState;
   createdAt: number;
 };
 
@@ -56,6 +56,7 @@ function createJobs(plan: Plan, signal: Signal): Job[] {
     jobType,
     assignedAgent: null,
     status: 'queued',
+    lifecycleState: 'draft',
     inputPayload: {
       signalName: signal.name,
       signalPayload: signal.payload ?? null,

@@ -12,11 +12,18 @@ const el = {
   jobsError: document.getElementById('jobs-error'),
   artifactsError: document.getElementById('artifacts-error'),
   controlResult: document.getElementById('control-result'),
+  approvalResult: document.getElementById('approval-result'),
+  jobReviewState: document.getElementById('job-review-state'),
   testSignalName: document.getElementById('test-signal-name'),
+  rejectReason: document.getElementById('reject-reason'),
   retryJobButton: document.getElementById('retry-job'),
   requeueJobButton: document.getElementById('requeue-job'),
   sendTestSignalButton: document.getElementById('send-test-signal'),
   resetRuntimeButton: document.getElementById('reset-runtime'),
+  submitReviewButton: document.getElementById('submit-review'),
+  approveJobButton: document.getElementById('approve-job'),
+  rejectJobButton: document.getElementById('reject-job'),
+  publishJobButton: document.getElementById('publish-job'),
 };
 
 let selectedJobId = null;
@@ -49,6 +56,26 @@ async function postJson(path, payload = {}) {
   return data;
 }
 
+function setMessage(element, message, isError = false) {
+  element.className = isError ? 'error' : 'success';
+  element.textContent = message;
+}
+
+async function runAction(action, targetElement) {
+  try {
+    const result = await action();
+    setMessage(targetElement, toJsonText(result), false);
+    await refreshDashboard();
+  } catch (error) {
+    setMessage(targetElement, error.message, true);
+  }
+}
+
+function setSelectedJobDetails(job) {
+  el.jobDetails.textContent = toJsonText(job);
+  el.jobReviewState.textContent = `Review state: ${job.lifecycleState ?? 'draft'}`;
+}
+
 function renderJobsTable(jobs) {
   el.jobsTableBody.innerHTML = '';
 
@@ -61,6 +88,7 @@ function renderJobsTable(jobs) {
       <td>${job.jobType}</td>
       <td>${job.assignedAgent ?? '-'}</td>
       <td>${job.status}</td>
+      <td>${job.lifecycleState ?? 'draft'}</td>
       <td>${job.retryCount}</td>
     `;
 
@@ -68,7 +96,7 @@ function renderJobsTable(jobs) {
       selectedJobId = job.id;
       try {
         const details = await fetchJson(`/api/jobs/${job.id}`);
-        el.jobDetails.textContent = toJsonText(details);
+        setSelectedJobDetails(details);
       } catch (error) {
         el.jobDetails.textContent = `Failed to load job ${job.id}: ${error.message}`;
       }
@@ -108,49 +136,48 @@ function renderArtifactsTable(artifacts) {
   });
 }
 
-function setControlResult(message, isError = false) {
-  el.controlResult.className = isError ? 'error' : 'success';
-  el.controlResult.textContent = message;
-}
-
-async function runControlAction(action) {
-  try {
-    const result = await action();
-    setControlResult(toJsonText(result), false);
-    await refreshDashboard();
-  } catch (error) {
-    setControlResult(error.message, true);
-  }
-}
-
 el.sendTestSignalButton.addEventListener('click', () =>
-  runControlAction(() =>
-    postJson('/api/control/signals/test', {
-      signalName: el.testSignalName.value,
-    }),
-  ),
+  runAction(() => postJson('/api/control/signals/test', { signalName: el.testSignalName.value }), el.controlResult),
 );
-
 el.retryJobButton.addEventListener('click', () =>
-  runControlAction(async () => {
-    if (!selectedJobId) {
-      throw new Error('Select a job first.');
-    }
+  runAction(() => {
+    if (!selectedJobId) throw new Error('Select a job first.');
     return postJson(`/api/control/jobs/${selectedJobId}/retry`);
-  }),
+  }, el.controlResult),
 );
-
 el.requeueJobButton.addEventListener('click', () =>
-  runControlAction(async () => {
-    if (!selectedJobId) {
-      throw new Error('Select a job first.');
-    }
+  runAction(() => {
+    if (!selectedJobId) throw new Error('Select a job first.');
     return postJson(`/api/control/jobs/${selectedJobId}/requeue`);
-  }),
+  }, el.controlResult),
+);
+el.resetRuntimeButton.addEventListener('click', () =>
+  runAction(() => postJson('/api/control/reset'), el.controlResult),
 );
 
-el.resetRuntimeButton.addEventListener('click', () =>
-  runControlAction(() => postJson('/api/control/reset')),
+el.submitReviewButton.addEventListener('click', () =>
+  runAction(() => {
+    if (!selectedJobId) throw new Error('Select a job first.');
+    return postJson(`/api/approvals/jobs/${selectedJobId}/submit`);
+  }, el.approvalResult),
+);
+el.approveJobButton.addEventListener('click', () =>
+  runAction(() => {
+    if (!selectedJobId) throw new Error('Select a job first.');
+    return postJson(`/api/approvals/jobs/${selectedJobId}/approve`);
+  }, el.approvalResult),
+);
+el.rejectJobButton.addEventListener('click', () =>
+  runAction(() => {
+    if (!selectedJobId) throw new Error('Select a job first.');
+    return postJson(`/api/approvals/jobs/${selectedJobId}/reject`, { reason: el.rejectReason.value });
+  }, el.approvalResult),
+);
+el.publishJobButton.addEventListener('click', () =>
+  runAction(() => {
+    if (!selectedJobId) throw new Error('Select a job first.');
+    return postJson(`/api/approvals/jobs/${selectedJobId}/publish`);
+  }, el.approvalResult),
 );
 
 async function refreshDashboard() {
@@ -185,7 +212,7 @@ async function refreshDashboard() {
     if (selectedJobId) {
       const selected = jobs.jobs.find((job) => job.id === selectedJobId);
       if (selected) {
-        el.jobDetails.textContent = toJsonText(selected);
+        setSelectedJobDetails(selected);
       }
     }
   } catch (error) {

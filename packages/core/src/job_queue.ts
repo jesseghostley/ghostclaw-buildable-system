@@ -6,12 +6,16 @@ export type JobStatus =
   | 'failed'
   | 'blocked';
 
+export type ReviewState = 'draft' | 'waiting_review' | 'approved' | 'rejected' | 'published';
+
 export type QueueJob = {
   id: string;
   planId: string;
   jobType: string;
   assignedAgent: string | null;
   status: JobStatus;
+  lifecycleState: ReviewState;
+  reviewReason?: string;
   inputPayload: Record<string, unknown>;
   outputPayload: Record<string, unknown> | null;
   retryCount: number;
@@ -164,7 +168,11 @@ class InMemoryJobQueue {
     this.reset();
 
     jobs.forEach((job) => {
-      this.jobsById.set(job.id, job);
+      const normalized = {
+        ...job,
+        lifecycleState: job.lifecycleState ?? 'draft',
+      };
+      this.jobsById.set(job.id, normalized);
     });
 
     this.queue.push(

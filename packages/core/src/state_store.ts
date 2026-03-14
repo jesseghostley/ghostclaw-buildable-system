@@ -28,10 +28,20 @@ export function applyRuntimeCollections(state: PersistedRuntimeState): void {
   runtimeStore.plans.push(...state.plans);
 
   runtimeStore.jobs.length = 0;
-  runtimeStore.jobs.push(...state.jobs);
+  runtimeStore.jobs.push(
+    ...state.jobs.map((job) => ({
+      ...job,
+      lifecycleState: job.lifecycleState ?? 'draft',
+    })),
+  );
 
   runtimeStore.artifacts.length = 0;
-  runtimeStore.artifacts.push(...state.artifacts);
+  runtimeStore.artifacts.push(
+    ...state.artifacts.map((artifact) => ({
+      ...artifact,
+      status: artifact.status ?? 'draft',
+    })),
+  );
 }
 
 export function clearRuntimeCollections(): void {

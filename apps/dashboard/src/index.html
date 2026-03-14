@@ -16,47 +16,21 @@
       h2 { margin: 0 0 8px; font-size: 1.05rem; }
       .meta { margin-bottom: 14px; color: #93c5fd; font-size: 0.9rem; }
       .layout { display: grid; gap: 12px; grid-template-columns: 1fr 1fr; }
-      .panel {
-        background: #111827;
-        border: 1px solid #334155;
-        border-radius: 8px;
-        padding: 12px;
-      }
+      .panel { background: #111827; border: 1px solid #334155; border-radius: 8px; padding: 12px; }
       .panel.wide { grid-column: span 2; }
       table { width: 100%; border-collapse: collapse; font-size: 12px; }
       th, td { border-bottom: 1px solid #334155; padding: 6px; text-align: left; }
       tr.clickable { cursor: pointer; }
       tr.clickable:hover { background: #1e293b; }
-      pre {
-        margin: 0;
-        font-size: 12px;
-        white-space: pre-wrap;
-        word-break: break-word;
-        min-height: 80px;
-      }
+      pre { margin: 0; font-size: 12px; white-space: pre-wrap; word-break: break-word; min-height: 80px; }
       .row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-bottom: 8px; }
-      button {
-        border: 1px solid #475569;
-        border-radius: 6px;
-        background: #1e293b;
-        color: #e2e8f0;
-        padding: 6px 10px;
-        cursor: pointer;
-      }
+      button { border: 1px solid #475569; border-radius: 6px; background: #1e293b; color: #e2e8f0; padding: 6px 10px; cursor: pointer; }
       button:hover { background: #334155; }
-      input {
-        border: 1px solid #475569;
-        background: #0b1220;
-        color: #e2e8f0;
-        border-radius: 6px;
-        padding: 6px 8px;
-      }
+      input { border: 1px solid #475569; background: #0b1220; color: #e2e8f0; border-radius: 6px; padding: 6px 8px; }
       .error { color: #fca5a5; }
       .success { color: #86efac; }
-      @media (max-width: 900px) {
-        .layout { grid-template-columns: 1fr; }
-        .panel.wide { grid-column: span 1; }
-      }
+      .state-badge { color: #fcd34d; font-size: 0.9rem; margin-bottom: 6px; }
+      @media (max-width: 900px) { .layout { grid-template-columns: 1fr; } .panel.wide { grid-column: span 1; } }
     </style>
   </head>
   <body>
@@ -76,6 +50,18 @@
         <pre id="control-result">No actions yet.</pre>
       </section>
 
+      <section class="panel wide">
+        <h2>Approval Actions (Selected Job)</h2>
+        <div class="row">
+          <button id="submit-review">Submit for Review</button>
+          <button id="approve-job">Approve</button>
+          <button id="reject-job">Reject</button>
+          <button id="publish-job">Publish</button>
+          <input id="reject-reason" placeholder="Reject reason (optional)" />
+        </div>
+        <pre id="approval-result">No approval actions yet.</pre>
+      </section>
+
       <section class="panel">
         <h2>Runtime Status</h2>
         <pre id="runtime-status">Loading...</pre>
@@ -92,12 +78,7 @@
         <table>
           <thead>
             <tr>
-              <th>ID</th>
-              <th>Plan</th>
-              <th>Type</th>
-              <th>Agent</th>
-              <th>Status</th>
-              <th>Retries</th>
+              <th>ID</th><th>Plan</th><th>Type</th><th>Agent</th><th>Status</th><th>Lifecycle</th><th>Retries</th>
             </tr>
           </thead>
           <tbody id="jobs-table-body"></tbody>
@@ -110,12 +91,7 @@
         <table>
           <thead>
             <tr>
-              <th>ID</th>
-              <th>Job</th>
-              <th>Type</th>
-              <th>Title</th>
-              <th>Status</th>
-              <th>Created</th>
+              <th>ID</th><th>Job</th><th>Type</th><th>Title</th><th>Status</th><th>Created</th>
             </tr>
           </thead>
           <tbody id="artifacts-table-body"></tbody>
@@ -124,6 +100,7 @@
 
       <section class="panel">
         <h2>Selected Job Details</h2>
+        <div id="job-review-state" class="state-badge">Review state: n/a</div>
         <pre id="job-details">Click a job row to view details.</pre>
       </section>
 

@@ -53,7 +53,7 @@ export function executeJobs(): Artifact[] {
         type: job.jobType,
         title: `${job.jobType} output`,
         content: JSON.stringify(outputPayload, null, 2),
-        status: 'created',
+        status: 'draft',
         createdAt: Date.now(),
       });
     } catch {
