@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>GhostClaw Runtime Dashboard</title>
+    <style>
+      :root {
+        color-scheme: light dark;
+        font-family: Arial, sans-serif;
+      }
+      body {
+        margin: 0;
+        padding: 16px;
+        background: #0f172a;
+        color: #e2e8f0;
+      }
+      h1 {
+        margin: 0 0 16px;
+      }
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+        gap: 12px;
+      }
+      .panel {
+        border: 1px solid #334155;
+        border-radius: 8px;
+        padding: 12px;
+        background: #111827;
+      }
+      .panel h2 {
+        margin: 0 0 8px;
+        font-size: 1.05rem;
+      }
+      pre {
+        margin: 0;
+        white-space: pre-wrap;
+        word-break: break-word;
+        font-size: 12px;
+      }
+      .meta {
+        margin: 8px 0 16px;
+        color: #93c5fd;
+        font-size: 0.9rem;
+      }
+      .error {
+        color: #fca5a5;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>GhostClaw Runtime Dashboard</h1>
+    <div id="meta" class="meta">Loading...</div>
+
+    <div class="grid">
+      <section class="panel">
+        <h2>Runtime Status</h2>
+        <pre id="runtime-status">Loading...</pre>
+      </section>
+
+      <section class="panel">
+        <h2>Queue</h2>
+        <pre id="queue">Loading...</pre>
+      </section>
+
+      <section class="panel">
+        <h2>Agents</h2>
+        <pre id="agents">Loading...</pre>
+      </section>
+
+      <section class="panel">
+        <h2>Artifacts</h2>
+        <pre id="artifacts">Loading...</pre>
+      </section>
+    </div>
+
+    <script src="./app.js"></script>
+  </body>
+</html>
