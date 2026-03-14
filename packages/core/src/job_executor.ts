@@ -27,7 +27,7 @@ export function executeJobs(): Artifact[] {
 
     const assignedAgent = agentRegistry.findAgentForJob(job.jobType);
     if (!assignedAgent) {
-      jobQueue.markFailed(job.id);
+      jobQueue.markBlocked(job.id);
       continue;
     }
 
@@ -37,7 +37,7 @@ export function executeJobs(): Artifact[] {
 
     const handler = JOB_HANDLERS[job.jobType];
     if (!handler) {
-      jobQueue.markFailed(job.id);
+      jobQueue.markBlocked(job.id);
       continue;
     }
 

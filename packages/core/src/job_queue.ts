@@ -1,4 +1,10 @@
-export type JobStatus = 'queued' | 'assigned' | 'running' | 'completed' | 'failed';
+export type JobStatus =
+  | 'queued'
+  | 'assigned'
+  | 'running'
+  | 'completed'
+  | 'failed'
+  | 'blocked';
 
 export type QueueJob = {
   id: string;
@@ -32,6 +38,10 @@ class InMemoryJobQueue {
     }
 
     return job;
+  }
+
+  get(jobId: string): QueueJob | undefined {
+    return this.jobsById.get(jobId);
   }
 
   dequeue(): QueueJob | undefined {
@@ -88,6 +98,17 @@ class InMemoryJobQueue {
     this.executing.delete(jobId);
   }
 
+  markBlocked(jobId: string): void {
+    const job = this.jobsById.get(jobId);
+    if (!job) {
+      return;
+    }
+
+    job.status = 'blocked';
+    job.updatedAt = Date.now();
+    this.executing.delete(jobId);
+  }
+
   markFailed(jobId: string): void {
     const job = this.jobsById.get(jobId);
     if (!job) {
@@ -105,6 +126,29 @@ class InMemoryJobQueue {
     }
 
     job.status = 'failed';
+  }
+
+  requeue(jobId: string): QueueJob | undefined {
+    const job = this.jobsById.get(jobId);
+    if (!job) {
+      return undefined;
+    }
+
+    this.executing.delete(jobId);
+    job.status = 'queued';
+    job.updatedAt = Date.now();
+
+    if (!this.queue.includes(job.id)) {
+      this.queue.push(job.id);
+    }
+
+    return job;
+  }
+
+  reset(): void {
+    this.jobsById.clear();
+    this.queue.length = 0;
+    this.executing.clear();
   }
 }
 

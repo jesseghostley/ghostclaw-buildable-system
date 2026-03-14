@@ -1,5 +1,6 @@
 import express from 'express';
 import artifactsRouter from './routes/artifacts';
+import controlRouter from './routes/control';
 import jobsRouter from './routes/jobs';
 import runtimeRouter from './routes/runtime';
 import signalsRouter from './routes/signals';
@@ -16,5 +17,6 @@ app.use('/api/signals', signalsRouter);
 app.use('/api/runtime', runtimeRouter);
 app.use('/api/jobs', jobsRouter);
 app.use('/api/artifacts', artifactsRouter);
+app.use('/api/control', controlRouter);
 
 export default app;

@@ -11,6 +11,12 @@ const el = {
   artifactDetails: document.getElementById('artifact-details'),
   jobsError: document.getElementById('jobs-error'),
   artifactsError: document.getElementById('artifacts-error'),
+  controlResult: document.getElementById('control-result'),
+  testSignalName: document.getElementById('test-signal-name'),
+  retryJobButton: document.getElementById('retry-job'),
+  requeueJobButton: document.getElementById('requeue-job'),
+  sendTestSignalButton: document.getElementById('send-test-signal'),
+  resetRuntimeButton: document.getElementById('reset-runtime'),
 };
 
 let selectedJobId = null;
@@ -26,6 +32,21 @@ async function fetchJson(path) {
     throw new Error(`HTTP ${response.status} for ${path}`);
   }
   return response.json();
+}
+
+async function postJson(path, payload = {}) {
+  const response = await fetch(`${API_BASE}${path}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  });
+
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    throw new Error(data.error ?? data.message ?? `HTTP ${response.status} for ${path}`);
+  }
+
+  return data;
 }
 
 function renderJobsTable(jobs) {
@@ -86,6 +107,51 @@ function renderArtifactsTable(artifacts) {
     el.artifactsTableBody.appendChild(row);
   });
 }
+
+function setControlResult(message, isError = false) {
+  el.controlResult.className = isError ? 'error' : 'success';
+  el.controlResult.textContent = message;
+}
+
+async function runControlAction(action) {
+  try {
+    const result = await action();
+    setControlResult(toJsonText(result), false);
+    await refreshDashboard();
+  } catch (error) {
+    setControlResult(error.message, true);
+  }
+}
+
+el.sendTestSignalButton.addEventListener('click', () =>
+  runControlAction(() =>
+    postJson('/api/control/signals/test', {
+      signalName: el.testSignalName.value,
+    }),
+  ),
+);
+
+el.retryJobButton.addEventListener('click', () =>
+  runControlAction(async () => {
+    if (!selectedJobId) {
+      throw new Error('Select a job first.');
+    }
+    return postJson(`/api/control/jobs/${selectedJobId}/retry`);
+  }),
+);
+
+el.requeueJobButton.addEventListener('click', () =>
+  runControlAction(async () => {
+    if (!selectedJobId) {
+      throw new Error('Select a job first.');
+    }
+    return postJson(`/api/control/jobs/${selectedJobId}/requeue`);
+  }),
+);
+
+el.resetRuntimeButton.addEventListener('click', () =>
+  runControlAction(() => postJson('/api/control/reset')),
+);
 
 async function refreshDashboard() {
   const startedAt = new Date();

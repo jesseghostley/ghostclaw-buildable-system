@@ -34,7 +34,25 @@
         word-break: break-word;
         min-height: 80px;
       }
+      .row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-bottom: 8px; }
+      button {
+        border: 1px solid #475569;
+        border-radius: 6px;
+        background: #1e293b;
+        color: #e2e8f0;
+        padding: 6px 10px;
+        cursor: pointer;
+      }
+      button:hover { background: #334155; }
+      input {
+        border: 1px solid #475569;
+        background: #0b1220;
+        color: #e2e8f0;
+        border-radius: 6px;
+        padding: 6px 8px;
+      }
       .error { color: #fca5a5; }
+      .success { color: #86efac; }
       @media (max-width: 900px) {
         .layout { grid-template-columns: 1fr; }
         .panel.wide { grid-column: span 1; }
@@ -46,6 +64,18 @@
     <div id="meta" class="meta">Loading...</div>
 
     <div class="layout">
+      <section class="panel wide">
+        <h2>Runtime Controls</h2>
+        <div class="row">
+          <input id="test-signal-name" value="keyword_opportunity_detected" />
+          <button id="send-test-signal">Send Test Signal</button>
+          <button id="retry-job">Retry Selected Job</button>
+          <button id="requeue-job">Requeue Selected Job</button>
+          <button id="reset-runtime">Reset Runtime</button>
+        </div>
+        <pre id="control-result">No actions yet.</pre>
+      </section>
+
       <section class="panel">
         <h2>Runtime Status</h2>
         <pre id="runtime-status">Loading...</pre>
