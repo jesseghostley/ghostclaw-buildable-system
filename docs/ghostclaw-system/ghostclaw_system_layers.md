@@ -2,171 +2,333 @@
 
 ## Purpose
 
-GhostClaw is designed as a layered AI operating system capable of running autonomous agents, launching automated businesses, and distributing capabilities through a marketplace.
+This document provides the **single-screen visual model** of the GhostClaw operating system.
 
-This document describes the **high-level layers of the GhostClaw ecosystem**.
+It exists to make the GhostClaw architecture instantly understandable to:
 
-It is intended to help developers, contributors, and AI agents understand how the system is structured.
+- developers
+- contributors
+- investors
+- AI agents
+- future platform builders
 
-This document **does not define runtime specifications**.  
-See the runtime and system specification documents for implementation details.
+This is the **visual entry point** for the GhostClaw system.
+
+For full details, see:
+
+- `ghostclaw_system_map.md`
+- `ghostclaw_master_control_system.md`
+- `ghostclaw_runtime_execution_spec.md`
 
 ---
 
-# The Seven Layers of GhostClaw
+## Core System Idea
 
-GhostClaw can be understood as a stack of seven layers.
+GhostClaw is an **Autonomous AI Operating System** composed of three major platform capabilities:
 
-Each layer builds upon the capabilities of the layers below it.
+1. **AI Agent Runtime**
+2. **Capability Marketplace (Ghost Mart)**
+3. **Autonomous Company Factory**
 
+These capabilities operate through a shared control chain:
+
+Dashboard
+↓
+API Server
+↓
+Core Runtime
+↓
+CEO Engine
+↓
+Planner
+↓
+Agents
+↓
+Skills
+↓
+Marketplace
+
+---
+
+## GhostClaw System Layers Diagram
+
+```mermaid
+flowchart TD
+    A[Layer 1: Interface Layer<br/>Dashboard / Control UI]
+    B[Layer 2: API and Control Layer<br/>API Server / System Endpoints]
+    C[Layer 3: Core Runtime Layer<br/>Execution Engine / State / Queues / Persistence]
+    D[Layer 4: Executive Intelligence Layer<br/>CEO Engine / Strategic Direction]
+    E[Layer 5: Planning Layer<br/>Master Planner / Plan Generation / Assignment Logic]
+    F[Layer 6: Agent Workforce Layer<br/>Research / Build / Content / Growth / Ops Agents]
+    G[Layer 7: Capability Layer<br/>Skills / Tools / Automation Packs / Blueprints]
+    H[Layer 8: Marketplace Layer<br/>Ghost Mart / Listings / Distribution]
+    I[Layer 9: Company Factory Layer<br/>Autonomous Companies / Vertical Systems]
+    J[Layer 10: Ecosystem Growth Layer<br/>Traffic / Demand / Expansion / Feedback Loops]
+
+    A --> B --> C --> D --> E --> F --> G --> H --> I --> J
 ```
-Ghost Mart Marketplace
-Ghost Platforms
-Ghost Planner
-Ghost Agents
-Ghost Skills
-Ghost Memory + Monitor
-GhostClaw Core Runtime
-```
 
 ---
 
-# Layer 1 — GhostClaw Core Runtime
+## Layer Definitions
 
-The **Core Runtime** is the foundation of the system.
+### Layer 1: Interface Layer
 
-It is responsible for executing agents, managing workflows, and coordinating system operations.
+The visible control surface of GhostClaw.
+
+Examples:
+
+- dashboard
+- monitoring panels
+- admin controls
+- artifact views
+- company status views
+
+Purpose:
+
+- give humans visibility into the system
+- display health, outputs, and execution state
+- provide a control point for operations
+
+### Layer 2: API and Control Layer
+
+The system access and coordination boundary.
+
+Examples:
+
+- runtime API
+- agent registry endpoints
+- marketplace endpoints
+- execution state endpoints
+- analytics endpoints
+
+Purpose:
+
+- expose GhostClaw functionality programmatically
+- connect apps, agents, and services to the runtime
+- standardize control-plane access
+
+### Layer 3: Core Runtime Layer
+
+The execution heart of GhostClaw.
 
 Responsibilities include:
 
-- agent execution
-- task orchestration
-- workflow management
-- event processing
-- runtime scheduling
+- signal intake
+- job creation
+- queue management
+- state transitions
+- retries
+- persistence
+- observability
+- artifact storage
 
-The runtime acts as the **operating system for autonomous AI agents**.
+This is the system substrate that turns architecture into actual execution.
 
----
+### Layer 4: Executive Intelligence Layer
 
-# Layer 2 — Ghost Memory + Monitor
+The strategic direction layer.
 
-This layer provides persistent memory and operational monitoring.
+Examples:
 
-Responsibilities include:
+- Platform CEO Agent
+- Marketplace CEO Agent
+- SEO CEO Agent
+- Company CEO Agent
 
-- storing system state
-- maintaining historical execution logs
-- monitoring runtime performance
-- detecting failures and anomalies
+Purpose:
 
-This layer ensures that GhostClaw maintains continuity and stability during long-running operations.
+- define strategic priorities
+- set platform direction
+- choose major goals
+- handle escalations and high-level decisions
 
----
+### Layer 5: Planning Layer
 
-# Layer 3 — Ghost Skills
+The planning and decomposition layer.
 
-Skills represent the **atomic capabilities of the system**.
+Examples:
 
-Each skill performs a specific action such as:
+- Master Planner Agent
+- plan generation
+- task decomposition
+- assignment logic
+- workflow orchestration
 
-- calling APIs
-- scraping data
-- generating content
-- building integrations
-- executing automation workflows
+Purpose:
 
-Skills are reusable components that agents can invoke when performing tasks.
+- convert signals into plans
+- map goals into jobs
+- define required agents, skills, and outputs
 
----
+### Layer 6: Agent Workforce Layer
 
-# Layer 4 — Ghost Agents
+The active workforce of the GhostClaw ecosystem.
 
-Agents coordinate skills to perform complex tasks.
+Examples:
 
-Examples include:
+- Research Agents
+- Keyword Agents
+- Content Agents
+- Website Builder Agents
+- Marketplace Agents
+- Analytics Agents
+- Runtime Monitor Agents
+- Quality Assurance Agents
 
-- research agents
-- keyword agents
-- content agents
-- integration agents
-- marketplace agents
+Purpose:
 
-Agents transform individual skills into **goal-oriented behavior**.
+- perform the actual work of the system
+- execute plans
+- generate outputs
+- operate companies and platform workflows
 
----
+### Layer 7: Capability Layer
 
-# Layer 5 — Ghost Planner
+The reusable capability layer used by agents.
 
-The planner is responsible for turning goals into structured execution plans.
-
-Responsibilities include:
-
-- interpreting signals
-- decomposing objectives
-- selecting appropriate agents
-- sequencing actions
-- allocating system resources
-
-The planner acts as the **strategic brain of GhostClaw**.
-
----
-
-# Layer 6 — Ghost Platforms
-
-Platforms represent higher-level applications built on GhostClaw.
-
-Examples might include:
-
-- AI marketing platforms
-- automation platforms
-- SaaS applications
-- autonomous business systems
-
-Platforms combine agents, skills, and workflows into complete products.
-
----
-
-# Layer 7 — Ghost Mart Marketplace
-
-Ghost Mart is the **distribution and economic layer of the GhostClaw ecosystem**.
-
-It allows the system to publish and distribute:
+Examples:
 
 - skills
-- agent packs
-- automation workflows
-- company blueprints
+- tools
+- automation packs
+- blueprints
 - integrations
-- platform templates
 
-Ghost Mart turns GhostClaw into a **capability marketplace and AI ecosystem economy**.
+Purpose:
+
+- make GhostClaw modular
+- allow agents to invoke reusable abilities
+- provide installable, composable building blocks
+
+### Layer 8: Marketplace Layer
+
+The Ghost Mart distribution layer.
+
+Ghost Mart distributes:
+
+- agents
+- skills
+- automation packs
+- tools
+- company blueprints
+- developer tools
+- integrations
+
+Purpose:
+
+- package capabilities
+- publish capabilities
+- distribute capabilities across the ecosystem
+
+### Layer 9: Company Factory Layer
+
+The company creation layer.
+
+Examples:
+
+- AI SEO agency
+- service businesses
+- niche automation platforms
+- autonomous digital companies
+
+Purpose:
+
+- assemble agents, skills, and workflows into businesses
+- launch repeatable company blueprints
+- turn GhostClaw into a company-building engine
+
+### Layer 10: Ecosystem Growth Layer
+
+The expansion layer of the platform.
+
+Examples:
+
+- SEO growth loops
+- demand detection
+- marketplace expansion
+- new vertical discovery
+- partner and developer ecosystem growth
+
+Purpose:
+
+- feed new opportunities into the system
+- generate traffic and adoption
+- expand GhostClaw over time
 
 ---
 
-# Why the Layer Model Matters
+## Runtime Sub-Layers
 
-Understanding GhostClaw through layers helps maintain system clarity as the ecosystem grows.
+Inside the Core Runtime Layer, GhostClaw executes work through these internal sub-layers:
 
-Benefits include:
+```mermaid
+flowchart TD
+    R1[Signal Intake]
+    R2[Planning]
+    R3[Job Queue]
+    R4[Assignment]
+    R5[Execution]
+    R6[Validation]
+    R7[Persistence]
+    R8[Analytics and Feedback]
 
-- easier system expansion
-- clearer architecture boundaries
-- simpler onboarding for developers
-- improved modularity
+    R1 --> R2 --> R3 --> R4 --> R5 --> R6 --> R7 --> R8
+```
 
-Each layer can evolve independently without breaking the entire system.
+This runtime structure transforms:
+
+signal
+→ plan
+→ job
+→ execution
+→ output
+→ new signal
 
 ---
 
-# Summary
+## Why This File Matters
 
-GhostClaw operates as a layered AI operating system.
+This document gives GhostClaw a **canonical visual architecture**.
 
-From the runtime foundation to the marketplace economy, each layer builds upon the previous one to create a scalable autonomous ecosystem.
+It helps readers understand that GhostClaw is not just:
 
-```
-Marketplace → Platforms → Planner → Agents → Skills → Memory → Runtime
-```
+- a dashboard
+- a set of agents
+- a marketplace
+- a company blueprint system
 
-This layered model ensures that GhostClaw can expand into new domains while maintaining architectural stability.
+It is a **layered operating system** where each part of the ecosystem has a clear role.
+
+This makes the project easier to:
+
+- explain
+- build
+- extend
+- document
+- onboard contributors into
+- align across AI agents and humans
+
+---
+
+## Recommended Reading Order
+
+For new readers, use this sequence:
+
+1. `README.md`
+2. `ghostclaw_system_layers.md`
+3. `ghostclaw_system_map.md`
+4. `ghostclaw_master_control_system.md`
+5. `ghostclaw_runtime_execution_spec.md`
+
+---
+
+## Summary
+
+GhostClaw is a layered AI operating system.
+
+Its architecture progresses from:
+
+**interface** → **control** → **runtime** → **strategy** → **planning** → **agents** → **capabilities** → **marketplace** → **companies** → **ecosystem growth**
+
+This layered model is a clear way to understand how GhostClaw operates as a self-expanding autonomous platform.
