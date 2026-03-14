@@ -4,7 +4,7 @@ import { logEvent } from './event_log';
 import { saveRuntimeState } from './runtime_persistence';
 import { runtimeStore } from './state_store';
 import type { PublishTarget } from '../../shared/src/types/publish_target';
-import { normalizeWorkspaceId } from './workspace_registry';
+import { getWorkspacePolicy, normalizeWorkspaceId } from './workspace_registry';
 
 export type PublishedOutput = {
   id: string;
@@ -88,6 +88,14 @@ export function publishArtifact(artifactId: string, targetId: string): { success
   }
 
   const workspaceId = normalizeWorkspaceId(artifact.workspaceId);
+  const policy = getWorkspacePolicy(workspaceId);
+  if (!policy.allowedPublishTargets.includes(targetId)) {
+    return {
+      success: false,
+      error: `Publish target ${targetId} is not allowed for workspace ${workspaceId}. Allowed: ${policy.allowedPublishTargets.join(', ')}`,
+    };
+  }
+
   const output: PublishedOutput = {
     id: nextPublishedId(),
     workspaceId,

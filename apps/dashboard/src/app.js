@@ -49,7 +49,7 @@ function ensureDynamicSections() {
   addSection(
     'workspace-panel',
     'Workspace',
-    '<div class="row"><label for="workspace-select">Workspace</label><select id="workspace-select"></select></div>',
+    '<div class="row"><label for="workspace-select">Workspace</label><select id="workspace-select"></select></div><pre id="workspace-policy">Loading policy...</pre>',
   );
   addSection('events-panel', 'Recent Events', '<pre id="events">Loading...</pre>');
   addSection(
@@ -60,6 +60,7 @@ function ensureDynamicSections() {
   addSection('published-outputs-panel', 'Published Outputs', '<pre id="published-outputs">Loading...</pre>');
 
   el.workspaceSelect = document.getElementById('workspace-select');
+  el.workspacePolicy = document.getElementById('workspace-policy');
   el.events = document.getElementById('events');
   el.publishTargetSelect = document.getElementById('publish-target-select');
   el.publishArtifactButton = document.getElementById('publish-artifact');
@@ -278,9 +279,21 @@ async function refreshDashboard() {
         selectedWorkspaceId = workspaceData.defaultWorkspaceId;
         el.workspaceSelect.value = selectedWorkspaceId;
       }
+
+      const selected = workspaceData.workspaces.find((workspace) => workspace.id === selectedWorkspaceId);
+      if (el.workspacePolicy) {
+        el.workspacePolicy.classList.remove('error');
+        el.workspacePolicy.textContent = selected?.policy
+          ? toJsonText(selected.policy)
+          : 'No workspace policy found.';
+      }
     }
   } catch (error) {
     hadError = true;
+    if (el.workspacePolicy) {
+      el.workspacePolicy.textContent = `Failed to fetch workspace policy: ${error.message}`;
+      el.workspacePolicy.classList.add('error');
+    }
   }
 
   try {
@@ -342,7 +355,7 @@ async function refreshDashboard() {
   }
 
   try {
-    const publishTargets = await fetchJson('/api/publish/targets');
+    const publishTargets = await fetchJson(queryWithWorkspace('/api/publish/targets'));
     if (el.publishTargetSelect) {
       el.publishTargetSelect.innerHTML = publishTargets.targets
         .map((target) => `<option value="${target.id}">${target.name} (${target.id})</option>`)

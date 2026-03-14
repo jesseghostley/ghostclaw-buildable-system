@@ -50,8 +50,8 @@ router.get('/artifacts', (req, res) => {
   res.json(getArtifactStatus(workspaceParam(req)));
 });
 
-router.get('/workspaces', (_req, res) => {
-  res.json(getWorkspaceStatus());
+router.get('/workspaces', (req, res) => {
+  res.json(getWorkspaceStatus(workspaceParam(req)));
 });
 
 export default router;

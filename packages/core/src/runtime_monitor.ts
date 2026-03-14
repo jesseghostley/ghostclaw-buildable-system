@@ -5,7 +5,7 @@ import { listPublishTargets, listPublishedOutputs } from './publisher';
 import { skillRegistry } from './skill_registry';
 import { runtimeStore } from './state_store';
 import { getWorkflowStatus } from './workflow_orchestrator';
-import { listWorkspaces, normalizeWorkspaceId } from './workspace_registry';
+import { getWorkspacePolicy, listWorkspacePolicies, listWorkspaces, normalizeWorkspaceId } from './workspace_registry';
 
 function matchesWorkspace<T extends { workspaceId?: string }>(item: T, workspaceId?: string): boolean {
   if (!workspaceId) {
@@ -87,6 +87,7 @@ export function getRuntimeStatus(workspaceId?: string) {
   return {
     workspaceId: workspaceId ? normalizeWorkspaceId(workspaceId) : undefined,
     availableWorkspaces: listWorkspaces(),
+    selectedWorkspacePolicy: workspaceId ? getWorkspacePolicy(workspaceId) : undefined,
     totalSignals: runtimeStore.signals.filter((signal) => matchesWorkspace(signal, workspaceId)).length,
     totalPlans: runtimeStore.plans.filter((plan) => matchesWorkspace(plan, workspaceId)).length,
     ...queueCounts,
@@ -166,9 +167,16 @@ export function getArtifactStatus(workspaceId?: string) {
   };
 }
 
-export function getWorkspaceStatus() {
+export function getWorkspaceStatus(workspaceId?: string) {
+  const normalizedWorkspaceId = workspaceId ? normalizeWorkspaceId(workspaceId) : undefined;
   return {
     defaultWorkspaceId: normalizeWorkspaceId(undefined),
-    workspaces: listWorkspaces(),
+    selectedWorkspaceId: normalizedWorkspaceId,
+    selectedWorkspacePolicy: normalizedWorkspaceId ? getWorkspacePolicy(normalizedWorkspaceId) : undefined,
+    workspacePolicies: listWorkspacePolicies(),
+    workspaces: listWorkspaces().map((workspace) => ({
+      ...workspace,
+      policy: getWorkspacePolicy(workspace.id),
+    })),
   };
 }

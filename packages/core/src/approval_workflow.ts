@@ -3,6 +3,7 @@ import { logEvent } from './event_log';
 import { publishArtifact } from './publisher';
 import { saveRuntimeState } from './runtime_persistence';
 import { runtimeStore } from './state_store';
+import { getWorkspacePolicy, normalizeWorkspaceId } from './workspace_registry';
 
 type ApprovalResult = {
   success: boolean;
@@ -22,6 +23,30 @@ function syncArtifactsForJob(jobId: string, lifecycleState: 'draft' | 'waiting_r
   });
 }
 
+function maybeAutoApproveJob(job: Job): void {
+  const policy = getWorkspacePolicy(job.workspaceId);
+  if (!policy.autoApproveArtifacts) {
+    return;
+  }
+
+  if (job.lifecycleState === 'approved' || job.lifecycleState === 'published') {
+    return;
+  }
+
+  job.lifecycleState = 'approved';
+  job.reviewReason = undefined;
+  job.updatedAt = Date.now();
+  syncArtifactsForJob(job.id, 'approved');
+
+  logEvent({
+    type: 'job_approved',
+    entityType: 'job',
+    entityId: job.id,
+    message: `Job ${job.id} auto-approved by workspace policy`,
+    metadata: { workspaceId: normalizeWorkspaceId(job.workspaceId), autoApproved: true },
+  });
+}
+
 export function submitForReview(jobId: string): ApprovalResult {
   const job = getJob(jobId);
   if (!job) {
@@ -29,17 +54,20 @@ export function submitForReview(jobId: string): ApprovalResult {
   }
 
   if (job.status !== 'completed') {
-    return { success: false, error: `Only completed jobs can be submitted for review.` };
+    return { success: false, error: 'Only completed jobs can be submitted for review.' };
   }
 
   job.lifecycleState = 'waiting_review';
   job.updatedAt = Date.now();
   syncArtifactsForJob(jobId, 'waiting_review');
+  maybeAutoApproveJob(job);
+
   logEvent({
     type: 'review_submitted',
     entityType: 'job',
     entityId: job.id,
     message: `Job ${job.id} submitted for review`,
+    metadata: { workspaceId: normalizeWorkspaceId(job.workspaceId) },
   });
   saveRuntimeState();
 
@@ -53,7 +81,7 @@ export function approveJob(jobId: string): ApprovalResult {
   }
 
   if (job.lifecycleState !== 'waiting_review') {
-    return { success: false, error: `Job must be waiting_review before approval.` };
+    return { success: false, error: 'Job must be waiting_review before approval.' };
   }
 
   job.lifecycleState = 'approved';
@@ -65,6 +93,7 @@ export function approveJob(jobId: string): ApprovalResult {
     entityType: 'job',
     entityId: job.id,
     message: `Job ${job.id} approved`,
+    metadata: { workspaceId: normalizeWorkspaceId(job.workspaceId) },
   });
   saveRuntimeState();
 
@@ -78,7 +107,7 @@ export function rejectJob(jobId: string, reason?: string): ApprovalResult {
   }
 
   if (job.lifecycleState !== 'waiting_review') {
-    return { success: false, error: `Job must be waiting_review before rejection.` };
+    return { success: false, error: 'Job must be waiting_review before rejection.' };
   }
 
   job.lifecycleState = 'rejected';
@@ -90,7 +119,7 @@ export function rejectJob(jobId: string, reason?: string): ApprovalResult {
     entityType: 'job',
     entityId: job.id,
     message: `Job ${job.id} rejected`,
-    metadata: { reason: job.reviewReason },
+    metadata: { reason: job.reviewReason, workspaceId: normalizeWorkspaceId(job.workspaceId) },
   });
   saveRuntimeState();
 
@@ -103,8 +132,23 @@ export function publishJob(jobId: string, targetId?: string): ApprovalResult {
     return { success: false, error: `Job not found: ${jobId}` };
   }
 
-  if (job.lifecycleState !== 'approved') {
-    return { success: false, error: `Only approved jobs can be published.` };
+  const workspaceId = normalizeWorkspaceId(job.workspaceId);
+  const policy = getWorkspacePolicy(workspaceId);
+
+  if (policy.autoApproveArtifacts) {
+    maybeAutoApproveJob(job);
+  }
+
+  if (policy.requireReviewBeforePublish && job.lifecycleState !== 'approved') {
+    return { success: false, error: `Workspace policy requires review/approval before publish (${workspaceId}).` };
+  }
+
+  if (!policy.requireReviewBeforePublish && !policy.allowDirectPublish && job.lifecycleState !== 'approved') {
+    return { success: false, error: `Workspace policy does not allow direct publish (${workspaceId}).` };
+  }
+
+  if (job.lifecycleState !== 'approved' && !policy.allowDirectPublish) {
+    return { success: false, error: 'Only approved jobs can be published.' };
   }
 
   job.lifecycleState = 'published';
@@ -126,7 +170,7 @@ export function publishJob(jobId: string, targetId?: string): ApprovalResult {
     entityType: 'job',
     entityId: job.id,
     message: `Job ${job.id} published${targetId ? ` to ${targetId}` : ''}`,
-    metadata: targetId ? { targetId } : undefined,
+    metadata: { workspaceId, ...(targetId ? { targetId } : {}) },
   });
   saveRuntimeState();
 
