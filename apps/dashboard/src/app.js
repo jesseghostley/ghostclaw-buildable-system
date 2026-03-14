@@ -32,6 +32,7 @@ let selectedJobId = null;
 let selectedArtifactId = null;
 let selectedPublishTargetId = 'local_files';
 let selectedWorkspaceId = 'ghostclaw_core';
+let selectedBlueprintId = 'ai_seo_agency';
 
 function ensureDynamicSections() {
   const layout = document.querySelector('.layout');
@@ -51,6 +52,11 @@ function ensureDynamicSections() {
     'Workspace',
     '<div class="row"><label for="workspace-select">Workspace</label><select id="workspace-select"></select></div><pre id="workspace-policy">Loading policy...</pre>',
   );
+  addSection(
+    'blueprints-panel',
+    'Workspace Blueprints',
+    '<pre id="blueprints">Loading blueprints...</pre><div class="row"><select id="blueprint-select"></select><input id="new-workspace-name" placeholder="Workspace name" /><input id="new-workspace-id" placeholder="workspace_id (optional)" /><button id="create-workspace">Create Workspace</button></div><pre id="workspace-create-result">No workspace creation actions yet.</pre>',
+  );
   addSection('events-panel', 'Recent Events', '<pre id="events">Loading...</pre>');
   addSection(
     'publish-panel',
@@ -61,6 +67,12 @@ function ensureDynamicSections() {
 
   el.workspaceSelect = document.getElementById('workspace-select');
   el.workspacePolicy = document.getElementById('workspace-policy');
+  el.blueprints = document.getElementById('blueprints');
+  el.blueprintSelect = document.getElementById('blueprint-select');
+  el.newWorkspaceName = document.getElementById('new-workspace-name');
+  el.newWorkspaceId = document.getElementById('new-workspace-id');
+  el.createWorkspaceButton = document.getElementById('create-workspace');
+  el.workspaceCreateResult = document.getElementById('workspace-create-result');
   el.events = document.getElementById('events');
   el.publishTargetSelect = document.getElementById('publish-target-select');
   el.publishArtifactButton = document.getElementById('publish-artifact');
@@ -252,6 +264,22 @@ function attachEvents() {
     );
   }
 
+  if (el.createWorkspaceButton) {
+    el.createWorkspaceButton.addEventListener('click', () =>
+      runAction(() => postJson('/api/workspaces/from-blueprint', {
+        blueprintId: el.blueprintSelect?.value || selectedBlueprintId,
+        workspaceName: el.newWorkspaceName?.value,
+        workspaceId: el.newWorkspaceId?.value,
+      }), el.workspaceCreateResult),
+    );
+  }
+
+  if (el.blueprintSelect) {
+    el.blueprintSelect.addEventListener('change', () => {
+      selectedBlueprintId = el.blueprintSelect.value || selectedBlueprintId;
+    });
+  }
+
   if (el.workspaceSelect) {
     el.workspaceSelect.addEventListener('change', async () => {
       selectedWorkspaceId = el.workspaceSelect.value || 'ghostclaw_core';
@@ -293,6 +321,30 @@ async function refreshDashboard() {
     if (el.workspacePolicy) {
       el.workspacePolicy.textContent = `Failed to fetch workspace policy: ${error.message}`;
       el.workspacePolicy.classList.add('error');
+    }
+  }
+
+
+  try {
+    const blueprintsData = await fetchJson('/api/workspaces/blueprints');
+    if (el.blueprints) {
+      el.blueprints.classList.remove('error');
+      el.blueprints.textContent = toJsonText(blueprintsData);
+    }
+
+    if (el.blueprintSelect) {
+      el.blueprintSelect.innerHTML = blueprintsData.blueprints
+        .filter((blueprint) => blueprint.status === 'active')
+        .map((blueprint) => `<option value="${blueprint.id}">${blueprint.name} (${blueprint.id})</option>`)
+        .join('');
+      el.blueprintSelect.value = selectedBlueprintId;
+      selectedBlueprintId = el.blueprintSelect.value || selectedBlueprintId;
+    }
+  } catch (error) {
+    hadError = true;
+    if (el.blueprints) {
+      el.blueprints.classList.add('error');
+      el.blueprints.textContent = `Failed to fetch blueprints: ${error.message}`;
     }
   }
 

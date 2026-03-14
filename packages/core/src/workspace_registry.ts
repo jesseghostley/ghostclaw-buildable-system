@@ -85,6 +85,26 @@ export function createWorkspace(workspace: Workspace): Workspace {
   return workspace;
 }
 
+
+
+export function setWorkspacePolicy(policy: WorkspacePolicy): WorkspacePolicy {
+  policies.set(policy.workspaceId, policy);
+  return policy;
+}
+
+export function createWorkspaceWithPolicy(workspace: Workspace, policy?: WorkspacePolicy): Workspace {
+  createWorkspace(workspace);
+
+  if (policy) {
+    setWorkspacePolicy({
+      ...policy,
+      workspaceId: workspace.id,
+    });
+  }
+
+  return workspace;
+}
+
 export function normalizeWorkspaceId(workspaceId?: string): string {
   if (!workspaceId || !workspaces.has(workspaceId)) {
     return DEFAULT_WORKSPACE_ID;

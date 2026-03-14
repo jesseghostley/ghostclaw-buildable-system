@@ -5,6 +5,7 @@ import { listPublishTargets, listPublishedOutputs } from './publisher';
 import { skillRegistry } from './skill_registry';
 import { runtimeStore } from './state_store';
 import { getWorkflowStatus } from './workflow_orchestrator';
+import { listBlueprints } from './workspace_blueprints';
 import { getWorkspacePolicy, listWorkspacePolicies, listWorkspaces, normalizeWorkspaceId } from './workspace_registry';
 
 function matchesWorkspace<T extends { workspaceId?: string }>(item: T, workspaceId?: string): boolean {
@@ -88,6 +89,8 @@ export function getRuntimeStatus(workspaceId?: string) {
     workspaceId: workspaceId ? normalizeWorkspaceId(workspaceId) : undefined,
     availableWorkspaces: listWorkspaces(),
     selectedWorkspacePolicy: workspaceId ? getWorkspacePolicy(workspaceId) : undefined,
+    workspaceCount: listWorkspaces().length,
+    blueprintCount: listBlueprints().length,
     totalSignals: runtimeStore.signals.filter((signal) => matchesWorkspace(signal, workspaceId)).length,
     totalPlans: runtimeStore.plans.filter((plan) => matchesWorkspace(plan, workspaceId)).length,
     ...queueCounts,
@@ -174,6 +177,8 @@ export function getWorkspaceStatus(workspaceId?: string) {
     selectedWorkspaceId: normalizedWorkspaceId,
     selectedWorkspacePolicy: normalizedWorkspaceId ? getWorkspacePolicy(normalizedWorkspaceId) : undefined,
     workspacePolicies: listWorkspacePolicies(),
+    blueprintCount: listBlueprints().length,
+    blueprints: listBlueprints(),
     workspaces: listWorkspaces().map((workspace) => ({
       ...workspace,
       policy: getWorkspacePolicy(workspace.id),

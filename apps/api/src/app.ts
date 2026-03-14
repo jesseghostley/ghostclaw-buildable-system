@@ -6,6 +6,7 @@ import jobsRouter from './routes/jobs';
 import publishRouter from './routes/publish';
 import runtimeRouter from './routes/runtime';
 import signalsRouter from './routes/signals';
+import workspacesRouter from './routes/workspaces';
 import { loadRuntimeState } from '../../../packages/core/src/runtime_persistence';
 
 const app = express();
@@ -25,5 +26,6 @@ app.use('/api/artifacts', artifactsRouter);
 app.use('/api/approvals', approvalsRouter);
 app.use('/api/control', controlRouter);
 app.use('/api/publish', publishRouter);
+app.use('/api/workspaces', workspacesRouter);
 
 export default app;
