@@ -5,9 +5,11 @@ import { jobQueue, type QueueJob, type ReviewState } from './job_queue';
 import { saveRuntimeState } from './runtime_persistence';
 import { runtimeStore } from './state_store';
 import { createWorkflow } from './workflow_orchestrator';
+import { normalizeWorkspaceId } from './workspace_registry';
 
 export type Signal = {
   id: string;
+  workspaceId: string;
   name: string;
   payload?: Record<string, unknown>;
   createdAt: number;
@@ -15,6 +17,7 @@ export type Signal = {
 
 export type Plan = {
   id: string;
+  workspaceId: string;
   signalId: string;
   action: PlannerAction;
   createdAt: number;
@@ -24,6 +27,7 @@ export type Job = QueueJob;
 
 export type Artifact = {
   id: string;
+  workspaceId: string;
   jobId: string;
   type: string;
   title: string;
@@ -44,6 +48,7 @@ function nextId(prefix: string, index: number): string {
 function createPlan(signal: Signal): Plan {
   const plan = {
     id: nextId('plan', runtimeStore.plans.length),
+    workspaceId: signal.workspaceId,
     signalId: signal.id,
     action: routeSignalToPlannerAction(signal),
     createdAt: Date.now(),
@@ -54,7 +59,7 @@ function createPlan(signal: Signal): Plan {
     entityType: 'plan',
     entityId: plan.id,
     message: `Plan ${plan.id} created for signal ${signal.id}`,
-    metadata: { action: plan.action },
+    metadata: { action: plan.action, workspaceId: signal.workspaceId },
   });
 
   return plan;
@@ -72,9 +77,7 @@ function actionToJobTemplates(action: PlannerAction): JobTemplate[] {
       { jobType: 'generate_metadata', dependsOn: [0] },
       { jobType: 'generate_schema', dependsOn: [0] },
     ],
-    create_new_skill: [
-      { jobType: 'scaffold_skill_package' },
-    ],
+    create_new_skill: [{ jobType: 'scaffold_skill_package' }],
   };
 
   return templates[action];
@@ -85,6 +88,7 @@ function createJobs(plan: Plan, signal: Signal): Job[] {
 
   const jobs: Job[] = templates.map((template, index) => ({
     id: nextId('job', runtimeStore.jobs.length + index),
+    workspaceId: plan.workspaceId,
     planId: plan.id,
     jobType: template.jobType,
     assignedAgent: null,
@@ -114,14 +118,16 @@ function createJobs(plan: Plan, signal: Signal): Job[] {
   return jobs;
 }
 
-export function processSignal(input: Pick<Signal, 'name' | 'payload'>): {
+export function processSignal(input: { name: string; payload?: Record<string, unknown>; workspaceId?: string }): {
   signal: Signal;
   plan: Plan;
   jobs: Job[];
   artifacts: Artifact[];
 } {
+  const workspaceId = normalizeWorkspaceId(input.workspaceId);
   const signal: Signal = {
     id: nextId('signal', runtimeStore.signals.length),
+    workspaceId,
     name: input.name,
     payload: input.payload,
     createdAt: Date.now(),
@@ -132,7 +138,7 @@ export function processSignal(input: Pick<Signal, 'name' | 'payload'>): {
     entityType: 'signal',
     entityId: signal.id,
     message: `Signal received: ${signal.name}`,
-    metadata: { payload: signal.payload ?? null },
+    metadata: { payload: signal.payload ?? null, workspaceId },
   });
 
   const plan = createPlan(signal);

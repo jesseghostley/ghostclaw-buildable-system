@@ -76,6 +76,7 @@ export function executeJobs(): Artifact[] {
       const artifact = {
         id: `artifact_${job.id}`,
         jobId: job.id,
+        workspaceId: job.workspaceId ?? 'ghostclaw_core',
         type: job.jobType,
         title: `${job.jobType} output`,
         content: JSON.stringify(
@@ -85,6 +86,7 @@ export function executeJobs(): Artifact[] {
             agentName: assignedAgent.name,
             workflowId: job.workflowId,
             result: outputPayload,
+            workspaceId: job.workspaceId,
           },
           null,
           2,
@@ -98,7 +100,7 @@ export function executeJobs(): Artifact[] {
         entityType: 'artifact',
         entityId: artifact.id,
         message: `Artifact ${artifact.id} created for job ${job.id}`,
-        metadata: { jobId: job.id, workflowId: job.workflowId },
+        metadata: { jobId: job.id, workflowId: job.workflowId, workspaceId: job.workspaceId },
       });
     } catch {
       jobQueue.markFailed(job.id);

@@ -2,12 +2,14 @@ import type { JobDependencyMeta } from '../../shared/src/types/job';
 import { logEvent } from './event_log';
 import { jobQueue } from './job_queue';
 import { runtimeStore } from './state_store';
+import { normalizeWorkspaceId } from './workspace_registry';
 
 export function createWorkflow(
-  plan: { id: string; action: string },
+  plan: { id: string; action: string; workspaceId?: string },
   jobs: Array<{ id: string; dependencyJobIds?: string[] }>,
 ): string {
   const workflowId = `workflow_${plan.id}`;
+  const workspaceId = normalizeWorkspaceId(plan.workspaceId);
 
   jobs.forEach((job) => {
     const dependencies = job.dependencyJobIds ?? [];
@@ -16,6 +18,7 @@ export function createWorkflow(
       return;
     }
 
+    runtimeJob.workspaceId = workspaceId;
     runtimeJob.workflowId = workflowId;
     runtimeJob.dependencyJobIds = dependencies;
     runtimeJob.parentJobId = dependencies[0];
@@ -34,7 +37,7 @@ export function createWorkflow(
     entityType: 'workflow',
     entityId: workflowId,
     message: `Workflow ${workflowId} created for plan ${plan.id}`,
-    metadata: { action: plan.action, jobCount: jobs.length },
+    metadata: { action: plan.action, jobCount: jobs.length, workspaceId },
   });
 
   return workflowId;
@@ -88,7 +91,7 @@ export function unblockDependentJobs(completedJobId: string): string[] {
         entityType: 'job',
         entityId: job.id,
         message: `Job ${job.id} dependencies satisfied and unblocked`,
-        metadata: { completedDependencyId: completedJobId, workflowId: job.workflowId },
+        metadata: { completedDependencyId: completedJobId, workflowId: job.workflowId, workspaceId: job.workspaceId },
       });
       unblocked.push(job.id);
     }
@@ -97,11 +100,17 @@ export function unblockDependentJobs(completedJobId: string): string[] {
   return unblocked;
 }
 
-export function getWorkflowStatus(workflowId: string) {
-  const jobs = runtimeStore.jobs.filter((job) => job.workflowId === workflowId);
+export function getWorkflowStatus(workflowId: string, workspaceId?: string) {
+  const normalizedWorkspaceId = workspaceId ? normalizeWorkspaceId(workspaceId) : undefined;
+  const jobs = runtimeStore.jobs.filter(
+    (job) =>
+      job.workflowId === workflowId
+      && (!normalizedWorkspaceId || normalizeWorkspaceId(job.workspaceId) === normalizedWorkspaceId),
+  );
 
   return {
     workflowId,
+    workspaceId: normalizedWorkspaceId ?? (jobs[0]?.workspaceId ? normalizeWorkspaceId(jobs[0].workspaceId) : undefined),
     totalJobs: jobs.length,
     completedJobs: jobs.filter((job) => job.status === 'completed').length,
     blockedJobs: jobs.filter((job) => job.status === 'blocked').length,

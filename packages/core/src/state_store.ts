@@ -1,6 +1,7 @@
 import type { RuntimeEvent } from '../../shared/src/types/runtime_event';
 import type { Artifact, Job, Plan, Signal } from './runtime_loop';
 import type { PublishedOutput } from './publisher';
+import { DEFAULT_WORKSPACE_ID, normalizeWorkspaceId } from './workspace_registry';
 
 export type PersistedQueueState = {
   queue: string[];
@@ -28,15 +29,26 @@ export const runtimeStore = {
 
 export function applyRuntimeCollections(state: PersistedRuntimeState): void {
   runtimeStore.signals.length = 0;
-  runtimeStore.signals.push(...state.signals);
+  runtimeStore.signals.push(
+    ...state.signals.map((signal) => ({
+      ...signal,
+      workspaceId: normalizeWorkspaceId(signal.workspaceId),
+    })),
+  );
 
   runtimeStore.plans.length = 0;
-  runtimeStore.plans.push(...state.plans);
+  runtimeStore.plans.push(
+    ...state.plans.map((plan) => ({
+      ...plan,
+      workspaceId: normalizeWorkspaceId(plan.workspaceId),
+    })),
+  );
 
   runtimeStore.jobs.length = 0;
   runtimeStore.jobs.push(
     ...state.jobs.map((job) => ({
       ...job,
+      workspaceId: normalizeWorkspaceId(job.workspaceId),
       lifecycleState: job.lifecycleState ?? 'draft',
       workflowState: job.workflowState ?? 'draft',
       dependencyJobIds: job.dependencyJobIds ?? [],
@@ -48,15 +60,29 @@ export function applyRuntimeCollections(state: PersistedRuntimeState): void {
   runtimeStore.artifacts.push(
     ...state.artifacts.map((artifact) => ({
       ...artifact,
+      workspaceId: normalizeWorkspaceId(artifact.workspaceId),
       status: artifact.status ?? 'draft',
     })),
   );
 
   runtimeStore.events.length = 0;
-  runtimeStore.events.push(...(state.events ?? []));
+  runtimeStore.events.push(
+    ...(state.events ?? []).map((event) => ({
+      ...event,
+      metadata: {
+        ...(event.metadata ?? {}),
+        workspaceId: normalizeWorkspaceId((event.metadata?.workspaceId as string | undefined) ?? DEFAULT_WORKSPACE_ID),
+      },
+    })),
+  );
 
   runtimeStore.publishedOutputs.length = 0;
-  runtimeStore.publishedOutputs.push(...(state.publishedOutputs ?? []));
+  runtimeStore.publishedOutputs.push(
+    ...(state.publishedOutputs ?? []).map((output) => ({
+      ...output,
+      workspaceId: normalizeWorkspaceId(output.workspaceId),
+    })),
+  );
 }
 
 export function clearRuntimeCollections(): void {

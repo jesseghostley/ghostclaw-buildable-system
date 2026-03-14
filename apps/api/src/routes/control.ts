@@ -30,7 +30,7 @@ router.post('/jobs/:id/requeue', (req, res) => {
 
 router.post('/signals/test', (req, res) => {
   const signalName = req.body?.signalName;
-  const result = submitTestSignal(signalName);
+  const result = submitTestSignal(signalName, req.body?.workspaceId);
 
   if (!result.success) {
     res.status(400).json(result);

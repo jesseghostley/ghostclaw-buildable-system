@@ -4,9 +4,11 @@ import { logEvent } from './event_log';
 import { saveRuntimeState } from './runtime_persistence';
 import { runtimeStore } from './state_store';
 import type { PublishTarget } from '../../shared/src/types/publish_target';
+import { normalizeWorkspaceId } from './workspace_registry';
 
 export type PublishedOutput = {
   id: string;
+  workspaceId: string;
   artifactId: string;
   targetId: string;
   title: string;
@@ -59,8 +61,15 @@ export function listPublishTargets(): PublishTarget[] {
   return PUBLISH_TARGETS;
 }
 
-export function listPublishedOutputs(): PublishedOutput[] {
-  return runtimeStore.publishedOutputs;
+export function listPublishedOutputs(workspaceId?: string): PublishedOutput[] {
+  if (!workspaceId) {
+    return runtimeStore.publishedOutputs;
+  }
+
+  const normalizedWorkspaceId = normalizeWorkspaceId(workspaceId);
+  return runtimeStore.publishedOutputs.filter(
+    (output) => normalizeWorkspaceId(output.workspaceId) === normalizedWorkspaceId,
+  );
 }
 
 export function publishArtifact(artifactId: string, targetId: string): { success: boolean; error?: string; output?: PublishedOutput } {
@@ -78,8 +87,10 @@ export function publishArtifact(artifactId: string, targetId: string): { success
     return { success: false, error: `Artifact ${artifactId} must be approved or published before publish.` };
   }
 
+  const workspaceId = normalizeWorkspaceId(artifact.workspaceId);
   const output: PublishedOutput = {
     id: nextPublishedId(),
+    workspaceId,
     artifactId,
     targetId,
     title: artifact.title,
@@ -92,7 +103,11 @@ export function publishArtifact(artifactId: string, targetId: string): { success
   if (targetId === 'local_files') {
     ensurePublishedDir();
     const filePath = path.join(PUBLISHED_DIR, `${output.id}.json`);
-    fs.writeFileSync(filePath, JSON.stringify(output, null, 2), 'utf8');
+    fs.writeFileSync(
+      filePath,
+      JSON.stringify({ ...output, metadata: { workspaceId } }, null, 2),
+      'utf8',
+    );
   }
 
   logEvent({
@@ -100,7 +115,7 @@ export function publishArtifact(artifactId: string, targetId: string): { success
     entityType: 'artifact',
     entityId: artifactId,
     message: `Artifact ${artifactId} published to ${targetId}`,
-    metadata: { publishedOutputId: output.id, targetId },
+    metadata: { publishedOutputId: output.id, targetId, workspaceId },
   });
 
   saveRuntimeState();

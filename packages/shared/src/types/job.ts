@@ -14,6 +14,7 @@ export type DependencyBlockedReason =
   | 'dependency_failed';
 
 export type JobDependencyMeta = {
+  workspaceId?: string;
   parentJobId?: string;
   dependencyJobIds?: string[];
   workflowId?: string;

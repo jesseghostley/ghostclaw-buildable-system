@@ -55,13 +55,13 @@ export function requeueJob(jobId: string): ControlResult<{ jobId: string }> {
   return { success: true, data: { jobId } };
 }
 
-export function submitTestSignal(signalName: string): ControlResult<{ signalId: string }> {
+export function submitTestSignal(signalName: string, workspaceId?: string): ControlResult<{ signalId: string }> {
   if (!signalName || !signalName.trim()) {
     return { success: false, error: 'Signal name is required.' };
   }
 
   try {
-    const result = processSignal({ name: signalName.trim() });
+    const result = processSignal({ name: signalName.trim(), workspaceId });
     return { success: true, data: { signalId: result.signal.id } };
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Failed to submit signal.';

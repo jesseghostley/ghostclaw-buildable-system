@@ -1,5 +1,6 @@
 import type { DependencyBlockedReason, JobDependencyMeta } from '../../shared/src/types/job';
 import { logEvent } from './event_log';
+import { normalizeWorkspaceId } from './workspace_registry';
 
 export type JobStatus =
   | 'queued'
@@ -13,6 +14,7 @@ export type ReviewState = 'draft' | 'waiting_review' | 'approved' | 'rejected' |
 
 export type QueueJob = JobDependencyMeta & {
   id: string;
+  workspaceId?: string;
   planId: string;
   jobType: string;
   assignedAgent: string | null;
@@ -54,7 +56,7 @@ class InMemoryJobQueue {
       entityType: 'job',
       entityId: job.id,
       message: `Job ${job.id} queued (${job.jobType})`,
-      metadata: { workflowId: job.workflowId, dependencyJobIds: job.dependencyJobIds ?? [] },
+      metadata: { workflowId: job.workflowId, dependencyJobIds: job.dependencyJobIds ?? [], workspaceId: job.workspaceId },
     });
 
     return job;
@@ -126,7 +128,7 @@ class InMemoryJobQueue {
       entityType: 'job',
       entityId: job.id,
       message: `Job ${job.id} started`,
-      metadata: { jobType: job.jobType, workflowId: job.workflowId },
+      metadata: { jobType: job.jobType, workflowId: job.workflowId, workspaceId: job.workspaceId },
     });
   }
 
@@ -147,7 +149,7 @@ class InMemoryJobQueue {
       entityType: 'job',
       entityId: job.id,
       message: `Job ${job.id} completed`,
-      metadata: { workflowId: job.workflowId },
+      metadata: { workflowId: job.workflowId, workspaceId: job.workspaceId },
     });
   }
 
@@ -168,7 +170,7 @@ class InMemoryJobQueue {
       entityType: 'job',
       entityId: job.id,
       message: `Job ${job.id} blocked (${reason})`,
-      metadata: { workflowId: job.workflowId, reason },
+      metadata: { workflowId: job.workflowId, reason, workspaceId: job.workspaceId },
     });
   }
 
@@ -194,7 +196,7 @@ class InMemoryJobQueue {
         entityType: 'job',
         entityId: job.id,
         message: `Job ${job.id} failed and requeued for retry`,
-        metadata: { retryCount: job.retryCount },
+        metadata: { retryCount: job.retryCount, workspaceId: job.workspaceId },
       });
       return;
     }
@@ -206,7 +208,7 @@ class InMemoryJobQueue {
       entityType: 'job',
       entityId: job.id,
       message: `Job ${job.id} failed permanently`,
-      metadata: { retryCount: job.retryCount },
+      metadata: { retryCount: job.retryCount, workspaceId: job.workspaceId },
     });
   }
 
@@ -231,7 +233,7 @@ class InMemoryJobQueue {
       entityType: 'job',
       entityId: job.id,
       message: `Job ${job.id} unblocked/requeued`,
-      metadata: { workflowId: job.workflowId },
+      metadata: { workflowId: job.workflowId, workspaceId: job.workspaceId },
     });
 
     return job;
@@ -253,6 +255,7 @@ class InMemoryJobQueue {
         lifecycleState: job.lifecycleState ?? 'draft',
         workflowState: job.workflowState ?? 'draft',
         blockedReason: job.blockedReason,
+        workspaceId: normalizeWorkspaceId(job.workspaceId),
       };
       this.jobsById.set(job.id, normalized);
     });

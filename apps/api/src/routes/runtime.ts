@@ -8,24 +8,30 @@ import {
   getRuntimeStatus,
   getSkillStatus,
   getWorkflowStatuses,
+  getWorkspaceStatus,
 } from '../../../../packages/core/src/runtime_monitor';
 
 const router = Router();
 
-router.get('/status', (_req, res) => {
-  res.json(getRuntimeStatus());
+function workspaceParam(req: { query: Record<string, unknown> }): string | undefined {
+  const workspaceId = req.query.workspaceId;
+  return typeof workspaceId === 'string' && workspaceId.trim() ? workspaceId : undefined;
+}
+
+router.get('/status', (req, res) => {
+  res.json(getRuntimeStatus(workspaceParam(req)));
 });
 
-router.get('/queue', (_req, res) => {
-  res.json(getQueueStatus());
+router.get('/queue', (req, res) => {
+  res.json(getQueueStatus(workspaceParam(req)));
 });
 
-router.get('/workflows', (_req, res) => {
-  res.json(getWorkflowStatuses());
+router.get('/workflows', (req, res) => {
+  res.json(getWorkflowStatuses(workspaceParam(req)));
 });
 
-router.get('/events', (_req, res) => {
-  res.json(getEventStatus());
+router.get('/events', (req, res) => {
+  res.json(getEventStatus(workspaceParam(req)));
 });
 
 router.get('/agents', (_req, res) => {
@@ -36,12 +42,16 @@ router.get('/skills', (_req, res) => {
   res.json(getSkillStatus());
 });
 
-router.get('/publish', (_req, res) => {
-  res.json(getPublishStatus());
+router.get('/publish', (req, res) => {
+  res.json(getPublishStatus(workspaceParam(req)));
 });
 
-router.get('/artifacts', (_req, res) => {
-  res.json(getArtifactStatus());
+router.get('/artifacts', (req, res) => {
+  res.json(getArtifactStatus(workspaceParam(req)));
+});
+
+router.get('/workspaces', (_req, res) => {
+  res.json(getWorkspaceStatus());
 });
 
 export default router;

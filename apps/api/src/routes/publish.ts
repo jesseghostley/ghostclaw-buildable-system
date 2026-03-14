@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { listPublishTargets, listPublishedOutputs, publishArtifact } from '../../../../packages/core/src/publisher';
+import { normalizeWorkspaceId } from '../../../../packages/core/src/workspace_registry';
 
 const router = Router();
 
@@ -7,8 +8,12 @@ router.get('/targets', (_req, res) => {
   res.json({ targets: listPublishTargets() });
 });
 
-router.get('/outputs', (_req, res) => {
-  res.json({ outputs: listPublishedOutputs() });
+router.get('/outputs', (req, res) => {
+  const workspaceIdParam = req.query.workspaceId;
+  const workspaceId = typeof workspaceIdParam === 'string' && workspaceIdParam.trim()
+    ? normalizeWorkspaceId(workspaceIdParam)
+    : undefined;
+  res.json({ workspaceId, outputs: listPublishedOutputs(workspaceId) });
 });
 
 router.post('/artifacts/:id', (req, res) => {

@@ -1,10 +1,20 @@
 import { Router } from 'express';
 import { runtimeStore } from '../../../../packages/core/src/state_store';
+import { normalizeWorkspaceId } from '../../../../packages/core/src/workspace_registry';
 
 const router = Router();
 
-router.get('/', (_req, res) => {
-  res.json({ artifacts: runtimeStore.artifacts });
+function getWorkspaceId(query: Record<string, unknown>): string | undefined {
+  const value = query.workspaceId;
+  return typeof value === 'string' && value.trim() ? normalizeWorkspaceId(value) : undefined;
+}
+
+router.get('/', (req, res) => {
+  const workspaceId = getWorkspaceId(req.query as Record<string, unknown>);
+  const artifacts = workspaceId
+    ? runtimeStore.artifacts.filter((artifact) => normalizeWorkspaceId(artifact.workspaceId) === workspaceId)
+    : runtimeStore.artifacts;
+  res.json({ workspaceId, artifacts });
 });
 
 router.get('/:id', (req, res) => {

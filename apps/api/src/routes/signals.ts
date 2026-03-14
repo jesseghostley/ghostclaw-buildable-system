@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { processSignal } from '../../../../packages/core/src/runtime_loop';
 import { runtimeStore } from '../../../../packages/core/src/state_store';
+import { normalizeWorkspaceId } from '../../../../packages/core/src/workspace_registry';
 
 const router = Router();
 
@@ -12,10 +13,13 @@ router.post('/', (req, res) => {
     return;
   }
 
+  const workspaceId = normalizeWorkspaceId(req.body?.workspaceId);
+
   try {
     const result = processSignal({
       name,
       payload: req.body?.payload,
+      workspaceId,
     });
 
     res.status(201).json({

@@ -7,7 +7,6 @@ const el = {
   agents: document.getElementById('agents'),
   skills: document.getElementById('skills'),
   workflows: document.getElementById('workflows'),
-  events: document.getElementById('events'),
   jobsTableBody: document.getElementById('jobs-table-body'),
   artifactsTableBody: document.getElementById('artifacts-table-body'),
   jobDetails: document.getElementById('job-details'),
@@ -27,83 +26,60 @@ const el = {
   approveJobButton: document.getElementById('approve-job'),
   rejectJobButton: document.getElementById('reject-job'),
   publishJobButton: document.getElementById('publish-job'),
-  publishedOutputs: document.getElementById('published-outputs'),
-  publishResult: document.getElementById('publish-result'),
-  publishArtifactButton: document.getElementById('publish-artifact'),
-  publishTargetSelect: document.getElementById('publish-target-select'),
 };
 
 let selectedJobId = null;
 let selectedArtifactId = null;
 let selectedPublishTargetId = 'local_files';
+let selectedWorkspaceId = 'ghostclaw_core';
 
-function ensureRecentEventsSection() {
-  let panel = document.getElementById('events-panel');
-  if (panel) {
-    return;
-  }
-
+function ensureDynamicSections() {
   const layout = document.querySelector('.layout');
-  if (!layout) {
-    return;
-  }
+  if (!layout) return;
 
-  panel = document.createElement('section');
-  panel.id = 'events-panel';
-  panel.className = 'panel wide';
-  panel.innerHTML = `
-    <h2>Recent Events</h2>
-    <pre id="events">Loading...</pre>
-  `;
-  layout.appendChild(panel);
+  const addSection = (id, title, bodyHtml, wide = true) => {
+    if (document.getElementById(id)) return;
+    const panel = document.createElement('section');
+    panel.id = id;
+    panel.className = `panel${wide ? ' wide' : ''}`;
+    panel.innerHTML = `<h2>${title}</h2>${bodyHtml}`;
+    layout.appendChild(panel);
+  };
 
+  addSection(
+    'workspace-panel',
+    'Workspace',
+    '<div class="row"><label for="workspace-select">Workspace</label><select id="workspace-select"></select></div>',
+  );
+  addSection('events-panel', 'Recent Events', '<pre id="events">Loading...</pre>');
+  addSection(
+    'publish-panel',
+    'Publish Targets',
+    '<div class="row"><select id="publish-target-select"></select><button id="publish-artifact">Publish Selected Artifact</button></div><pre id="publish-result">No publish actions yet.</pre>',
+  );
+  addSection('published-outputs-panel', 'Published Outputs', '<pre id="published-outputs">Loading...</pre>');
+
+  el.workspaceSelect = document.getElementById('workspace-select');
   el.events = document.getElementById('events');
-}
-
-ensureRecentEventsSection();
-
-function ensurePublishSections() {
-  const layout = document.querySelector('.layout');
-  if (!layout) {
-    return;
-  }
-
-  if (!document.getElementById('publish-panel')) {
-    const panel = document.createElement('section');
-    panel.id = 'publish-panel';
-    panel.className = 'panel wide';
-    panel.innerHTML = `
-      <h2>Publish Targets</h2>
-      <div class="row">
-        <select id="publish-target-select"></select>
-        <button id="publish-artifact">Publish Selected Artifact</button>
-      </div>
-      <pre id="publish-result">No publish actions yet.</pre>
-    `;
-    layout.appendChild(panel);
-  }
-
-  if (!document.getElementById('published-outputs-panel')) {
-    const panel = document.createElement('section');
-    panel.id = 'published-outputs-panel';
-    panel.className = 'panel wide';
-    panel.innerHTML = `
-      <h2>Published Outputs</h2>
-      <pre id="published-outputs">Loading...</pre>
-    `;
-    layout.appendChild(panel);
-  }
-
   el.publishTargetSelect = document.getElementById('publish-target-select');
   el.publishArtifactButton = document.getElementById('publish-artifact');
   el.publishResult = document.getElementById('publish-result');
   el.publishedOutputs = document.getElementById('published-outputs');
 }
 
-ensurePublishSections();
+ensureDynamicSections();
 
 function toJsonText(value) {
   return JSON.stringify(value, null, 2);
+}
+
+function queryWithWorkspace(path, includeWorkspace = true) {
+  if (!includeWorkspace || !selectedWorkspaceId) {
+    return path;
+  }
+
+  const separator = path.includes('?') ? '&' : '?';
+  return `${path}${separator}workspaceId=${encodeURIComponent(selectedWorkspaceId)}`;
 }
 
 async function fetchJson(path) {
@@ -148,7 +124,9 @@ function setSelectedJobDetails(job) {
   el.jobDetails.textContent = toJsonText(job);
   const review = job.lifecycleState ?? 'draft';
   const blocked = job.blockedReason ? ` | blocked: ${job.blockedReason}` : '';
-  el.jobReviewState.textContent = `Review state: ${review}${blocked}`;
+  const workflow = job.workflowId ? ` | workflow: ${job.workflowId}` : '';
+  const workspace = job.workspaceId ? ` | workspace: ${job.workspaceId}` : '';
+  el.jobReviewState.textContent = `Review state: ${review}${blocked}${workflow}${workspace}`;
 }
 
 function renderJobsTable(jobs) {
@@ -212,72 +190,101 @@ function renderArtifactsTable(artifacts) {
   });
 }
 
-el.sendTestSignalButton.addEventListener('click', () =>
-  runAction(() => postJson('/api/control/signals/test', { signalName: el.testSignalName.value }), el.controlResult),
-);
-el.retryJobButton.addEventListener('click', () =>
-  runAction(() => {
-    if (!selectedJobId) throw new Error('Select a job first.');
-    return postJson(`/api/control/jobs/${selectedJobId}/retry`);
-  }, el.controlResult),
-);
-el.requeueJobButton.addEventListener('click', () =>
-  runAction(() => {
-    if (!selectedJobId) throw new Error('Select a job first.');
-    return postJson(`/api/control/jobs/${selectedJobId}/requeue`);
-  }, el.controlResult),
-);
-el.resetRuntimeButton.addEventListener('click', () =>
-  runAction(() => postJson('/api/control/reset'), el.controlResult),
-);
-
-el.submitReviewButton.addEventListener('click', () =>
-  runAction(() => {
-    if (!selectedJobId) throw new Error('Select a job first.');
-    return postJson(`/api/approvals/jobs/${selectedJobId}/submit`);
-  }, el.approvalResult),
-);
-el.approveJobButton.addEventListener('click', () =>
-  runAction(() => {
-    if (!selectedJobId) throw new Error('Select a job first.');
-    return postJson(`/api/approvals/jobs/${selectedJobId}/approve`);
-  }, el.approvalResult),
-);
-el.rejectJobButton.addEventListener('click', () =>
-  runAction(() => {
-    if (!selectedJobId) throw new Error('Select a job first.');
-    return postJson(`/api/approvals/jobs/${selectedJobId}/reject`, { reason: el.rejectReason.value });
-  }, el.approvalResult),
-);
-el.publishJobButton.addEventListener('click', () =>
-  runAction(() => {
-    if (!selectedJobId) throw new Error('Select a job first.');
-    return postJson(`/api/approvals/jobs/${selectedJobId}/publish`);
-  }, el.approvalResult),
-);
-
-if (el.publishTargetSelect) {
-  el.publishTargetSelect.addEventListener('change', () => {
-    selectedPublishTargetId = el.publishTargetSelect.value;
-  });
-}
-
-if (el.publishArtifactButton) {
-  el.publishArtifactButton.addEventListener('click', () =>
-    runAction(() => {
-      if (!selectedArtifactId) throw new Error('Select an artifact first.');
-      return postJson(`/api/publish/artifacts/${selectedArtifactId}`, { targetId: selectedPublishTargetId });
-    }, el.publishResult),
+function attachEvents() {
+  el.sendTestSignalButton.addEventListener('click', () =>
+    runAction(
+      () => postJson('/api/control/signals/test', { signalName: el.testSignalName.value, workspaceId: selectedWorkspaceId }),
+      el.controlResult,
+    ),
   );
-}
+  el.retryJobButton.addEventListener('click', () =>
+    runAction(() => {
+      if (!selectedJobId) throw new Error('Select a job first.');
+      return postJson(`/api/control/jobs/${selectedJobId}/retry`);
+    }, el.controlResult),
+  );
+  el.requeueJobButton.addEventListener('click', () =>
+    runAction(() => {
+      if (!selectedJobId) throw new Error('Select a job first.');
+      return postJson(`/api/control/jobs/${selectedJobId}/requeue`);
+    }, el.controlResult),
+  );
+  el.resetRuntimeButton.addEventListener('click', () => runAction(() => postJson('/api/control/reset'), el.controlResult));
 
+  el.submitReviewButton.addEventListener('click', () =>
+    runAction(() => {
+      if (!selectedJobId) throw new Error('Select a job first.');
+      return postJson(`/api/approvals/jobs/${selectedJobId}/submit`);
+    }, el.approvalResult),
+  );
+  el.approveJobButton.addEventListener('click', () =>
+    runAction(() => {
+      if (!selectedJobId) throw new Error('Select a job first.');
+      return postJson(`/api/approvals/jobs/${selectedJobId}/approve`);
+    }, el.approvalResult),
+  );
+  el.rejectJobButton.addEventListener('click', () =>
+    runAction(() => {
+      if (!selectedJobId) throw new Error('Select a job first.');
+      return postJson(`/api/approvals/jobs/${selectedJobId}/reject`, { reason: el.rejectReason.value });
+    }, el.approvalResult),
+  );
+  el.publishJobButton.addEventListener('click', () =>
+    runAction(() => {
+      if (!selectedJobId) throw new Error('Select a job first.');
+      return postJson(`/api/approvals/jobs/${selectedJobId}/publish`);
+    }, el.approvalResult),
+  );
+
+  if (el.publishTargetSelect) {
+    el.publishTargetSelect.addEventListener('change', () => {
+      selectedPublishTargetId = el.publishTargetSelect.value;
+    });
+  }
+
+  if (el.publishArtifactButton) {
+    el.publishArtifactButton.addEventListener('click', () =>
+      runAction(() => {
+        if (!selectedArtifactId) throw new Error('Select an artifact first.');
+        return postJson(`/api/publish/artifacts/${selectedArtifactId}`, { targetId: selectedPublishTargetId });
+      }, el.publishResult),
+    );
+  }
+
+  if (el.workspaceSelect) {
+    el.workspaceSelect.addEventListener('change', async () => {
+      selectedWorkspaceId = el.workspaceSelect.value || 'ghostclaw_core';
+      selectedJobId = null;
+      selectedArtifactId = null;
+      el.jobDetails.textContent = 'Click a job row to view details.';
+      el.artifactDetails.textContent = 'Click an artifact row to view details.';
+      await refreshDashboard();
+    });
+  }
+}
 
 async function refreshDashboard() {
   const startedAt = new Date();
   let hadError = false;
 
   try {
-    const runtime = await fetchJson('/api/runtime/status');
+    const workspaceData = await fetchJson('/api/runtime/workspaces');
+    if (el.workspaceSelect) {
+      el.workspaceSelect.innerHTML = workspaceData.workspaces
+        .map((workspace) => `<option value="${workspace.id}">${workspace.name} (${workspace.id})</option>`)
+        .join('');
+      el.workspaceSelect.value = selectedWorkspaceId;
+      if (el.workspaceSelect.value !== selectedWorkspaceId) {
+        selectedWorkspaceId = workspaceData.defaultWorkspaceId;
+        el.workspaceSelect.value = selectedWorkspaceId;
+      }
+    }
+  } catch (error) {
+    hadError = true;
+  }
+
+  try {
+    const runtime = await fetchJson(queryWithWorkspace('/api/runtime/status'));
     el.runtimeStatus.textContent = toJsonText(runtime);
     el.runtimeStatus.classList.remove('error');
   } catch (error) {
@@ -306,9 +313,8 @@ async function refreshDashboard() {
     el.skills.textContent = `Failed to fetch skills: ${error.message}`;
   }
 
-
   try {
-    const workflows = await fetchJson('/api/runtime/workflows');
+    const workflows = await fetchJson(queryWithWorkspace('/api/runtime/workflows'));
     el.workflows.textContent = toJsonText(workflows);
     el.workflows.classList.remove('error');
   } catch (error) {
@@ -317,9 +323,8 @@ async function refreshDashboard() {
     el.workflows.textContent = `Failed to fetch workflows: ${error.message}`;
   }
 
-
   try {
-    const events = await fetchJson('/api/runtime/events');
+    const events = await fetchJson(queryWithWorkspace('/api/runtime/events'));
     const formatted = events.events
       .slice(0, 20)
       .map((event) => {
@@ -336,16 +341,13 @@ async function refreshDashboard() {
     el.events.textContent = `Failed to fetch events: ${error.message}`;
   }
 
-
   try {
     const publishTargets = await fetchJson('/api/publish/targets');
     if (el.publishTargetSelect) {
       el.publishTargetSelect.innerHTML = publishTargets.targets
         .map((target) => `<option value="${target.id}">${target.name} (${target.id})</option>`)
         .join('');
-      if (selectedPublishTargetId) {
-        el.publishTargetSelect.value = selectedPublishTargetId;
-      }
+      el.publishTargetSelect.value = selectedPublishTargetId;
       selectedPublishTargetId = el.publishTargetSelect.value || selectedPublishTargetId;
     }
   } catch (error) {
@@ -357,7 +359,7 @@ async function refreshDashboard() {
   }
 
   try {
-    const published = await fetchJson('/api/publish/outputs');
+    const published = await fetchJson(queryWithWorkspace('/api/publish/outputs'));
     if (el.publishedOutputs) {
       el.publishedOutputs.textContent = toJsonText(published);
       el.publishedOutputs.classList.remove('error');
@@ -371,7 +373,7 @@ async function refreshDashboard() {
   }
 
   try {
-    const jobs = await fetchJson('/api/jobs');
+    const jobs = await fetchJson(queryWithWorkspace('/api/jobs'));
     el.jobsError.textContent = '';
     renderJobsTable(jobs.jobs);
 
@@ -387,7 +389,7 @@ async function refreshDashboard() {
   }
 
   try {
-    const artifacts = await fetchJson('/api/artifacts');
+    const artifacts = await fetchJson(queryWithWorkspace('/api/artifacts'));
     el.artifactsError.textContent = '';
     renderArtifactsTable(artifacts.artifacts);
 
@@ -403,8 +405,9 @@ async function refreshDashboard() {
   }
 
   const prefix = hadError ? 'Updated with errors' : 'Updated successfully';
-  el.meta.textContent = `${prefix} at ${startedAt.toLocaleTimeString()} (refresh every ${REFRESH_MS / 1000}s)`;
+  el.meta.textContent = `${prefix} at ${startedAt.toLocaleTimeString()} (workspace: ${selectedWorkspaceId}, refresh every ${REFRESH_MS / 1000}s)`;
 }
 
+attachEvents();
 refreshDashboard();
 setInterval(refreshDashboard, REFRESH_MS);
