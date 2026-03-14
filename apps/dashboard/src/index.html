@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>GhostClaw Runtime Dashboard</title>
+    <style>
+      body {
+        margin: 0;
+        padding: 16px;
+        font-family: Arial, sans-serif;
+        background: #0f172a;
+        color: #e2e8f0;
+      }
+      h1 { margin: 0 0 12px; }
+      h2 { margin: 0 0 8px; font-size: 1.05rem; }
+      .meta { margin-bottom: 14px; color: #93c5fd; font-size: 0.9rem; }
+      .layout { display: grid; gap: 12px; grid-template-columns: 1fr 1fr; }
+      .panel {
+        background: #111827;
+        border: 1px solid #334155;
+        border-radius: 8px;
+        padding: 12px;
+      }
+      .panel.wide { grid-column: span 2; }
+      table { width: 100%; border-collapse: collapse; font-size: 12px; }
+      th, td { border-bottom: 1px solid #334155; padding: 6px; text-align: left; }
+      tr.clickable { cursor: pointer; }
+      tr.clickable:hover { background: #1e293b; }
+      pre {
+        margin: 0;
+        font-size: 12px;
+        white-space: pre-wrap;
+        word-break: break-word;
+        min-height: 80px;
+      }
+      .error { color: #fca5a5; }
+      @media (max-width: 900px) {
+        .layout { grid-template-columns: 1fr; }
+        .panel.wide { grid-column: span 1; }
+      }
+    </style>
+  </head>
+  <body>
+    <h1>GhostClaw Runtime Dashboard</h1>
+    <div id="meta" class="meta">Loading...</div>
+
+    <div class="layout">
+      <section class="panel">
+        <h2>Runtime Status</h2>
+        <pre id="runtime-status">Loading...</pre>
+      </section>
+
+      <section class="panel">
+        <h2>Agents</h2>
+        <pre id="agents">Loading...</pre>
+      </section>
+
+      <section class="panel wide">
+        <h2>Jobs</h2>
+        <div id="jobs-error" class="error"></div>
+        <table>
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Plan</th>
+              <th>Type</th>
+              <th>Agent</th>
+              <th>Status</th>
+              <th>Retries</th>
+            </tr>
+          </thead>
+          <tbody id="jobs-table-body"></tbody>
+        </table>
+      </section>
+
+      <section class="panel wide">
+        <h2>Artifacts</h2>
+        <div id="artifacts-error" class="error"></div>
+        <table>
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Job</th>
+              <th>Type</th>
+              <th>Title</th>
+              <th>Status</th>
+              <th>Created</th>
+            </tr>
+          </thead>
+          <tbody id="artifacts-table-body"></tbody>
+        </table>
+      </section>
+
+      <section class="panel">
+        <h2>Selected Job Details</h2>
+        <pre id="job-details">Click a job row to view details.</pre>
+      </section>
+
+      <section class="panel">
+        <h2>Selected Artifact Details</h2>
+        <pre id="artifact-details">Click an artifact row to view details.</pre>
+      </section>
+    </div>
+
+    <script src="./app.js"></script>
+  </body>
+</html>
