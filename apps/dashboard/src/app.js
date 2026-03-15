@@ -55,7 +55,7 @@ function ensureDynamicSections() {
   addSection(
     'blueprints-panel',
     'Workspace Blueprints',
-    '<pre id="blueprints">Loading blueprints...</pre><div class="row"><select id="blueprint-select"></select><input id="new-workspace-name" placeholder="Workspace name" /><input id="new-workspace-id" placeholder="workspace_id (optional)" /><label><input id="initialize-workspace" type="checkbox" checked /> Initialize starter pack</label><button id="create-workspace">Create Workspace</button></div><pre id="workspace-create-result">No workspace creation actions yet.</pre>',
+    '<pre id="blueprints">Loading blueprints...</pre><div class="row"><select id="blueprint-select"></select><input id="new-workspace-name" placeholder="Workspace name" /><input id="new-workspace-id" placeholder="workspace_id (optional)" /><label><input id="initialize-workspace" type="checkbox" checked /> Initialize starter pack</label><label><input id="kickoff-workspace" type="checkbox" checked /> Kick off starter workflow</label><button id="create-workspace">Create Workspace</button></div><pre id="workspace-create-result">No workspace creation actions yet.</pre>',
   );
   addSection('events-panel', 'Recent Events', '<pre id="events">Loading...</pre>');
   addSection(
@@ -72,6 +72,7 @@ function ensureDynamicSections() {
   el.newWorkspaceName = document.getElementById('new-workspace-name');
   el.newWorkspaceId = document.getElementById('new-workspace-id');
   el.initializeWorkspace = document.getElementById('initialize-workspace');
+  el.kickoffWorkspace = document.getElementById('kickoff-workspace');
   el.createWorkspaceButton = document.getElementById('create-workspace');
   el.workspaceCreateResult = document.getElementById('workspace-create-result');
   el.events = document.getElementById('events');
@@ -151,6 +152,15 @@ function renderStarterPackSummary(result) {
 
   const summary = result.starterPackSummary;
   return `Starter pack initialized: ${summary.starterSignals} signals, ${summary.starterArtifacts} artifacts, ${summary.starterWorkflowTemplates} workflow templates. Notes: ${(summary.starterNotes || []).join('; ')}`;
+}
+
+function renderKickoffSummary(result) {
+  const kickoff = result?.kickoffSummary;
+  if (!kickoff || !kickoff.kickedOff) {
+    return 'Kickoff not executed.';
+  }
+
+  return `Kickoff executed: signal ${kickoff.kickedOffSignalName} created as ${kickoff.createdSignalId}.`;
 }
 
 function renderJobsTable(jobs) {
@@ -283,12 +293,13 @@ function attachEvents() {
           workspaceName: el.newWorkspaceName?.value,
           workspaceId: el.newWorkspaceId?.value,
           initialize: Boolean(el.initializeWorkspace?.checked),
+          kickoff: Boolean(el.kickoffWorkspace?.checked),
         });
 
         if (el.workspaceCreateResult) {
           el.workspaceCreateResult.textContent = `${JSON.stringify(result, null, 2)}
 
-${renderStarterPackSummary(result)}`;
+${renderStarterPackSummary(result)}\n${renderKickoffSummary(result)}`;
         }
 
         if (result.workspace?.id) {

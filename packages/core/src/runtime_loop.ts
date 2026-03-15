@@ -159,3 +159,7 @@ export function processSignal(input: { name: string; payload?: Record<string, un
 
   return { signal, plan, jobs, artifacts };
 }
+
+export function submitSignalToRuntime(input: { name: string; payload?: Record<string, unknown>; workspaceId?: string }) {
+  return processSignal(input);
+}

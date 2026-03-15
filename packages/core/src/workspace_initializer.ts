@@ -1,4 +1,5 @@
 import type { Artifact, Signal } from './runtime_loop';
+import { submitSignalToRuntime } from './runtime_loop';
 import { logEvent } from './event_log';
 import { saveRuntimeState } from './runtime_persistence';
 import { runtimeStore, seedStarterRecords } from './state_store';
@@ -101,7 +102,11 @@ export function getWorkspaceStarterPack(blueprintId: string): WorkspaceStarterPa
   return STARTER_PACKS.find((pack) => pack.blueprintId === blueprintId && pack.status === 'active');
 }
 
-export function initializeWorkspace(workspaceId: string, blueprintId: string) {
+type InitializeOptions = {
+  kickoff?: boolean;
+};
+
+export function initializeWorkspace(workspaceId: string, blueprintId: string, options: InitializeOptions = {}) {
   const normalizedWorkspaceId = normalizeWorkspaceId(workspaceId);
   const starterPack = getWorkspaceStarterPack(blueprintId);
 
@@ -135,6 +140,32 @@ export function initializeWorkspace(workspaceId: string, blueprintId: string) {
 
   seedStarterRecords({ signals: seededSignals, artifacts: seededArtifacts });
 
+  let kickoffSummary: {
+    kickedOff: boolean;
+    kickedOffSignalName?: string;
+    createdSignalId?: string;
+  } = { kickedOff: false };
+
+  if (options.kickoff && starterPack.starterSignals.length > 0) {
+    const firstSignal = starterPack.starterSignals[0];
+    const kickoff = submitSignalToRuntime({
+      workspaceId: normalizedWorkspaceId,
+      name: firstSignal.name,
+      payload: {
+        ...(firstSignal.payload ?? {}),
+        kickoff: true,
+        starterPack: true,
+        blueprintId,
+      },
+    });
+
+    kickoffSummary = {
+      kickedOff: true,
+      kickedOffSignalName: firstSignal.name,
+      createdSignalId: kickoff.signal.id,
+    };
+  }
+
   logEvent({
     type: 'signal_received',
     entityType: 'runtime',
@@ -143,6 +174,7 @@ export function initializeWorkspace(workspaceId: string, blueprintId: string) {
     metadata: {
       workspaceId: normalizedWorkspaceId,
       blueprintId,
+      kickoff: kickoffSummary,
       starterSignals: seededSignals.map((signal) => signal.name),
       starterArtifacts: seededArtifacts.map((artifact) => artifact.type),
       starterWorkflowTemplates: starterPack.starterWorkflowTemplates,
@@ -164,5 +196,6 @@ export function initializeWorkspace(workspaceId: string, blueprintId: string) {
       starterWorkflowTemplates: starterPack.starterWorkflowTemplates.length,
       starterNotes: starterPack.starterNotes,
     },
+    kickoffSummary,
   };
 }

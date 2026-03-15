@@ -86,7 +86,13 @@ export function getBlueprint(id: string): WorkspaceBlueprint | undefined {
   return BLUEPRINTS.find((blueprint) => blueprint.id === id && blueprint.status === 'active');
 }
 
-export function createWorkspaceFromBlueprint(blueprintId: string, workspaceName: string, workspaceId?: string, initialize = false) {
+export function createWorkspaceFromBlueprint(
+  blueprintId: string,
+  workspaceName: string,
+  workspaceId?: string,
+  initialize = false,
+  kickoff = false,
+) {
   const blueprint = getBlueprint(blueprintId);
   if (!blueprint) {
     return { success: false as const, error: `Blueprint not found: ${blueprintId}` };
@@ -117,7 +123,9 @@ export function createWorkspaceFromBlueprint(blueprintId: string, workspaceName:
     },
   );
 
-  const initializer = initialize ? initializeWorkspace(resolvedWorkspaceId, blueprint.id) : undefined;
+  const initializer = initialize
+    ? initializeWorkspace(resolvedWorkspaceId, blueprint.id, { kickoff })
+    : undefined;
   if (initializer && !initializer.success) {
     return initializer;
   }
@@ -128,5 +136,6 @@ export function createWorkspaceFromBlueprint(blueprintId: string, workspaceName:
     policy: getWorkspacePolicy(resolvedWorkspaceId),
     blueprint,
     starterPackSummary: initializer?.starterPackSummary,
+    kickoffSummary: initializer?.kickoffSummary ?? { kickedOff: false },
   };
 }

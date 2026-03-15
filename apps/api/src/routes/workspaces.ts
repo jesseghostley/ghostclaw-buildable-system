@@ -45,6 +45,7 @@ router.post('/from-blueprint', (req, res) => {
   const workspaceName = req.body?.workspaceName;
   const workspaceId = req.body?.workspaceId;
   const initialize = req.body?.initialize === true;
+  const kickoff = req.body?.kickoff === true;
 
   if (typeof blueprintId !== 'string' || !blueprintId.trim()) {
     res.status(400).json({ success: false, error: 'blueprintId is required.' });
@@ -56,7 +57,7 @@ router.post('/from-blueprint', (req, res) => {
     return;
   }
 
-  const result = createWorkspaceFromBlueprint(blueprintId, workspaceName, workspaceId, initialize);
+  const result = createWorkspaceFromBlueprint(blueprintId, workspaceName, workspaceId, initialize, kickoff);
   if (!result.success) {
     res.status(400).json(result);
     return;
