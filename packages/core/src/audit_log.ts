@@ -44,7 +44,12 @@ export type AuditEventType =
   | 'policy.evaluated'
   | 'policy.violated'
   | 'operator.override'
-  | 'system.emergency_stop';
+  | 'system.emergency_stop'
+  | 'package.installed'
+  | 'package.enabled'
+  | 'package.disabled'
+  | 'package.uninstalled'
+  | 'package.updated';
 
 export type AuditLogEntry = {
   /** Globally unique identifier. MUST be immutable after creation. */

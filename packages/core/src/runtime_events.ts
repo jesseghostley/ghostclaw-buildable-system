@@ -2,6 +2,7 @@ import type { Signal, Plan, Job, Artifact } from './runtime_loop';
 import type { SkillInvocation } from './skill_invocation';
 import type { PublishEvent } from './publish_event';
 import type { AuditLogEntry } from './audit_log';
+import type { WorkspaceInstallRecord } from './ghost_mart_workspace_install';
 
 /**
  * RuntimeEventMap — strongly-typed mapping of every runtime lifecycle event
@@ -34,4 +35,14 @@ export interface RuntimeEventMap {
   'publish.completed': PublishEvent;
   /** Audit entry appended to the audit log. */
   'audit.logged': AuditLogEntry;
+  /** Ghost Mart package installed into a workspace. */
+  'package.installed': WorkspaceInstallRecord;
+  /** Ghost Mart package enabled in a workspace. */
+  'package.enabled': WorkspaceInstallRecord;
+  /** Ghost Mart package disabled in a workspace. */
+  'package.disabled': WorkspaceInstallRecord;
+  /** Ghost Mart package uninstalled from a workspace. */
+  'package.uninstalled': WorkspaceInstallRecord;
+  /** Ghost Mart package updated in a workspace. */
+  'package.updated': WorkspaceInstallRecord;
 }
