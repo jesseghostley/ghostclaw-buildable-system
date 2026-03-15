@@ -5,6 +5,7 @@ import { executeJobs } from './job_executor';
 import { jobQueue, type QueueJob } from './job_queue';
 import { skillInvocationStore, type SkillInvocation } from './skill_invocation';
 import { assignmentStore, type Assignment } from './assignment';
+import { eventBus } from './event_bus';
 
 /**
  * =============================================================================
@@ -164,16 +165,25 @@ export function processSignal(input: Pick<Signal, 'name' | 'payload'>): {
     createdAt: Date.now(),
   };
   runtimeStore.signals.push(signal);
+  eventBus.emit('signal.received', signal);
 
   const plan = createPlan(signal);
   runtimeStore.plans.push(plan);
+  eventBus.emit('plan.created', plan);
 
   const jobs = createJobs(plan, signal);
-  jobs.forEach((job) => jobQueue.enqueue(job));
+  jobs.forEach((job) => {
+    jobQueue.enqueue(job);
+    eventBus.emit('job.queued', job);
+  });
   runtimeStore.jobs.push(...jobs);
 
   const artifacts = executeJobs();
   runtimeStore.artifacts.push(...artifacts);
+
+  artifacts.forEach((artifact) => {
+    eventBus.emit('artifact.created', artifact);
+  });
 
   const newInvocations = skillInvocationStore.listAll().filter(
     (inv) => jobs.some((job) => job.id === inv.jobId),
