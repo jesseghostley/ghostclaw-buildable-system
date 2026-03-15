@@ -4,6 +4,7 @@ import artifactsRouter from './routes/artifacts';
 import controlRouter from './routes/control';
 import jobsRouter from './routes/jobs';
 import publishRouter from './routes/publish';
+import plansRouter from './routes/plans';
 import runtimeRouter from './routes/runtime';
 import signalsRouter from './routes/signals';
 import workspacesRouter from './routes/workspaces';
@@ -22,6 +23,7 @@ app.get('/api/health', (_req, res) => {
 app.use('/api/signals', signalsRouter);
 app.use('/api/runtime', runtimeRouter);
 app.use('/api/jobs', jobsRouter);
+app.use('/api/plans', plansRouter);
 app.use('/api/artifacts', artifactsRouter);
 app.use('/api/approvals', approvalsRouter);
 app.use('/api/control', controlRouter);

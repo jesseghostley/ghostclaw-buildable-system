@@ -87,6 +87,20 @@
         <pre id="workflows">Loading...</pre>
       </section>
 
+      
+      <section class="panel wide">
+        <h2>Plans</h2>
+        <div id="plans-error" class="error"></div>
+        <table>
+          <thead>
+            <tr>
+              <th>ID</th><th>Workspace</th><th>Signal</th><th>Action</th><th>Status</th><th>Workflow</th><th>Jobs</th><th>Created</th>
+            </tr>
+          </thead>
+          <tbody id="plans-table-body"></tbody>
+        </table>
+      </section>
+
       <section class="panel wide">
         <h2>Jobs</h2>
         <div id="jobs-error" class="error"></div>
@@ -111,6 +125,12 @@
           </thead>
           <tbody id="artifacts-table-body"></tbody>
         </table>
+      </section>
+
+      
+      <section class="panel">
+        <h2>Selected Plan Details</h2>
+        <pre id="plan-details">Click a plan row to view details.</pre>
       </section>
 
       <section class="panel">

@@ -1,9 +1,10 @@
 import { routeSignalToPlannerAction, type PlannerAction } from '../../planner/src/signal_router';
+import type { Plan } from '../../shared/src/types/plan';
 import { logEvent } from './event_log';
 import { executeJobs } from './job_executor';
 import { jobQueue, type QueueJob, type ReviewState } from './job_queue';
 import { saveRuntimeState } from './runtime_persistence';
-import { runtimeStore } from './state_store';
+import { attachPlanJobIds, attachPlanWorkflowId, runtimeStore } from './state_store';
 import { createWorkflow } from './workflow_orchestrator';
 import { normalizeWorkspaceId } from './workspace_registry';
 
@@ -12,14 +13,6 @@ export type Signal = {
   workspaceId: string;
   name: string;
   payload?: Record<string, unknown>;
-  createdAt: number;
-};
-
-export type Plan = {
-  id: string;
-  workspaceId: string;
-  signalId: string;
-  action: PlannerAction;
   createdAt: number;
 };
 
@@ -46,20 +39,27 @@ function nextId(prefix: string, index: number): string {
 }
 
 function createPlan(signal: Signal): Plan {
-  const plan = {
+  const plannerAction = routeSignalToPlannerAction(signal);
+  const plan: Plan = {
     id: nextId('plan', runtimeStore.plans.length),
     workspaceId: signal.workspaceId,
     signalId: signal.id,
-    action: routeSignalToPlannerAction(signal),
+    plannerAction,
+    priority: 'normal',
+    requiredAgents: ['RuntimeMonitorAgent'],
+    expectedOutputs: ['artifact'],
+    status: 'ready',
     createdAt: Date.now(),
+    workflowId: undefined,
+    jobIds: [],
   };
 
   logEvent({
     type: 'plan_created',
     entityType: 'plan',
     entityId: plan.id,
-    message: `Plan ${plan.id} created for signal ${signal.id}`,
-    metadata: { action: plan.action, workspaceId: signal.workspaceId },
+    message: `Plan ${plan.id} created from signal ${signal.id} with action ${plan.plannerAction}`,
+    metadata: { action: plan.plannerAction, workspaceId: signal.workspaceId },
   });
 
   return plan;
@@ -84,7 +84,7 @@ function actionToJobTemplates(action: PlannerAction): JobTemplate[] {
 }
 
 function createJobs(plan: Plan, signal: Signal): Job[] {
-  const templates = actionToJobTemplates(plan.action);
+  const templates = actionToJobTemplates(plan.plannerAction as PlannerAction);
 
   const jobs: Job[] = templates.map((template, index) => ({
     id: nextId('job', runtimeStore.jobs.length + index),
@@ -137,7 +137,7 @@ export function processSignal(input: { name: string; payload?: Record<string, un
     type: 'signal_received',
     entityType: 'signal',
     entityId: signal.id,
-    message: `Signal received: ${signal.name}`,
+    message: `Signal received in workspace ${workspaceId}: ${signal.name}`,
     metadata: { payload: signal.payload ?? null, workspaceId },
   });
 
@@ -146,8 +146,10 @@ export function processSignal(input: { name: string; payload?: Record<string, un
 
   const jobs = createJobs(plan, signal);
   runtimeStore.jobs.push(...jobs);
+  attachPlanJobIds(plan.id, jobs.map((job) => job.id));
 
-  const workflowId = createWorkflow(plan, jobs);
+  const workflowId = createWorkflow({ id: plan.id, action: plan.plannerAction, workspaceId: plan.workspaceId }, jobs);
+  attachPlanWorkflowId(plan.id, workflowId);
   jobs.forEach((job) => {
     job.workflowId = workflowId;
     jobQueue.enqueue(job);
@@ -157,7 +159,7 @@ export function processSignal(input: { name: string; payload?: Record<string, un
   runtimeStore.artifacts.push(...artifacts);
   saveRuntimeState();
 
-  return { signal, plan, jobs, artifacts };
+  return { signal, plan: runtimeStore.plans.find((item) => item.id === plan.id) ?? plan, jobs, artifacts };
 }
 
 export function submitSignalToRuntime(input: { name: string; payload?: Record<string, unknown>; workspaceId?: string }) {

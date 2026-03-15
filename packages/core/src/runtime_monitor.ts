@@ -77,6 +77,25 @@ function getBlockedDependencySummary(workspaceId?: string) {
   };
 }
 
+
+function getRecentPlans(limit = 10, workspaceId?: string) {
+  return runtimeStore.plans
+    .filter((plan) => matchesWorkspace(plan, workspaceId))
+    .slice()
+    .sort((a, b) => b.createdAt - a.createdAt)
+    .slice(0, limit);
+}
+
+function getPlannerActionSummary(workspaceId?: string) {
+  const summary: Record<string, number> = {};
+  runtimeStore.plans
+    .filter((plan) => matchesWorkspace(plan, workspaceId))
+    .forEach((plan) => {
+      const action = plan.plannerAction ?? 'unknown_action';
+      summary[action] = (summary[action] ?? 0) + 1;
+    });
+  return summary;
+}
 function getRecentEvents(limit = 25, workspaceId?: string) {
   return [...listEvents()]
     .filter((event) => matchesWorkspace({ workspaceId: event.metadata?.workspaceId as string | undefined }, workspaceId))
@@ -114,6 +133,8 @@ export function getRuntimeStatus(workspaceId?: string) {
     totalJobCount,
     totalArtifactCount,
     totalEventCount,
+    recentPlans: getRecentPlans(10, workspaceId),
+    plannerActionSummary: getPlannerActionSummary(workspaceId),
     ...queueCounts,
     // backward compatibility
     totalSignals: totalSignalCount,

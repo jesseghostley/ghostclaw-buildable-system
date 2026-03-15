@@ -1,5 +1,6 @@
+import type { Plan } from '../../shared/src/types/plan';
 import type { RuntimeEvent } from '../../shared/src/types/runtime_event';
-import type { Artifact, Job, Plan, Signal } from './runtime_loop';
+import type { Artifact, Job, Signal } from './runtime_loop';
 import type { PublishedOutput } from './publisher';
 import { DEFAULT_WORKSPACE_ID, normalizeWorkspaceId } from './workspace_registry';
 
@@ -27,6 +28,37 @@ export const runtimeStore = {
   publishedOutputs: [] as PublishedOutput[],
 };
 
+export function listPlans(workspaceId?: string): Plan[] {
+  if (!workspaceId) {
+    return runtimeStore.plans;
+  }
+
+  const normalizedWorkspaceId = normalizeWorkspaceId(workspaceId);
+  return runtimeStore.plans.filter((plan) => normalizeWorkspaceId(plan.workspaceId) === normalizedWorkspaceId);
+}
+
+export function getPlan(id: string): Plan | undefined {
+  return runtimeStore.plans.find((plan) => plan.id === id);
+}
+
+export function attachPlanJobIds(planId: string, jobIds: string[]): void {
+  const plan = getPlan(planId);
+  if (!plan) {
+    return;
+  }
+
+  plan.jobIds = [...new Set([...(plan.jobIds ?? []), ...jobIds])];
+}
+
+export function attachPlanWorkflowId(planId: string, workflowId: string): void {
+  const plan = getPlan(planId);
+  if (!plan) {
+    return;
+  }
+
+  plan.workflowId = workflowId;
+}
+
 export function applyRuntimeCollections(state: PersistedRuntimeState): void {
   runtimeStore.signals.length = 0;
   runtimeStore.signals.push(
@@ -41,6 +73,13 @@ export function applyRuntimeCollections(state: PersistedRuntimeState): void {
     ...state.plans.map((plan) => ({
       ...plan,
       workspaceId: normalizeWorkspaceId(plan.workspaceId),
+      plannerAction: (plan as Plan & { action?: string }).plannerAction ?? (plan as Plan & { action?: string }).action ?? 'unknown_action',
+      priority: plan.priority ?? 'normal',
+      requiredAgents: plan.requiredAgents ?? [],
+      expectedOutputs: plan.expectedOutputs ?? [],
+      status: plan.status ?? 'ready',
+      workflowId: plan.workflowId,
+      jobIds: plan.jobIds ?? [],
     })),
   );
 
@@ -84,8 +123,6 @@ export function applyRuntimeCollections(state: PersistedRuntimeState): void {
     })),
   );
 }
-
-
 
 type StarterSeedInput = {
   signals?: Signal[];

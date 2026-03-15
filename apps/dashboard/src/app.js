@@ -8,6 +8,9 @@ const el = {
   agents: document.getElementById('agents'),
   skills: document.getElementById('skills'),
   workflows: document.getElementById('workflows'),
+  plansTableBody: document.getElementById('plans-table-body'),
+  plansError: document.getElementById('plans-error'),
+  planDetails: document.getElementById('plan-details'),
   jobsTableBody: document.getElementById('jobs-table-body'),
   artifactsTableBody: document.getElementById('artifacts-table-body'),
   jobDetails: document.getElementById('job-details'),
@@ -29,6 +32,7 @@ const el = {
   publishJobButton: document.getElementById('publish-job'),
 };
 
+let selectedPlanId = null;
 let selectedJobId = null;
 let selectedArtifactId = null;
 let selectedPublishTargetId = 'local_files';
@@ -162,6 +166,43 @@ function renderKickoffSummary(result) {
   }
 
   return `Kickoff executed: signal ${kickoff.kickedOffSignalName} created as ${kickoff.createdSignalId}.`;
+}
+
+function renderPlansTable(plans) {
+  if (!el.plansTableBody) return;
+  el.plansTableBody.innerHTML = '';
+
+  plans.forEach((plan) => {
+    const created = new Date(plan.createdAt).toLocaleTimeString();
+    const row = document.createElement('tr');
+    row.className = 'clickable';
+    row.innerHTML = `
+      <td>${plan.id}</td>
+      <td>${plan.workspaceId}</td>
+      <td>${plan.signalId}</td>
+      <td>${plan.plannerAction}</td>
+      <td>${plan.status}</td>
+      <td>${plan.workflowId ?? '-'}</td>
+      <td>${(plan.jobIds || []).length}</td>
+      <td>${created}</td>
+    `;
+
+    row.addEventListener('click', async () => {
+      selectedPlanId = plan.id;
+      try {
+        const details = await fetchJson(`/api/plans/${plan.id}`);
+        if (el.planDetails) {
+          el.planDetails.textContent = toJsonText(details);
+        }
+      } catch (error) {
+        if (el.planDetails) {
+          el.planDetails.textContent = `Failed to load plan ${plan.id}: ${error.message}`;
+        }
+      }
+    });
+
+    el.plansTableBody.appendChild(row);
+  });
 }
 
 function renderJobsTable(jobs) {
@@ -321,8 +362,10 @@ ${renderStarterPackSummary(result)}\n${renderKickoffSummary(result)}\nRuntime id
   if (el.workspaceSelect) {
     el.workspaceSelect.addEventListener('change', async () => {
       selectedWorkspaceId = el.workspaceSelect.value || 'ghostclaw_core';
+      selectedPlanId = null;
       selectedJobId = null;
       selectedArtifactId = null;
+      if (el.planDetails) el.planDetails.textContent = 'Click a plan row to view details.';
       el.jobDetails.textContent = 'Click a job row to view details.';
       el.artifactDetails.textContent = 'Click an artifact row to view details.';
       await refreshDashboard();
@@ -491,6 +534,27 @@ async function refreshDashboard() {
     if (el.publishedOutputs) {
       el.publishedOutputs.classList.add('error');
       el.publishedOutputs.textContent = `Failed to fetch published outputs: ${error.message}`;
+    }
+  }
+
+
+  try {
+    const plans = await fetchJson(queryWithWorkspace('/api/plans'));
+    if (el.plansError) {
+      el.plansError.textContent = '';
+    }
+    renderPlansTable(plans.plans);
+
+    if (selectedPlanId && el.planDetails) {
+      const selected = plans.plans.find((plan) => plan.id === selectedPlanId);
+      if (selected) {
+        el.planDetails.textContent = toJsonText(selected);
+      }
+    }
+  } catch (error) {
+    hadError = true;
+    if (el.plansError) {
+      el.plansError.textContent = `Failed to fetch plans: ${error.message}`;
     }
   }
 
