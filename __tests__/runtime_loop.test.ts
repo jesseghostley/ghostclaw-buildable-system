@@ -1,6 +1,7 @@
 import { processSignal, runtimeStore } from '../packages/core/src/runtime_loop';
 import { jobQueue } from '../packages/core/src/job_queue';
 import { skillInvocationStore } from '../packages/core/src/skill_invocation';
+import { assignmentStore } from '../packages/core/src/assignment';
 
 // Reset all module-level singletons before each test to avoid cross-test contamination.
 beforeEach(() => {
@@ -9,8 +10,10 @@ beforeEach(() => {
   runtimeStore.jobs.length = 0;
   runtimeStore.artifacts.length = 0;
   runtimeStore.skillInvocations.length = 0;
+  runtimeStore.assignments.length = 0;
   jobQueue.reset();
   skillInvocationStore.reset();
+  assignmentStore.reset();
 });
 
 describe('processSignal', () => {
@@ -68,6 +71,7 @@ describe('processSignal', () => {
     expect(runtimeStore.plans).toHaveLength(2);
     expect(runtimeStore.artifacts).toHaveLength(2);
     expect(runtimeStore.skillInvocations).toHaveLength(2);
+    expect(runtimeStore.assignments).toHaveLength(2);
   });
 
   it('populates runtimeStore.skillInvocations', () => {
@@ -81,5 +85,37 @@ describe('processSignal', () => {
     const artifact = result.artifacts[0];
     const invocation = result.skillInvocations[0];
     expect(artifact.skillInvocationId).toBe(invocation.id);
+  });
+
+  it('creates an Assignment for each executed job', () => {
+    const result = processSignal({ name: 'keyword_opportunity_detected' });
+
+    expect(result.assignments).toHaveLength(1);
+    const assignment = result.assignments[0];
+    expect(assignment.jobId).toBe(result.jobs[0].id);
+    expect(assignment.agentName).toBe(result.jobs[0].assignedAgent);
+    expect(assignment.id).toBe(`assign_${result.jobs[0].id}`);
+  });
+
+  it('links SkillInvocation.assignmentId to the Assignment record', () => {
+    const result = processSignal({ name: 'ranking_loss_detected' });
+
+    const assignment = result.assignments[0];
+    const invocation = result.skillInvocations[0];
+    expect(invocation.assignmentId).toBe(assignment.id);
+  });
+
+  it('stores Plan optional fields sourced from PlannerDecision', () => {
+    const result = processSignal({ name: 'keyword_opportunity_detected' });
+
+    expect(result.plan.priority).toBeDefined();
+    expect(Array.isArray(result.plan.requiredAgents)).toBe(true);
+    expect(Array.isArray(result.plan.expectedOutputs)).toBe(true);
+  });
+
+  it('populates runtimeStore.assignments', () => {
+    processSignal({ name: 'runtime_error_detected' });
+    expect(runtimeStore.assignments).toHaveLength(1);
+    expect(runtimeStore.assignments[0].agentName).toBe('DiagnosticsAgent');
   });
 });

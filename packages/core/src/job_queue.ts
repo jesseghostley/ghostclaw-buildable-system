@@ -1,4 +1,32 @@
-export type JobStatus = 'queued' | 'assigned' | 'running' | 'completed' | 'failed';
+/**
+ * JobStatus — lifecycle states for a Job.
+ *
+ * Canonical spec: ghostclaw_runtime_execution_spec.md § 4 (Job Status Model)
+ *                 ghostclaw_runtime_persistence_spec.md § 2.3
+ *
+ * The in-memory execution pipeline actively uses: queued, assigned, running,
+ * completed, failed.  The remaining states are reserved for future MCS
+ * integration and durable-mode workflows.
+ *
+ * TODO(schema-alignment): State machine transitions for the following statuses
+ *   are deferred pending MCS governance layer implementation:
+ *   - 'proposed'       — job exists but is not yet placed into the active queue
+ *   - 'blocked'        — execution paused; missing dependency/approval/resource
+ *   - 'waiting_review' — completed but requires QA or publishing review
+ *   - 'published'      — output has been externally published or activated
+ *   - 'cancelled'      — intentionally terminated before completion
+ */
+export type JobStatus =
+  | 'proposed'
+  | 'queued'
+  | 'assigned'
+  | 'running'
+  | 'blocked'
+  | 'waiting_review'
+  | 'completed'
+  | 'failed'
+  | 'published'
+  | 'cancelled';
 
 export type QueueJob = {
   id: string;
