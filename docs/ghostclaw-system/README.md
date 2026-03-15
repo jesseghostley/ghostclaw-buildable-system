@@ -88,6 +88,7 @@ The Runtime layer describes how GhostClaw behaves during execution.
 
 - [ghostclaw_runtime_execution_spec.md](./ghostclaw_runtime_execution_spec.md)
 - [ghostclaw_runtime_signals.md](./ghostclaw_runtime_signals.md)
+- [ghostclaw_runtime_persistence_spec.md](./ghostclaw_runtime_persistence_spec.md) — Canonical persistence models for all runtime objects (Signal through PublishEvent), storage strategies, and implementation guidance for evolving from in-memory to durable storage.
 - [ghostclaw_planner_actions.md](./ghostclaw_planner_actions.md)
 - [ghostclaw_agent_registry.md](./ghostclaw_agent_registry.md)
 - [ghostclaw_skill_registry.md](./ghostclaw_skill_registry.md)
@@ -98,6 +99,7 @@ This layer answers questions such as:
 - What signals trigger system actions?
 - How are skills registered and used?
 - How does the planner coordinate agents?
+- How are runtime objects persisted and what is their full lifecycle?
 
 ### Ecosystem
 
