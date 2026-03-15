@@ -132,6 +132,76 @@ describe('GET /api/skill-invocations', () => {
   });
 });
 
+describe('GET /api/skill-invocations with query filters', () => {
+  beforeEach(async () => {
+    await request(app).post('/api/signals').send({ name: 'keyword_opportunity_detected' });
+    await request(app).post('/api/signals').send({ name: 'runtime_error_detected' });
+  });
+
+  it('filters by status=completed', async () => {
+    const res = await request(app).get('/api/skill-invocations?status=completed');
+    expect(res.status).toBe(200);
+    expect(Array.isArray(res.body)).toBe(true);
+    (res.body as { status: string }[]).forEach((inv) => {
+      expect(inv.status).toBe('completed');
+    });
+  });
+
+  it('returns 400 for an invalid status value', async () => {
+    const res = await request(app).get('/api/skill-invocations?status=bogus');
+    expect(res.status).toBe(400);
+    expect(res.body.error).toMatch(/invalid status/i);
+  });
+
+  it('filters by skill', async () => {
+    const res = await request(app).get(
+      '/api/skill-invocations?skill=draft_cluster_outline',
+    );
+    expect(res.status).toBe(200);
+    expect(res.body.length).toBeGreaterThan(0);
+    (res.body as { skillId: string }[]).forEach((inv) => {
+      expect(inv.skillId).toBe('draft_cluster_outline');
+    });
+  });
+
+  it('returns empty array when skill filter matches nothing', async () => {
+    const res = await request(app).get(
+      '/api/skill-invocations?skill=nonexistent_skill',
+    );
+    expect(res.status).toBe(200);
+    expect(res.body).toHaveLength(0);
+  });
+
+  it('filters by agent', async () => {
+    const allRes = await request(app).get('/api/skill-invocations');
+    const agentId = (allRes.body as { agentId: string }[])[0].agentId;
+
+    const res = await request(app).get(
+      `/api/skill-invocations?agent=${agentId}`,
+    );
+    expect(res.status).toBe(200);
+    expect(res.body.length).toBeGreaterThan(0);
+    (res.body as { agentId: string }[]).forEach((inv) => {
+      expect(inv.agentId).toBe(agentId);
+    });
+  });
+
+  it('filters by workspace', async () => {
+    const allRes = await request(app).get('/api/skill-invocations');
+    const workspaceId = (allRes.body as { workspaceId: string }[])[0]
+      .workspaceId;
+
+    const res = await request(app).get(
+      `/api/skill-invocations?workspace=${workspaceId}`,
+    );
+    expect(res.status).toBe(200);
+    expect(res.body.length).toBeGreaterThan(0);
+    (res.body as { workspaceId: string }[]).forEach((inv) => {
+      expect(inv.workspaceId).toBe(workspaceId);
+    });
+  });
+});
+
 describe('GET /api/skill-invocations/:id', () => {
   it('returns 404 for an unknown id', async () => {
     const res = await request(app).get('/api/skill-invocations/nonexistent');
