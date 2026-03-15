@@ -41,6 +41,8 @@ export function executeJobs(): Artifact[] {
     job.updatedAt = Date.now();
     jobQueue.markRunning(job.id);
 
+    eventBus.emit('job.assigned', { ...job, agentName: assignedAgent.agentName });
+
     // Create a first-class Assignment record for this job-to-agent binding.
     const assignmentId = `assign_${job.id}`;
     assignmentStore.create({
@@ -95,7 +97,7 @@ export function executeJobs(): Artifact[] {
         artifactIds: [artifactId],
         completedAt,
       });
-      eventBus.emit('skill.invocation.completed', skillInvocationStore.getById(invocationId));
+      eventBus.emit('skill.invocation.completed', skillInvocationStore.getById(invocationId)!);
 
       artifacts.push({
         id: artifactId,
@@ -115,10 +117,10 @@ export function executeJobs(): Artifact[] {
         retryCount,
         completedAt: Date.now(),
       });
-      eventBus.emit('skill.invocation.failed', skillInvocationStore.getById(invocationId));
 
       console.warn(`[SkillInvocation] Retry attempt ${retryCount} for job ${job.id} (skill: ${job.jobType})`);
       jobQueue.markFailed(job.id);
+      eventBus.emit('skill.invocation.failed', skillInvocationStore.getById(invocationId)!);
     }
   }
 
