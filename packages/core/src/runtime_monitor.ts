@@ -8,6 +8,26 @@ import { getWorkflowStatus } from './workflow_orchestrator';
 import { listBlueprints } from './workspace_blueprints';
 import { getWorkspacePolicy, listWorkspacePolicies, listWorkspaces, normalizeWorkspaceId } from './workspace_registry';
 
+
+
+type WorkspaceTimelineItem = {
+  id: string;
+  timestamp: number;
+  workspaceId: string;
+  eventType: string;
+  message: string;
+  entityType: string;
+  entityId: string;
+  relatedIds: {
+    signalId?: string;
+    planId?: string;
+    workflowId?: string;
+    jobId?: string;
+    artifactId?: string;
+  };
+  status?: string;
+};
+
 export const GHOSTCLAW_OS_DEFINITION = 'GhostClaw OS is the canonical runtime orchestration layer for AI agents: a signal-driven, structured, persistent, policy-governed, workspace-aware environment where agents coordinate through plans, jobs, skills, and workflows to produce auditable outcomes.';
 
 function matchesWorkspace<T extends { workspaceId?: string }>(item: T, workspaceId?: string): boolean {
@@ -229,4 +249,67 @@ export function getWorkspaceStatus(workspaceId?: string) {
       policy: getWorkspacePolicy(workspace.id),
     })),
   };
+}
+
+
+export function getWorkspaceTimeline(workspaceId?: string, limit = 100): WorkspaceTimelineItem[] {
+  const normalizedWorkspaceId = normalizeWorkspaceId(workspaceId);
+
+  const items = listEvents()
+    .filter((event) => normalizeWorkspaceId(event.metadata?.workspaceId as string | undefined) === normalizedWorkspaceId)
+    .map((event) => {
+      const metadata = event.metadata ?? {};
+      const relatedFromMetadata = (metadata.relatedIds as Record<string, unknown> | undefined) ?? {};
+
+      const relatedIds: WorkspaceTimelineItem['relatedIds'] = {
+        signalId: (typeof relatedFromMetadata.signalId === 'string' ? relatedFromMetadata.signalId : undefined)
+          ?? (typeof metadata.signalId === 'string' ? metadata.signalId : undefined),
+        planId: (typeof relatedFromMetadata.planId === 'string' ? relatedFromMetadata.planId : undefined)
+          ?? (typeof metadata.planId === 'string' ? metadata.planId : undefined),
+        workflowId: (typeof relatedFromMetadata.workflowId === 'string' ? relatedFromMetadata.workflowId : undefined)
+          ?? (typeof metadata.workflowId === 'string' ? metadata.workflowId : undefined),
+        jobId: (typeof relatedFromMetadata.jobId === 'string' ? relatedFromMetadata.jobId : undefined)
+          ?? (typeof metadata.jobId === 'string' ? metadata.jobId : undefined),
+        artifactId: (typeof relatedFromMetadata.artifactId === 'string' ? relatedFromMetadata.artifactId : undefined)
+          ?? (typeof metadata.artifactId === 'string' ? metadata.artifactId : undefined),
+      };
+
+      if (event.entityType === 'signal' && !relatedIds.signalId) {
+        relatedIds.signalId = event.entityId;
+      }
+      if (event.entityType === 'plan' && !relatedIds.planId) {
+        relatedIds.planId = event.entityId;
+      }
+      if (event.entityType === 'workflow' && !relatedIds.workflowId) {
+        relatedIds.workflowId = event.entityId;
+      }
+      if (event.entityType === 'job' && !relatedIds.jobId) {
+        relatedIds.jobId = event.entityId;
+      }
+      if (event.entityType === 'artifact' && !relatedIds.artifactId) {
+        relatedIds.artifactId = event.entityId;
+      }
+
+      const status =
+        (typeof metadata.status === 'string' ? metadata.status : undefined)
+        ?? (typeof metadata.lifecycleState === 'string' ? metadata.lifecycleState : undefined)
+        ?? (typeof metadata.workflowState === 'string' ? metadata.workflowState : undefined)
+        ?? undefined;
+
+      return {
+        id: event.id,
+        timestamp: event.timestamp,
+        workspaceId: normalizedWorkspaceId,
+        eventType: event.type,
+        message: event.message,
+        entityType: event.entityType,
+        entityId: event.entityId,
+        relatedIds,
+        status,
+      };
+    })
+    .sort((a, b) => b.timestamp - a.timestamp)
+    .slice(0, Math.max(1, limit));
+
+  return items;
 }

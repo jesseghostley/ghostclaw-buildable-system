@@ -8,6 +8,8 @@ const el = {
   agents: document.getElementById('agents'),
   skills: document.getElementById('skills'),
   workflows: document.getElementById('workflows'),
+  timelineTableBody: document.getElementById('timeline-table-body'),
+  timelineError: document.getElementById('timeline-error'),
   plansTableBody: document.getElementById('plans-table-body'),
   plansError: document.getElementById('plans-error'),
   planDetails: document.getElementById('plan-details'),
@@ -233,6 +235,26 @@ function renderJobsTable(jobs) {
     });
 
     el.jobsTableBody.appendChild(row);
+  });
+}
+
+
+function renderTimeline(timeline) {
+  if (!el.timelineTableBody) return;
+  el.timelineTableBody.innerHTML = '';
+
+  timeline.forEach((item) => {
+    const row = document.createElement('tr');
+    const time = new Date(item.timestamp).toLocaleTimeString();
+    row.innerHTML = `
+      <td>${time}</td>
+      <td>${item.eventType}</td>
+      <td>${item.message}</td>
+      <td>${item.entityType}</td>
+      <td>${item.entityId}</td>
+      <td>${item.status ?? '-'}</td>
+    `;
+    el.timelineTableBody.appendChild(row);
   });
 }
 
@@ -537,6 +559,20 @@ async function refreshDashboard() {
     }
   }
 
+
+
+  try {
+    const timelineData = await fetchJson(queryWithWorkspace('/api/runtime/timeline'));
+    if (el.timelineError) {
+      el.timelineError.textContent = '';
+    }
+    renderTimeline(timelineData.timeline || []);
+  } catch (error) {
+    hadError = true;
+    if (el.timelineError) {
+      el.timelineError.textContent = `Failed to fetch timeline: ${error.message}`;
+    }
+  }
 
   try {
     const plans = await fetchJson(queryWithWorkspace('/api/plans'));

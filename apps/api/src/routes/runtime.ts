@@ -9,6 +9,7 @@ import {
   getSkillStatus,
   getWorkflowStatuses,
   getWorkspaceStatus,
+  getWorkspaceTimeline,
 } from '../../../../packages/core/src/runtime_monitor';
 
 const router = Router();
@@ -32,6 +33,16 @@ router.get('/workflows', (req, res) => {
 
 router.get('/events', (req, res) => {
   res.json(getEventStatus(workspaceParam(req)));
+});
+
+
+router.get('/timeline', (req, res) => {
+  const workspaceId = workspaceParam(req) ?? 'ghostclaw_core';
+  const limitParam = req.query.limit;
+  const limit = typeof limitParam === 'string' ? Number.parseInt(limitParam, 10) : undefined;
+  const safeLimit = Number.isFinite(limit) && (limit as number) > 0 ? (limit as number) : 100;
+
+  res.json({ workspaceId, limit: safeLimit, timeline: getWorkspaceTimeline(workspaceId, safeLimit) });
 });
 
 router.get('/agents', (_req, res) => {
