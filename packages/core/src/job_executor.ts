@@ -14,6 +14,9 @@ const JOB_HANDLERS: Record<string, JobHandler> = {
   scaffold_skill_package: (inputPayload) => ({
     result: `Skill package scaffolded for ${String(inputPayload.signalName ?? 'unknown_signal')}`,
   }),
+  run_diagnostics: (inputPayload) => ({
+    result: `Diagnostics run for ${String(inputPayload.signalName ?? 'unknown_signal')}`,
+  }),
 };
 
 export function executeJobs(): Artifact[] {
