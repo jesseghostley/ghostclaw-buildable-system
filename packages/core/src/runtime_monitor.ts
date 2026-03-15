@@ -2,6 +2,7 @@ import { agentRegistry } from './agent_registry';
 import { jobQueue } from './job_queue';
 import { listPlannerStrategies } from './planner_registry';
 import { runtimeStore } from './runtime_loop';
+import { skillInvocationStore, type SkillInvocation, type SkillInvocationStatus } from './skill_invocation';
 
 function getJobCounts() {
   const jobs = jobQueue.list();
@@ -15,8 +16,19 @@ function getJobCounts() {
   };
 }
 
+function countInvocationsByStatus(invocations: SkillInvocation[]): Record<SkillInvocationStatus, number> {
+  return invocations.reduce(
+    (acc, inv) => {
+      acc[inv.status] += 1;
+      return acc;
+    },
+    { pending: 0, running: 0, completed: 0, failed: 0, cancelled: 0 } as Record<SkillInvocationStatus, number>,
+  );
+}
+
 export function getRuntimeStatus() {
   const queueCounts = getJobCounts();
+  const invocations = skillInvocationStore.listAll();
 
   return {
     totalSignals: runtimeStore.signals.length,
@@ -24,6 +36,8 @@ export function getRuntimeStatus() {
     ...queueCounts,
     totalArtifacts: runtimeStore.artifacts.length,
     registeredAgents: agentRegistry.listAgents().length,
+    totalSkillInvocations: invocations.length,
+    skillInvocationsByStatus: countInvocationsByStatus(invocations),
   };
 }
 
@@ -81,5 +95,15 @@ export function getArtifactStatus() {
   return {
     totalArtifacts: runtimeStore.artifacts.length,
     artifacts: runtimeStore.artifacts,
+  };
+}
+
+export function getSkillInvocationStatus() {
+  const invocations = skillInvocationStore.listAll();
+
+  return {
+    totalInvocations: invocations.length,
+    byStatus: countInvocationsByStatus(invocations),
+    invocations,
   };
 }

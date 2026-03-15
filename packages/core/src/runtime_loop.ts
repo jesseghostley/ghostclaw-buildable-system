@@ -3,6 +3,7 @@ import type { StrategyType } from '../../shared/src/types/planner_strategy';
 import { getPlannerStrategy } from './planner_registry';
 import { executeJobs } from './job_executor';
 import { jobQueue, type QueueJob } from './job_queue';
+import { skillInvocationStore, type SkillInvocation } from './skill_invocation';
 
 export type Signal = {
   id: string;
@@ -25,6 +26,7 @@ export type Job = QueueJob;
 export type Artifact = {
   id: string;
   jobId: string;
+  skillInvocationId: string;
   type: string;
   content: string;
   createdAt: number;
@@ -35,6 +37,7 @@ export const runtimeStore = {
   plans: [] as Plan[],
   jobs: [] as Job[],
   artifacts: [] as Artifact[],
+  skillInvocations: [] as SkillInvocation[],
 };
 
 function nextId(prefix: string, index: number): string {
@@ -84,6 +87,7 @@ export function processSignal(input: Pick<Signal, 'name' | 'payload'>): {
   plan: Plan;
   jobs: Job[];
   artifacts: Artifact[];
+  skillInvocations: SkillInvocation[];
 } {
   const signal: Signal = {
     id: nextId('signal', runtimeStore.signals.length),
@@ -103,5 +107,10 @@ export function processSignal(input: Pick<Signal, 'name' | 'payload'>): {
   const artifacts = executeJobs();
   runtimeStore.artifacts.push(...artifacts);
 
-  return { signal, plan, jobs, artifacts };
+  const newInvocations = skillInvocationStore.listAll().filter(
+    (inv) => jobs.some((job) => job.id === inv.jobId),
+  );
+  runtimeStore.skillInvocations.push(...newInvocations);
+
+  return { signal, plan, jobs, artifacts, skillInvocations: newInvocations };
 }

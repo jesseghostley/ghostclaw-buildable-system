@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { processSignal, runtimeStore } from '../../../../packages/core/src/runtime_loop';
+import { skillInvocationStore } from '../../../../packages/core/src/skill_invocation';
 
 const router = Router();
 
@@ -25,6 +26,7 @@ router.post('/', (req, res) => {
         plans: runtimeStore.plans.length,
         jobs: runtimeStore.jobs.length,
         artifacts: runtimeStore.artifacts.length,
+        skillInvocations: skillInvocationStore.listAll().length,
       },
     });
   } catch (error) {
