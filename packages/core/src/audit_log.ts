@@ -1,3 +1,5 @@
+import type { IAuditLogStore } from './storage/interfaces/IAuditLogStore';
+
 /**
  * AuditLogEntry — append-only record of every consequential runtime event.
  *
@@ -78,7 +80,7 @@ export type AuditLogEntry = {
  * Entries may only be appended; no mutation or deletion methods are exposed.
  * This mirrors the strict append-only semantics required in durable mode.
  */
-export class InMemoryAuditLog {
+export class InMemoryAuditLog implements IAuditLogStore {
   private readonly entries: AuditLogEntry[] = [];
 
   append(entry: AuditLogEntry): AuditLogEntry {

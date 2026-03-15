@@ -1,3 +1,5 @@
+import type { IPublishEventStore } from './storage/interfaces/IPublishEventStore';
+
 /**
  * PublishEvent — records when an Artifact is published externally.
  *
@@ -48,7 +50,7 @@ export type PublishEvent = {
   retryCount?: number;
 };
 
-export class InMemoryPublishEventStore {
+export class InMemoryPublishEventStore implements IPublishEventStore {
   private readonly events = new Map<string, PublishEvent>();
 
   create(event: PublishEvent): PublishEvent {

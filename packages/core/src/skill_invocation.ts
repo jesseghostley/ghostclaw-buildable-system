@@ -1,3 +1,5 @@
+import type { ISkillInvocationStore } from './storage/interfaces/ISkillInvocationStore';
+
 export type SkillInvocationStatus = 'pending' | 'running' | 'failed' | 'completed' | 'cancelled';
 
 export type SkillInvocation = {
@@ -19,7 +21,7 @@ export type SkillInvocation = {
   completedAt: number | null;
 };
 
-export class InMemorySkillInvocationStore {
+export class InMemorySkillInvocationStore implements ISkillInvocationStore {
   private readonly invocations = new Map<string, SkillInvocation>();
 
   create(invocation: SkillInvocation): SkillInvocation {

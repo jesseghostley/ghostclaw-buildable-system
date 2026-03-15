@@ -41,9 +41,11 @@ export type QueueJob = {
   updatedAt: number;
 };
 
-const MAX_RETRIES = 2;
+import type { IJobStore } from './storage/interfaces/IJobStore';
 
-export class InMemoryJobQueue {
+export const MAX_RETRIES = 2;
+
+export class InMemoryJobQueue implements IJobStore {
   private readonly jobsById = new Map<string, QueueJob>();
   private readonly queue: string[] = [];
   private readonly executing = new Set<string>();
