@@ -2,6 +2,7 @@ import { Router } from 'express';
 import {
   getAgentStatus,
   getArtifactStatus,
+  getPlannerStrategyStatus,
   getQueueStatus,
   getRuntimeStatus,
 } from '../../../../packages/core/src/runtime_monitor';
@@ -22,6 +23,10 @@ router.get('/agents', (_req, res) => {
 
 router.get('/artifacts', (_req, res) => {
   res.json(getArtifactStatus());
+});
+
+router.get('/planner-strategies', (_req, res) => {
+  res.json(getPlannerStrategyStatus());
 });
 
 export default router;

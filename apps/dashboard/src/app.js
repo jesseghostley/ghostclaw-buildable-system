@@ -6,6 +6,7 @@ const sections = {
   queue: document.getElementById('queue'),
   agents: document.getElementById('agents'),
   artifacts: document.getElementById('artifacts'),
+  plannerStrategies: document.getElementById('planner-strategies'),
   meta: document.getElementById('meta'),
 };
 
@@ -35,6 +36,7 @@ async function refreshDashboard() {
     { key: 'queue', path: '/api/runtime/queue' },
     { key: 'agents', path: '/api/runtime/agents' },
     { key: 'artifacts', path: '/api/runtime/artifacts' },
+    { key: 'plannerStrategies', path: '/api/runtime/planner-strategies' },
   ];
 
   const results = await Promise.allSettled(
