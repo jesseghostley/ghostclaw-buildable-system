@@ -1,3 +1,5 @@
+import type { IAssignmentStore } from './storage/interfaces/IAssignmentStore';
+
 /**
  * Assignment — the binding of a Job to an Agent.
  *
@@ -38,7 +40,7 @@ export type Assignment = {
   revokedReason?: string;
 };
 
-export class InMemoryAssignmentStore {
+export class InMemoryAssignmentStore implements IAssignmentStore {
   private readonly assignments = new Map<string, Assignment>();
 
   create(assignment: Assignment): Assignment {

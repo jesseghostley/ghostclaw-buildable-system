@@ -1,3 +1,5 @@
+import type { IWorkspacePolicyStore } from './storage/interfaces/IWorkspacePolicyStore';
+
 /**
  * WorkspacePolicy — declarative rules governing execution, publishing, or safety
  * behaviour within a workspace.
@@ -62,7 +64,7 @@ export type WorkspacePolicy = {
   enforcementMode?: EnforcementMode;
 };
 
-export class InMemoryWorkspacePolicyStore {
+export class InMemoryWorkspacePolicyStore implements IWorkspacePolicyStore {
   private readonly policies = new Map<string, WorkspacePolicy>();
 
   create(policy: WorkspacePolicy): WorkspacePolicy {
