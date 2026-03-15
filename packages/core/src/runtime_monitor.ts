@@ -1,5 +1,6 @@
 import { agentRegistry } from './agent_registry';
 import { jobQueue } from './job_queue';
+import { listPlannerStrategies } from './planner_registry';
 import { runtimeStore } from './runtime_loop';
 
 function getJobCounts() {
@@ -44,6 +45,35 @@ export function getAgentStatus() {
       agents.map((agent) => [agent.agentName, agent.capabilities]),
     ),
     agents,
+  };
+}
+
+export function getPlannerStrategyStatus() {
+  const strategies = listPlannerStrategies();
+  const recentPlans = runtimeStore.plans.slice(-10);
+
+  const strategyUsage: Record<string, number> = {};
+  // Count total plans resolved per strategy across all plan history
+  for (const plan of runtimeStore.plans) {
+    strategyUsage[plan.strategyId] = (strategyUsage[plan.strategyId] ?? 0) + 1;
+  }
+
+  return {
+    strategyCount: strategies.length,
+    plannerStrategies: strategies,
+    plannerStrategySummary: strategies.map((s) => ({
+      id: s.id,
+      name: s.name,
+      strategyType: s.strategyType,
+      status: s.status,
+      supportedSignals: s.supportedSignals,
+      plansResolved: strategyUsage[s.id] ?? 0,
+    })),
+    recentPlanStrategyUsage: recentPlans.map((p) => ({
+      planId: p.id,
+      strategyId: p.strategyId,
+      strategyType: p.strategyType,
+    })),
   };
 }
 

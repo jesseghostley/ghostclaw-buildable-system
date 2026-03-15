@@ -1,4 +1,6 @@
-import { routeSignalToPlannerAction, type PlannerAction } from '../../planner/src/signal_router';
+import { routeSignal, type PlannerAction } from '../../planner/src/signal_router';
+import type { StrategyType } from '../../shared/src/types/planner_strategy';
+import { getPlannerStrategy } from './planner_registry';
 import { executeJobs } from './job_executor';
 import { jobQueue, type QueueJob } from './job_queue';
 
@@ -13,6 +15,8 @@ export type Plan = {
   id: string;
   signalId: string;
   action: PlannerAction;
+  strategyId: string;
+  strategyType: StrategyType;
   createdAt: number;
 };
 
@@ -38,10 +42,14 @@ function nextId(prefix: string, index: number): string {
 }
 
 function createPlan(signal: Signal): Plan {
+  const decision = routeSignal(signal);
+  const strategy = getPlannerStrategy(decision.strategyId);
   return {
     id: nextId('plan', runtimeStore.plans.length),
     signalId: signal.id,
-    action: routeSignalToPlannerAction(signal),
+    action: decision.plannerAction,
+    strategyId: decision.strategyId,
+    strategyType: strategy?.strategyType ?? 'rule',
     createdAt: Date.now(),
   };
 }
@@ -51,6 +59,7 @@ function createJobs(plan: Plan, signal: Signal): Job[] {
     generate_content_cluster: ['draft_cluster_outline'],
     optimize_existing_page: ['refresh_page_sections'],
     create_new_skill: ['scaffold_skill_package'],
+    handle_runtime_error: ['run_diagnostics'],
   };
 
   return jobTypeByAction[plan.action].map((jobType, index) => ({
