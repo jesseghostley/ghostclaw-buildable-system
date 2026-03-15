@@ -9,6 +9,7 @@ import type {
   IPublishEventStore,
   IAuditLogStore,
   IWorkspacePolicyStore,
+  IRuntimeEventLogStore,
 } from './interfaces';
 
 import Database from 'better-sqlite3';
@@ -21,6 +22,7 @@ import { InMemorySkillInvocationStore } from '../skill_invocation';
 import { InMemoryPublishEventStore } from '../publish_event';
 import { InMemoryAuditLog } from '../audit_log';
 import { InMemoryWorkspacePolicyStore } from '../workspace_policy';
+import { InMemoryRuntimeEventLogStore } from '../runtime_event_log';
 
 import { SqliteJobStore } from './sqlite/SqliteJobStore';
 import { SqliteSkillInvocationStore } from './sqlite/SqliteSkillInvocationStore';
@@ -37,6 +39,7 @@ export type StoreBundle = {
   publishEventStore: IPublishEventStore;
   auditLogStore: IAuditLogStore;
   workspacePolicyStore: IWorkspacePolicyStore;
+  runtimeEventLogStore: IRuntimeEventLogStore;
 };
 
 export function createStores(config: StorageConfig): StoreBundle {
@@ -58,6 +61,7 @@ export function createStores(config: StorageConfig): StoreBundle {
       publishEventStore: new InMemoryPublishEventStore(),
       auditLogStore: new SqliteAuditLogStore(db),
       workspacePolicyStore: new InMemoryWorkspacePolicyStore(),
+      runtimeEventLogStore: new InMemoryRuntimeEventLogStore(),
     };
   }
 
@@ -72,5 +76,6 @@ export function createStores(config: StorageConfig): StoreBundle {
     publishEventStore: new InMemoryPublishEventStore(),
     auditLogStore: new InMemoryAuditLog(),
     workspacePolicyStore: new InMemoryWorkspacePolicyStore(),
+    runtimeEventLogStore: new InMemoryRuntimeEventLogStore(),
   };
 }
