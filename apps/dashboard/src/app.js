@@ -260,7 +260,7 @@ function retBuildDetailHtml(evt) {
       </div>
       <div class="ret-detail-col">
         <div class="ret-detail-label">Related IDs</div>
-        <div class="ret-detail-meta">${idFields || '&mdash;'}</div>
+        <div class="ret-detail-meta">${idFields || '\u2014'}</div>
       </div>
       <div class="ret-detail-col">
         <div class="ret-detail-label">Classification</div>
@@ -287,7 +287,7 @@ function renderRuntimeEvents(data) {
     const corrId = evt.correlation_id || '';
     const corrDisplay = corrId
       ? `<button class="ret-corr-link" data-corr="${escapeHtml(corrId)}">${escapeHtml(corrId.slice(0, 10))}…</button>`
-      : '&mdash;';
+      : '\u2014';
     const relIds = retRelatedIds(evt);
     const summary = retPayloadSummary(evt.payload);
     const rowClass = evt.event_type === 'skill.invocation.failed' ? ' ret-row--failed' : '';
@@ -296,7 +296,7 @@ function renderRuntimeEvents(data) {
     return `<tr class="ret-row${rowClass}" data-id="${escapeHtml(evt.event_id)}">
   <td class="ret-mono">${escapeHtml(ts)}</td>
   <td>${badge}</td>
-  <td class="ret-mono">${escapeHtml(evt.workspace_id || '&mdash;')}</td>
+  <td class="ret-mono">${evt.workspace_id ? escapeHtml(evt.workspace_id) : '\u2014'}</td>
   <td>${corrDisplay}</td>
   <td class="ret-mono">${escapeHtml(relIds)}</td>
   <td class="ret-mono">${escapeHtml(summary)}</td>
