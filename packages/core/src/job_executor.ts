@@ -1,6 +1,7 @@
 import { agentRegistry } from './agent_registry';
 import { jobQueue } from './job_queue';
 import { skillInvocationStore } from './skill_invocation';
+import { assignmentStore } from './assignment';
 import { eventBus } from './event_bus';
 import type { Artifact } from './runtime_loop';
 
@@ -40,6 +41,16 @@ export function executeJobs(): Artifact[] {
     job.updatedAt = Date.now();
     jobQueue.markRunning(job.id);
 
+    // Create a first-class Assignment record for this job-to-agent binding.
+    const assignmentId = `assign_${job.id}`;
+    assignmentStore.create({
+      id: assignmentId,
+      jobId: job.id,
+      agentName: assignedAgent.agentName,
+      reason: `Agent selected by capability match for job type '${job.jobType}'.`,
+      createdAt: Date.now(),
+    });
+
     const handler = JOB_HANDLERS[job.jobType];
     if (!handler) {
       jobQueue.markFailed(job.id);
@@ -47,7 +58,6 @@ export function executeJobs(): Artifact[] {
     }
 
     const invocationId = `inv_${job.id}`;
-    const assignmentId = `assign_${job.id}`;
 
     const invocation = skillInvocationStore.create({
       id: invocationId,

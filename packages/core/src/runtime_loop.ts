@@ -4,12 +4,44 @@ import { getPlannerStrategy } from './planner_registry';
 import { executeJobs } from './job_executor';
 import { jobQueue, type QueueJob } from './job_queue';
 import { skillInvocationStore, type SkillInvocation } from './skill_invocation';
+import { assignmentStore, type Assignment } from './assignment';
+
+/**
+ * =============================================================================
+ * GHOSTCLAW RUNTIME OBJECT — CANONICAL TYPE LOCATIONS
+ * =============================================================================
+ * This mapping table shows where each canonical runtime object (as defined in
+ * ghostclaw_runtime_persistence_spec.md § 2) is implemented in TypeScript.
+ *
+ * Object           TypeScript Type        Store / Source File
+ * ─────────────────────────────────────────────────────────────────────────────
+ * Signal           Signal                 packages/core/src/runtime_loop.ts
+ * Plan             Plan                   packages/core/src/runtime_loop.ts
+ * Job              Job (= QueueJob)        packages/core/src/job_queue.ts
+ * Assignment       Assignment             packages/core/src/assignment.ts
+ * SkillInvocation  SkillInvocation        packages/core/src/skill_invocation.ts
+ * Artifact         Artifact               packages/core/src/runtime_loop.ts
+ * PublishEvent     PublishEvent           packages/core/src/publish_event.ts
+ * AuditLogEntry    AuditLogEntry          packages/core/src/audit_log.ts
+ * WorkspacePolicy  WorkspacePolicy        packages/core/src/workspace_policy.ts
+ * ─────────────────────────────────────────────────────────────────────────────
+ * Runtime chain:
+ *   Signal → Plan → Job → Assignment → SkillInvocation → Artifact → PublishEvent
+ *
+ * Cross-cutting:
+ *   AuditLogEntry  (append-only; every consequential event)
+ *   WorkspacePolicy (declarative rules enforced at execution time)
+ * =============================================================================
+ */
 
 export type Signal = {
   id: string;
   name: string;
   payload?: Record<string, unknown>;
   createdAt: number;
+  // TODO(schema-alignment): workspaceId — SHOULD be present for multi-tenant
+  //   durable deployments (ghostclaw_runtime_persistence_spec.md § 4.3, item 2).
+  //   Deferred until workspace scoping is introduced at the API layer.
 };
 
 export type Plan = {
@@ -19,6 +51,18 @@ export type Plan = {
   strategyId: string;
   strategyType: StrategyType;
   createdAt: number;
+
+  // --- Optional fields (sourced from PlannerDecision) ---
+
+  /** Planning priority derived from PlannerDecision.priority. */
+  priority?: number;
+  /** Agent names required to execute this plan. */
+  requiredAgents?: string[];
+  /** Expected artifact types for this plan. */
+  expectedOutputs?: string[];
+  // TODO(schema-alignment): workspaceId — SHOULD be present for multi-tenant
+  //   durable deployments (ghostclaw_runtime_persistence_spec.md § 4.3, item 2).
+  //   Deferred until workspace scoping is introduced at the API layer.
 };
 
 export type Job = QueueJob;
@@ -30,6 +74,25 @@ export type Artifact = {
   type: string;
   content: string;
   createdAt: number;
+
+  // --- Optional fields ---
+
+  // TODO(schema-alignment): workspaceId — SHOULD be present for multi-tenant
+  //   durable deployments (ghostclaw_runtime_persistence_spec.md § 4.3, item 2).
+  //   Deferred until workspace scoping is introduced at the API layer.
+  workspaceId?: string;
+  /** External storage reference (S3 key, file path) for large artifact content. */
+  contentUri?: string;
+  /** MIME type of the artifact content. */
+  mimeType?: string;
+  /** Size of the artifact content in bytes. */
+  sizeBytes?: number;
+  /** SHA-256 hash for content integrity verification. */
+  checksum?: string;
+  /** Timestamp when the artifact passed validation by the Guardian archetype. */
+  validatedAt?: number;
+  /** One of: 'pending' | 'pass' | 'fail'. Defaults to 'pending' when not set. */
+  validationStatus?: 'pending' | 'pass' | 'fail';
 };
 
 export const runtimeStore = {
@@ -38,6 +101,7 @@ export const runtimeStore = {
   jobs: [] as Job[],
   artifacts: [] as Artifact[],
   skillInvocations: [] as SkillInvocation[],
+  assignments: [] as Assignment[],
 };
 
 function nextId(prefix: string, index: number): string {
@@ -53,6 +117,9 @@ function createPlan(signal: Signal): Plan {
     action: decision.plannerAction,
     strategyId: decision.strategyId,
     strategyType: strategy?.strategyType ?? 'rule',
+    priority: decision.priority,
+    requiredAgents: decision.requiredAgents,
+    expectedOutputs: decision.expectedOutputs,
     createdAt: Date.now(),
   };
 }
@@ -88,6 +155,7 @@ export function processSignal(input: Pick<Signal, 'name' | 'payload'>): {
   jobs: Job[];
   artifacts: Artifact[];
   skillInvocations: SkillInvocation[];
+  assignments: Assignment[];
 } {
   const signal: Signal = {
     id: nextId('signal', runtimeStore.signals.length),
@@ -112,5 +180,10 @@ export function processSignal(input: Pick<Signal, 'name' | 'payload'>): {
   );
   runtimeStore.skillInvocations.push(...newInvocations);
 
-  return { signal, plan, jobs, artifacts, skillInvocations: newInvocations };
+  const newAssignments = assignmentStore.listAll().filter(
+    (asgn) => jobs.some((job) => job.id === asgn.jobId),
+  );
+  runtimeStore.assignments.push(...newAssignments);
+
+  return { signal, plan, jobs, artifacts, skillInvocations: newInvocations, assignments: newAssignments };
 }

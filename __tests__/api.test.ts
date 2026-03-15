@@ -3,6 +3,7 @@ import app from '../apps/api/src/app';
 import { runtimeStore } from '../packages/core/src/runtime_loop';
 import { jobQueue } from '../packages/core/src/job_queue';
 import { skillInvocationStore } from '../packages/core/src/skill_invocation';
+import { assignmentStore } from '../packages/core/src/assignment';
 
 beforeEach(() => {
   runtimeStore.signals.length = 0;
@@ -10,8 +11,10 @@ beforeEach(() => {
   runtimeStore.jobs.length = 0;
   runtimeStore.artifacts.length = 0;
   runtimeStore.skillInvocations.length = 0;
+  runtimeStore.assignments.length = 0;
   jobQueue.reset();
   skillInvocationStore.reset();
+  assignmentStore.reset();
 });
 
 describe('GET /api/health', () => {
