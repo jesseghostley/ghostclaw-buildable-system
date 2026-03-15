@@ -12,6 +12,9 @@ const sections = {
   retEvents: document.getElementById('ret-events'),
   retTimelineView: document.getElementById('ret-timeline-view'),
   retTraceView: document.getElementById('ret-trace-view'),
+  gmAvailablePackages: document.getElementById('gm-available-packages'),
+  gmWorkspacePackages: document.getElementById('gm-workspace-packages'),
+  gmErrorBanner: document.getElementById('gm-error-banner'),
 };
 
 // --- Skill invocations state ---
@@ -476,6 +479,326 @@ document.getElementById('ret-filter-event-type').addEventListener('change', asyn
   }
 });
 
+// --- Ghost Mart: Workspace Package Management state ---
+let gmAvailableData = [];
+let gmWorkspaceData = [];
+const gmExpandedIds = new Set();
+const gmFilters = { workspace: '', type: '', status: '' };
+
+function gmShowError(message) {
+  const el = sections.gmErrorBanner;
+  if (!el) return;
+  el.textContent = message;
+  el.classList.add('gm-error-banner--visible');
+}
+
+function gmClearError() {
+  const el = sections.gmErrorBanner;
+  if (!el) return;
+  el.textContent = '';
+  el.classList.remove('gm-error-banner--visible');
+}
+
+function gmBuildPackageDetailHtml(pkg) {
+  const depList = pkg.dependencies && pkg.dependencies.length > 0
+    ? pkg.dependencies.map((d) => `<span class="gm-detail-tag">${escapeHtml(d)}</span>`).join(' ')
+    : '<span style="color:#64748b">none</span>';
+  const permList = pkg.permissions_required && pkg.permissions_required.length > 0
+    ? pkg.permissions_required.map((p) => `<span class="gm-detail-tag">${escapeHtml(p)}</span>`).join(' ')
+    : '<span style="color:#64748b">none</span>';
+  const capList = pkg.capabilities && pkg.capabilities.length > 0
+    ? pkg.capabilities.map((c) => `<span class="gm-detail-tag">${escapeHtml(c)}</span>`).join(' ')
+    : '<span style="color:#64748b">none</span>';
+  const inputList = pkg.inputs && pkg.inputs.length > 0
+    ? pkg.inputs.map((i) => `<span class="gm-detail-tag">${escapeHtml(i)}</span>`).join(' ')
+    : '<span style="color:#64748b">none</span>';
+  const outputList = pkg.outputs && pkg.outputs.length > 0
+    ? pkg.outputs.map((o) => `<span class="gm-detail-tag">${escapeHtml(o)}</span>`).join(' ')
+    : '<span style="color:#64748b">none</span>';
+
+  return `<div class="gm-detail">
+  <div class="gm-detail-grid">
+    <div class="gm-detail-col">
+      <div class="gm-detail-label">Description</div>
+      <div class="gm-detail-meta">${escapeHtml(pkg.description || '—')}</div>
+    </div>
+    <div class="gm-detail-col">
+      <div class="gm-detail-label">Category</div>
+      <div class="gm-detail-meta">${escapeHtml(pkg.category || '—')}</div>
+    </div>
+    <div class="gm-detail-col">
+      <div class="gm-detail-label">Dependencies</div>
+      <div>${depList}</div>
+    </div>
+    <div class="gm-detail-col">
+      <div class="gm-detail-label">Permissions Required</div>
+      <div>${permList}</div>
+    </div>
+    <div class="gm-detail-col">
+      <div class="gm-detail-label">Capabilities</div>
+      <div>${capList}</div>
+    </div>
+    <div class="gm-detail-col">
+      <div class="gm-detail-label">Inputs</div>
+      <div>${inputList}</div>
+    </div>
+    <div class="gm-detail-col">
+      <div class="gm-detail-label">Outputs</div>
+      <div>${outputList}</div>
+    </div>
+    <div class="gm-detail-col">
+      <div class="gm-detail-label">Install Command</div>
+      <pre class="gm-detail-pre">${escapeHtml(pkg.install_command || '—')}</pre>
+    </div>
+  </div>
+</div>`;
+}
+
+function renderGmAvailablePackages(data) {
+  gmAvailableData = data;
+  const el = sections.gmAvailablePackages;
+  if (!el) return;
+
+  let filtered = data.slice();
+  if (gmFilters.type) {
+    filtered = filtered.filter((pkg) => pkg.package_type === gmFilters.type);
+  }
+  if (gmFilters.status) {
+    filtered = filtered.filter((pkg) => pkg.install_status === gmFilters.status);
+  }
+
+  if (filtered.length === 0) {
+    el.innerHTML = `<div class="gm-empty">${
+      data.length === 0
+        ? 'No packages discovered. Use the API to load a manifest.'
+        : 'No packages match current filters.'
+    }</div>`;
+    return;
+  }
+
+  const rows = filtered.map((pkg) => {
+    const typeBadge = `<span class="gm-badge gm-badge--${escapeHtml(pkg.package_type)}">${escapeHtml(pkg.package_type)}</span>`;
+    const statusBadge = `<span class="gm-badge gm-badge--${escapeHtml(pkg.install_status)}">${escapeHtml(pkg.install_status)}</span>`;
+    const installBtn = pkg.install_status === 'available'
+      ? `<button class="gm-btn gm-btn--install" data-action="install" data-package-id="${escapeHtml(pkg.package_id)}">Install</button>`
+      : '';
+    const detailClass = gmExpandedIds.has(pkg.package_id) ? ' gm-detail-row--expanded' : '';
+
+    return `<tr class="gm-row" data-id="${escapeHtml(pkg.package_id)}">
+  <td class="gm-mono">${escapeHtml(pkg.package_id)}</td>
+  <td>${escapeHtml(pkg.name)}</td>
+  <td class="gm-mono">${escapeHtml(pkg.version)}</td>
+  <td>${typeBadge}</td>
+  <td class="gm-mono">${escapeHtml(pkg.author)}</td>
+  <td>${statusBadge}</td>
+  <td>${installBtn}</td>
+</tr>
+<tr class="gm-detail-row${detailClass}">
+  <td colspan="7">${gmBuildPackageDetailHtml(pkg)}</td>
+</tr>`;
+  }).join('');
+
+  el.innerHTML = `<table class="gm-table">
+  <thead>
+    <tr>
+      <th>Package ID</th>
+      <th>Name</th>
+      <th>Version</th>
+      <th>Type</th>
+      <th>Author</th>
+      <th>Status</th>
+      <th>Actions</th>
+    </tr>
+  </thead>
+  <tbody>${rows}</tbody>
+</table>`;
+}
+
+function renderGmWorkspacePackages(data) {
+  gmWorkspaceData = data;
+  const el = sections.gmWorkspacePackages;
+  if (!el) return;
+
+  if (data.length === 0) {
+    el.innerHTML = `<div class="gm-empty">No packages installed in this workspace.</div>`;
+    return;
+  }
+
+  const rows = data.map((record) => {
+    const statusBadge = `<span class="gm-badge gm-badge--${escapeHtml(record.install_status)}">${escapeHtml(record.install_status)}</span>`;
+    const installedAt = record.installed_at
+      ? new Date(record.installed_at).toLocaleString()
+      : '—';
+    const enabledState = record.install_status === 'enabled'
+      ? '<span style="color:#4ade80">enabled</span>'
+      : record.install_status === 'disabled'
+        ? '<span style="color:#fde68a">disabled</span>'
+        : '—';
+
+    const canEnable = record.install_status === 'installed' || record.install_status === 'disabled';
+    const canDisable = record.install_status === 'enabled';
+    const canUninstall = record.install_status !== 'uninstalling';
+    const canUpdate = record.install_status === 'installed' || record.install_status === 'enabled' || record.install_status === 'disabled';
+
+    const actions = [
+      canEnable ? `<button class="gm-btn gm-btn--enable" data-action="enable" data-package-id="${escapeHtml(record.package_id)}">Enable</button>` : '',
+      canDisable ? `<button class="gm-btn gm-btn--disable" data-action="disable" data-package-id="${escapeHtml(record.package_id)}">Disable</button>` : '',
+      canUpdate ? `<button class="gm-btn gm-btn--update" data-action="update" data-package-id="${escapeHtml(record.package_id)}">Update</button>` : '',
+      canUninstall ? `<button class="gm-btn gm-btn--uninstall" data-action="uninstall" data-package-id="${escapeHtml(record.package_id)}">Uninstall</button>` : '',
+    ].filter(Boolean).join('');
+
+    return `<tr>
+  <td class="gm-mono">${escapeHtml(record.package_id)}</td>
+  <td>${statusBadge}</td>
+  <td class="gm-mono">${escapeHtml(installedAt)}</td>
+  <td>${enabledState}</td>
+  <td>${actions}</td>
+</tr>`;
+  }).join('');
+
+  el.innerHTML = `<table class="gm-table">
+  <thead>
+    <tr>
+      <th>Package ID</th>
+      <th>Status</th>
+      <th>Installed At</th>
+      <th>State</th>
+      <th>Actions</th>
+    </tr>
+  </thead>
+  <tbody>${rows}</tbody>
+</table>`;
+}
+
+async function gmFetchAvailable() {
+  const params = new URLSearchParams();
+  if (gmFilters.type) params.set('type', gmFilters.type);
+  const qs = params.toString();
+  return fetchJson(`/api/ghost-mart/packages${qs ? '?' + qs : ''}`);
+}
+
+async function gmFetchWorkspacePackages() {
+  if (!gmFilters.workspace) return null;
+  return fetchJson(`/api/ghost-mart/workspaces/${encodeURIComponent(gmFilters.workspace)}/packages`);
+}
+
+async function gmPerformAction(action, packageId) {
+  const workspaceId = gmFilters.workspace;
+  gmClearError();
+  let url, body;
+
+  if (action === 'install') {
+    url = '/api/ghost-mart/install';
+    body = { package_id: packageId, workspace_id: workspaceId };
+  } else if (action === 'enable') {
+    url = `/api/ghost-mart/packages/${encodeURIComponent(packageId)}/enable`;
+    body = { workspace_id: workspaceId };
+  } else if (action === 'disable') {
+    url = `/api/ghost-mart/packages/${encodeURIComponent(packageId)}/disable`;
+    body = { workspace_id: workspaceId };
+  } else if (action === 'uninstall') {
+    url = `/api/ghost-mart/packages/${encodeURIComponent(packageId)}/uninstall`;
+    body = { workspace_id: workspaceId };
+  } else if (action === 'update') {
+    url = `/api/ghost-mart/packages/${encodeURIComponent(packageId)}/update`;
+    body = { workspace_id: workspaceId };
+  } else {
+    return;
+  }
+
+  try {
+    const response = await fetch(`${API_BASE}${url}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+
+    if (!response.ok) {
+      let errMsg = `HTTP ${response.status}`;
+      try {
+        const errBody = await response.json();
+        if (errBody && errBody.error) errMsg = errBody.error;
+      } catch (_) { /* use default message */ }
+      gmShowError(`Action "${action}" failed: ${errMsg}`);
+      return;
+    }
+
+    // Refresh both tables after successful action
+    const [available, workspace] = await Promise.allSettled([
+      gmFetchAvailable(),
+      gmFetchWorkspacePackages(),
+    ]);
+    if (available.status === 'fulfilled') renderGmAvailablePackages(available.value);
+    if (workspace.status === 'fulfilled' && workspace.value !== null) renderGmWorkspacePackages(workspace.value);
+  } catch (err) {
+    gmShowError(`Action "${action}" failed: ${err.message}`);
+  }
+}
+
+// Event delegation for available packages table (row expand + action buttons)
+sections.gmAvailablePackages.addEventListener('click', async (e) => {
+  const btn = e.target.closest('button.gm-btn[data-action]');
+  if (btn) {
+    e.stopPropagation();
+    const action = btn.dataset.action;
+    const packageId = btn.dataset.packageId;
+    if (!gmFilters.workspace && action === 'install') {
+      gmShowError('Enter a Workspace ID before installing a package.');
+      return;
+    }
+    await gmPerformAction(action, packageId);
+    return;
+  }
+
+  const row = e.target.closest('tr.gm-row[data-id]');
+  if (!row) return;
+  const id = row.dataset.id;
+  if (gmExpandedIds.has(id)) {
+    gmExpandedIds.delete(id);
+  } else {
+    gmExpandedIds.add(id);
+  }
+  renderGmAvailablePackages(gmAvailableData);
+});
+
+// Event delegation for workspace packages table (action buttons)
+sections.gmWorkspacePackages.addEventListener('click', async (e) => {
+  const btn = e.target.closest('button.gm-btn[data-action]');
+  if (!btn) return;
+  const action = btn.dataset.action;
+  const packageId = btn.dataset.packageId;
+  await gmPerformAction(action, packageId);
+});
+
+// Filter listeners for Ghost Mart panel
+document.getElementById('gm-filter-workspace').addEventListener('input', async (e) => {
+  gmFilters.workspace = e.target.value.trim();
+  gmClearError();
+  try {
+    const workspaceData = await gmFetchWorkspacePackages();
+    if (workspaceData !== null) {
+      renderGmWorkspacePackages(workspaceData);
+    } else {
+      sections.gmWorkspacePackages.innerHTML = '<div class="gm-empty">Enter a Workspace ID above to view installed packages.</div>';
+    }
+  } catch (_) { /* handled in refresh */ }
+});
+
+document.getElementById('gm-filter-type').addEventListener('change', async (e) => {
+  gmFilters.type = e.target.value;
+  gmClearError();
+  try {
+    const available = await gmFetchAvailable();
+    renderGmAvailablePackages(available);
+  } catch (_) { /* handled in refresh */ }
+});
+
+document.getElementById('gm-filter-status').addEventListener('change', (e) => {
+  gmFilters.status = e.target.value;
+  gmClearError();
+  renderGmAvailablePackages(gmAvailableData);
+});
+
 function renderJson(element, data) {
   element.classList.remove('error');
   element.textContent = JSON.stringify(data, null, 2);
@@ -505,10 +828,11 @@ async function refreshDashboard() {
     { key: 'plannerStrategies', path: '/api/runtime/planner-strategies' },
   ];
 
-  const [results, siResults, retResults] = await Promise.all([
+  const [results, siResults, retResults, gmResults] = await Promise.all([
     Promise.allSettled(requests.map((request) => fetchJson(request.path))),
     Promise.allSettled([fetchJson('/api/skill-invocations')]),
     Promise.allSettled([fetchRuntimeEvents()]),
+    Promise.allSettled([gmFetchAvailable(), gmFetchWorkspacePackages()]),
   ]);
 
   let hadError = false;
@@ -543,6 +867,18 @@ async function refreshDashboard() {
         sections.retEvents.innerHTML = `<div class="error">Failed to fetch runtime events: ${escapeHtml(retResults[0].reason?.message ?? 'Unknown error')}</div>`;
       }
     }
+  }
+
+  if (gmResults[0].status === 'fulfilled') {
+    renderGmAvailablePackages(gmResults[0].value);
+  } else {
+    hadError = true;
+    if (sections.gmAvailablePackages) {
+      sections.gmAvailablePackages.innerHTML = `<div class="error">Failed to fetch packages: ${escapeHtml(gmResults[0].reason?.message ?? 'Unknown error')}</div>`;
+    }
+  }
+  if (gmResults[1].status === 'fulfilled' && gmResults[1].value !== null) {
+    renderGmWorkspacePackages(gmResults[1].value);
   }
 
   const statusText = hadError ? 'Updated with errors' : 'Updated successfully';
