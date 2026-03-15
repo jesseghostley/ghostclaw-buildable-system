@@ -15,7 +15,7 @@ export type QueueJob = {
 
 const MAX_RETRIES = 2;
 
-class InMemoryJobQueue {
+export class InMemoryJobQueue {
   private readonly jobsById = new Map<string, QueueJob>();
   private readonly queue: string[] = [];
   private readonly executing = new Set<string>();
@@ -105,6 +105,12 @@ class InMemoryJobQueue {
     }
 
     job.status = 'failed';
+  }
+
+  reset(): void {
+    this.jobsById.clear();
+    this.queue.length = 0;
+    this.executing.clear();
   }
 }
 
