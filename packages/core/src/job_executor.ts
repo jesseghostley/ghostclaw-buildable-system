@@ -1,5 +1,7 @@
 import { agentRegistry } from './agent_registry';
 import { jobQueue } from './job_queue';
+import { skillInvocationStore } from './skill_invocation';
+import { eventBus } from './event_bus';
 import type { Artifact } from './runtime_loop';
 
 export type JobHandler = (inputPayload: Record<string, unknown>) => Record<string, unknown>;
@@ -44,20 +46,68 @@ export function executeJobs(): Artifact[] {
       continue;
     }
 
+    const invocationId = `inv_${job.id}`;
+    const assignmentId = `assign_${job.id}`;
+
+    const invocation = skillInvocationStore.create({
+      id: invocationId,
+      workspaceId: 'default',
+      planId: job.planId,
+      jobId: job.id,
+      assignmentId,
+      agentId: assignedAgent.agentName,
+      skillId: job.jobType,
+      status: 'pending',
+      inputPayload: job.inputPayload,
+      outputPayload: null,
+      artifactIds: [],
+      error: null,
+      retryCount: job.retryCount,
+      fallbackUsed: false,
+      startedAt: Date.now(),
+      completedAt: null,
+    });
+
+    skillInvocationStore.updateStatus(invocationId, 'running');
+    eventBus.emit('skill.invocation.started', invocation);
+
     try {
       const outputPayload = handler(job.inputPayload);
       job.outputPayload = outputPayload;
       job.updatedAt = Date.now();
       jobQueue.markComplete(job.id);
 
+      const artifactId = `artifact_${job.id}`;
+      const completedAt = Date.now();
+
+      skillInvocationStore.updateStatus(invocationId, 'completed', {
+        outputPayload,
+        artifactIds: [artifactId],
+        completedAt,
+      });
+      eventBus.emit('skill.invocation.completed', skillInvocationStore.getById(invocationId));
+
       artifacts.push({
-        id: `artifact_${job.id}`,
+        id: artifactId,
         jobId: job.id,
+        skillInvocationId: invocationId,
         type: job.jobType,
         content: `${assignedAgent.agentName} executed ${job.jobType}`,
-        createdAt: Date.now(),
+        createdAt: completedAt,
       });
-    } catch {
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : String(err);
+      console.error(`[SkillInvocation] Invocation ${invocationId} failed for job ${job.id}:`, errorMessage);
+
+      const retryCount = job.retryCount + 1;
+      skillInvocationStore.updateStatus(invocationId, 'failed', {
+        error: errorMessage,
+        retryCount,
+        completedAt: Date.now(),
+      });
+      eventBus.emit('skill.invocation.failed', skillInvocationStore.getById(invocationId));
+
+      console.warn(`[SkillInvocation] Retry attempt ${retryCount} for job ${job.id} (skill: ${job.jobType})`);
       jobQueue.markFailed(job.id);
     }
   }
