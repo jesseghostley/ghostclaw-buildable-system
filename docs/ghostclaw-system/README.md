@@ -1,5 +1,7 @@
 # GhostClaw Documentation Structure Brief
 
+**Start here:** [GhostClaw Concepts](ghostclaw_concepts.md) — canonical entrypoint for GhostClaw OS.
+
 ## Purpose
 
 GhostClaw is designed as a modular AI operating system and ecosystem platform capable of orchestrating agents, launching autonomous companies, and distributing capabilities through a marketplace.
