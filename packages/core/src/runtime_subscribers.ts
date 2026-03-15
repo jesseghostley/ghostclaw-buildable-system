@@ -5,6 +5,12 @@ import type { InMemoryPublishEventStore } from './publish_event';
 import { eventBus as defaultEventBus } from './event_bus';
 import { auditLog as defaultAuditLog } from './audit_log';
 import { publishEventStore as defaultPublishEventStore } from './publish_event';
+import {
+  registerRuntimeEventLogSubscribers,
+  resetEventLogSubscriberState,
+} from './runtime_event_log_subscriber';
+import { runtimeEventLog as defaultRuntimeEventLog } from './runtime_event_log';
+import type { InMemoryRuntimeEventLogStore } from './runtime_event_log';
 
 let _auditEntryCounter = 0;
 
@@ -17,12 +23,14 @@ function nextAuditId(): string {
  */
 export function resetSubscriberState(): void {
   _auditEntryCounter = 0;
+  resetEventLogSubscriberState();
 }
 
 /**
  * Registers event subscribers that wire:
  *  1. Audit logging — lifecycle events → AuditLogEntry records
  *  2. Publish flow — artifact.created → publish.requested → publish.completed
+ *  3. Runtime event log — all lifecycle events → RuntimeEventLogEntry records
  *
  * Call once during runtime initialisation.  For tests, call after eventBus.reset()
  * to re-register subscribers on a clean bus.
@@ -31,7 +39,11 @@ export function registerRuntimeSubscribers(
   bus: EventBus<RuntimeEventMap> = defaultEventBus,
   auditLog: InMemoryAuditLog = defaultAuditLog,
   publishStore: InMemoryPublishEventStore = defaultPublishEventStore,
+  eventLogStore: InMemoryRuntimeEventLogStore = defaultRuntimeEventLog,
 ): void {
+  // ─── Runtime event log subscribers ───────────────────────────────────────
+  registerRuntimeEventLogSubscribers(bus, eventLogStore);
+
   // ─── Audit logging subscribers ────────────────────────────────────────────
 
   bus.on('signal.received', (signal) => {
