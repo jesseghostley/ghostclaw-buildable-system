@@ -3,6 +3,7 @@ const REFRESH_MS = 3000;
 
 const el = {
   meta: document.getElementById('meta'),
+  runtimeIdentitySummary: document.getElementById('runtime-identity-summary'),
   runtimeStatus: document.getElementById('runtime-status'),
   agents: document.getElementById('agents'),
   skills: document.getElementById('skills'),
@@ -299,7 +300,7 @@ function attachEvents() {
         if (el.workspaceCreateResult) {
           el.workspaceCreateResult.textContent = `${JSON.stringify(result, null, 2)}
 
-${renderStarterPackSummary(result)}\n${renderKickoffSummary(result)}`;
+${renderStarterPackSummary(result)}\n${renderKickoffSummary(result)}\nRuntime identity: ${JSON.stringify(result.runtimeIdentity ?? {}, null, 2)}`;
         }
 
         if (result.workspace?.id) {
@@ -389,10 +390,29 @@ async function refreshDashboard() {
     const runtime = await fetchJson(queryWithWorkspace('/api/runtime/status'));
     el.runtimeStatus.textContent = toJsonText(runtime);
     el.runtimeStatus.classList.remove('error');
+
+    if (el.runtimeIdentitySummary) {
+      el.runtimeIdentitySummary.classList.remove('error');
+      el.runtimeIdentitySummary.textContent = toJsonText({
+        systemDefinition: runtime.systemDefinition,
+        systemCapabilities: runtime.systemCapabilities,
+        workspaceCount: runtime.workspaceCount,
+        blueprintCount: runtime.blueprintCount,
+        totalSignalCount: runtime.totalSignalCount,
+        totalPlanCount: runtime.totalPlanCount,
+        totalJobCount: runtime.totalJobCount,
+        totalArtifactCount: runtime.totalArtifactCount,
+        totalEventCount: runtime.totalEventCount,
+      });
+    }
   } catch (error) {
     hadError = true;
     el.runtimeStatus.classList.add('error');
     el.runtimeStatus.textContent = `Failed to fetch runtime status: ${error.message}`;
+    if (el.runtimeIdentitySummary) {
+      el.runtimeIdentitySummary.classList.add('error');
+      el.runtimeIdentitySummary.textContent = `Failed to fetch runtime identity: ${error.message}`;
+    }
   }
 
   try {

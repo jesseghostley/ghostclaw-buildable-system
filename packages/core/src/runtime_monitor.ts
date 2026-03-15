@@ -8,6 +8,8 @@ import { getWorkflowStatus } from './workflow_orchestrator';
 import { listBlueprints } from './workspace_blueprints';
 import { getWorkspacePolicy, listWorkspacePolicies, listWorkspaces, normalizeWorkspaceId } from './workspace_registry';
 
+export const GHOSTCLAW_OS_DEFINITION = 'GhostClaw OS is the canonical runtime orchestration layer for AI agents: a signal-driven, structured, persistent, policy-governed, workspace-aware environment where agents coordinate through plans, jobs, skills, and workflows to produce auditable outcomes.';
+
 function matchesWorkspace<T extends { workspaceId?: string }>(item: T, workspaceId?: string): boolean {
   if (!workspaceId) {
     return true;
@@ -84,23 +86,45 @@ function getRecentEvents(limit = 25, workspaceId?: string) {
 
 export function getRuntimeStatus(workspaceId?: string) {
   const queueCounts = getJobCounts(workspaceId);
+  const totalSignalCount = runtimeStore.signals.filter((signal) => matchesWorkspace(signal, workspaceId)).length;
+  const totalPlanCount = runtimeStore.plans.filter((plan) => matchesWorkspace(plan, workspaceId)).length;
+  const totalJobCount = queueCounts.totalJobs;
+  const totalArtifactCount = runtimeStore.artifacts.filter((artifact) => matchesWorkspace(artifact, workspaceId)).length;
+  const totalEventCount = getRecentEvents(100000, workspaceId).length;
 
   return {
     workspaceId: workspaceId ? normalizeWorkspaceId(workspaceId) : undefined,
+    systemDefinition: GHOSTCLAW_OS_DEFINITION,
+    systemCapabilities: [
+      'signal-driven orchestration',
+      'planner-to-job decomposition',
+      'agent-skill capability execution',
+      'workflow dependency coordination',
+      'policy-governed approvals and publishing',
+      'workspace isolation',
+      'auditable event trail',
+      'persistent runtime state',
+    ],
     availableWorkspaces: listWorkspaces(),
     selectedWorkspacePolicy: workspaceId ? getWorkspacePolicy(workspaceId) : undefined,
     workspaceCount: listWorkspaces().length,
     blueprintCount: listBlueprints().length,
-    totalSignals: runtimeStore.signals.filter((signal) => matchesWorkspace(signal, workspaceId)).length,
-    totalPlans: runtimeStore.plans.filter((plan) => matchesWorkspace(plan, workspaceId)).length,
+    totalSignalCount,
+    totalPlanCount,
+    totalJobCount,
+    totalArtifactCount,
+    totalEventCount,
     ...queueCounts,
-    totalArtifacts: runtimeStore.artifacts.filter((artifact) => matchesWorkspace(artifact, workspaceId)).length,
+    // backward compatibility
+    totalSignals: totalSignalCount,
+    totalPlans: totalPlanCount,
+    totalJobs: totalJobCount,
+    totalArtifacts: totalArtifactCount,
     registeredAgents: agentRegistry.listAgents().length,
     registeredSkills: skillRegistry.listSkills().length,
     workflowCount: getWorkflowIds(workspaceId).length,
     blockedJobReasons: getBlockedJobReasonsSummary(workspaceId),
     blockedDependencySummary: getBlockedDependencySummary(workspaceId),
-    totalEventCount: getRecentEvents(100000, workspaceId).length,
     recentEvents: getRecentEvents(10, workspaceId),
     publishTargetCount: listPublishTargets().length,
     publishedOutputCount: listPublishedOutputs(workspaceId).length,

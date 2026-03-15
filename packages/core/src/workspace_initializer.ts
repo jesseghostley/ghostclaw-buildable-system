@@ -144,6 +144,9 @@ export function initializeWorkspace(workspaceId: string, blueprintId: string, op
     kickedOff: boolean;
     kickedOffSignalName?: string;
     createdSignalId?: string;
+    createdPlanId?: string;
+    createdWorkflowId?: string;
+    createdJobIds?: string[];
   } = { kickedOff: false };
 
   if (options.kickoff && starterPack.starterSignals.length > 0) {
@@ -163,6 +166,9 @@ export function initializeWorkspace(workspaceId: string, blueprintId: string, op
       kickedOff: true,
       kickedOffSignalName: firstSignal.name,
       createdSignalId: kickoff.signal.id,
+      createdPlanId: kickoff.plan.id,
+      createdWorkflowId: kickoff.jobs[0]?.workflowId,
+      createdJobIds: kickoff.jobs.map((job) => job.id),
     };
   }
 
@@ -197,5 +203,11 @@ export function initializeWorkspace(workspaceId: string, blueprintId: string, op
       starterNotes: starterPack.starterNotes,
     },
     kickoffSummary,
+    runtimeIdentity: {
+      workspace: normalizedWorkspaceId,
+      policyGoverned: true,
+      auditable: true,
+      signalDriven: true,
+    },
   };
 }

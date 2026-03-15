@@ -137,5 +137,11 @@ export function createWorkspaceFromBlueprint(
     blueprint,
     starterPackSummary: initializer?.starterPackSummary,
     kickoffSummary: initializer?.kickoffSummary ?? { kickedOff: false },
+    runtimeIdentity: initializer?.runtimeIdentity ?? {
+      workspace: resolvedWorkspaceId,
+      policyGoverned: true,
+      auditable: true,
+      signalDriven: false,
+    },
   };
 }
