@@ -3,6 +3,7 @@ import { contractorWebsiteFactory } from '../packages/blueprints/src/contractor_
 import { skillRegistry } from '../packages/skills/src/registry';
 import { designSiteStructure } from '../packages/skills/src/design_site_structure';
 import { generatePageContent } from '../packages/skills/src/generate_page_content';
+import { reviewAndApprove } from '../packages/skills/src/review_and_approve';
 import { agentStore, createAgent } from '../packages/runtime/src/agent';
 import { workspaceStore } from '../packages/workspaces/src/store';
 
@@ -83,6 +84,35 @@ describe('Skill Registry', () => {
     expect(content.home.title).toContain('Test Co');
     expect(content.home.title).toContain('plumbing');
     expect(content.home.title).toContain('NYC');
+  });
+
+  it('registers and executes review_and_approve', () => {
+    skillRegistry.register(reviewAndApprove);
+    const result = skillRegistry.execute('review_and_approve', {
+      signalPayload: { businessName: 'Test Co' },
+      previousStepOutput: {
+        pageContent: { home: {}, services: {}, about: {}, gallery: {}, contact: {} },
+        pagesGenerated: ['home', 'services', 'about', 'gallery', 'contact'],
+      },
+    });
+    expect(result.qaReport).toBeDefined();
+    const qa = result.qaReport as Record<string, unknown>;
+    expect(qa.businessName).toBe('Test Co');
+    expect(qa.passed).toBe(true);
+    expect(qa.pageCount).toBe(5);
+    expect(qa.contentReceived).toBe(true);
+    expect(result.usedForwardedContent).toBe(true);
+  });
+
+  it('blueprint requiredSkills match skill registry IDs', () => {
+    skillRegistry.register(designSiteStructure);
+    skillRegistry.register(generatePageContent);
+    skillRegistry.register(reviewAndApprove);
+
+    const bp = contractorWebsiteFactory;
+    for (const skillId of bp.requiredSkills) {
+      expect(skillRegistry.getById(skillId)).toBeDefined();
+    }
   });
 
   it('throws on unknown skill', () => {

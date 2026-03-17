@@ -6,10 +6,19 @@ import { eventBus } from './event_bus';
 import { publishEventStore } from './publish_event';
 import { auditLog } from './audit_log';
 import type { Artifact } from './runtime_loop';
+import { skillRegistry } from '../../skills/src/registry';
+
+// Ensure built-in skills are registered on import.
+import '../../skills/src/index';
 
 export type JobHandler = (inputPayload: Record<string, unknown>) => Record<string, unknown>;
 
-const JOB_HANDLERS: Record<string, JobHandler> = {
+/**
+ * Legacy job handlers for non-contractor workflows.
+ * Contractor Website Factory skills (design_site_structure, generate_page_content,
+ * review_and_approve) are now served exclusively by the skill registry.
+ */
+const LEGACY_JOB_HANDLERS: Record<string, JobHandler> = {
   draft_cluster_outline: (inputPayload) => ({
     result: `Cluster outline generated for ${String(inputPayload.signalName ?? 'unknown_signal')}`,
   }),
@@ -22,107 +31,19 @@ const JOB_HANDLERS: Record<string, JobHandler> = {
   run_diagnostics: (inputPayload) => ({
     result: `Diagnostics run for ${String(inputPayload.signalName ?? 'unknown_signal')}`,
   }),
-
-  // Contractor Website Factory skills
-  design_site_structure: (inputPayload) => {
-    const payload = inputPayload.signalPayload as Record<string, unknown> | null;
-    const businessName = String(payload?.businessName ?? 'Unnamed Contractor');
-    const trade = String(payload?.trade ?? 'general');
-    return {
-      result: `Site structure designed for ${businessName}`,
-      siteStructure: {
-        businessName,
-        trade,
-        pages: ['home', 'services', 'about', 'gallery', 'contact'],
-        sections: {
-          home: ['hero', 'services_overview', 'testimonials', 'cta'],
-          services: ['service_list', 'pricing', 'faq'],
-          about: ['story', 'team', 'certifications'],
-          gallery: ['project_gallery', 'before_after'],
-          contact: ['form', 'map', 'hours'],
-        },
-      },
-    };
-  },
-
-  generate_page_content: (inputPayload) => {
-    const payload = inputPayload.signalPayload as Record<string, unknown> | null;
-    const prev = inputPayload.previousStepOutput as Record<string, unknown> | undefined;
-    const businessName = String(payload?.businessName ?? 'Unnamed Contractor');
-    const trade = String(payload?.trade ?? 'general');
-    const location = String(payload?.location ?? 'your area');
-
-    // Use site structure from previous step if available
-    const siteStructure = prev?.siteStructure as Record<string, unknown> | undefined;
-    const pages = (siteStructure?.pages as string[] | undefined) ?? ['home', 'services', 'about', 'gallery', 'contact'];
-    const sections = (siteStructure?.sections as Record<string, string[]> | undefined) ?? {};
-
-    return {
-      result: `Page content generated for ${businessName}`,
-      usedForwardedStructure: !!siteStructure,
-      pageContent: {
-        home: {
-          title: `${businessName} — Professional ${trade} Services in ${location}`,
-          hero: `Trusted ${trade} contractor serving ${location} with quality workmanship and reliable service.`,
-          sections: sections.home ?? ['hero', 'services_overview', 'testimonials', 'cta'],
-          cta: 'Get Your Free Estimate Today',
-        },
-        services: {
-          title: `Our ${trade} Services`,
-          description: `Full-service ${trade} solutions for residential and commercial properties in ${location}.`,
-          sections: sections.services ?? ['service_list', 'pricing', 'faq'],
-        },
-        about: {
-          title: `About ${businessName}`,
-          sections: sections.about ?? ['story', 'team', 'certifications'],
-        },
-        gallery: {
-          title: 'Our Work',
-          sections: sections.gallery ?? ['project_gallery', 'before_after'],
-        },
-        contact: {
-          title: 'Contact Us',
-          description: `Ready to start your ${trade} project? Get in touch for a free consultation.`,
-          sections: sections.contact ?? ['form', 'map', 'hours'],
-        },
-      },
-      siteStructure: siteStructure ?? null,
-      pagesGenerated: pages,
-    };
-  },
-
-  review_and_approve: (inputPayload) => {
-    const payload = inputPayload.signalPayload as Record<string, unknown> | null;
-    const prev = inputPayload.previousStepOutput as Record<string, unknown> | undefined;
-    const businessName = String(payload?.businessName ?? 'Unnamed Contractor');
-
-    // Validate forwarded content from previous step
-    const pageContent = prev?.pageContent as Record<string, unknown> | undefined;
-    const pagesGenerated = prev?.pagesGenerated as string[] | undefined;
-    const hasContent = !!pageContent;
-    const pageCount = pagesGenerated?.length ?? 0;
-
-    return {
-      result: `QA review completed for ${businessName}`,
-      usedForwardedContent: hasContent,
-      qaReport: {
-        businessName,
-        checksPerformed: [
-          'site_structure_completeness',
-          'content_quality',
-          'seo_metadata_present',
-          'contact_info_present',
-          'mobile_responsive_flag',
-        ],
-        pageCount,
-        contentReceived: hasContent,
-        passed: hasContent && pageCount >= 3,
-        requiresApproval: true,
-        approvalReason: 'New contractor website ready for publishing — requires operator review.',
-      },
-    };
-  },
 };
+
+/**
+ * Resolve a handler for a given job type.
+ * Priority: skill registry first, then legacy fallback.
+ */
+function resolveHandler(jobType: string): JobHandler | undefined {
+  const skill = skillRegistry.getById(jobType);
+  if (skill) {
+    return (input) => skill.handler(input);
+  }
+  return LEGACY_JOB_HANDLERS[jobType];
+}
 
 export function executeJobs(): Artifact[] {
   const artifacts: Artifact[] = [];
@@ -162,11 +83,14 @@ export function executeJobs(): Artifact[] {
       createdAt: Date.now(),
     });
 
-    const handler = JOB_HANDLERS[job.jobType];
+    const handler = resolveHandler(job.jobType);
     if (!handler) {
       jobQueue.markFailed(job.id);
       continue;
     }
+
+    // Record whether this job was resolved via the skill registry.
+    const resolvedViaSkillRegistry = !!skillRegistry.getById(job.jobType);
 
     const invocationId = `inv_${job.id}`;
 
@@ -194,6 +118,12 @@ export function executeJobs(): Artifact[] {
 
     try {
       const outputPayload = handler(job.inputPayload);
+
+      // Tag output with resolution source for observability.
+      if (resolvedViaSkillRegistry) {
+        (outputPayload as Record<string, unknown>).resolvedVia = 'skill_registry';
+      }
+
       job.outputPayload = outputPayload;
       job.updatedAt = Date.now();
       jobQueue.markComplete(job.id);
