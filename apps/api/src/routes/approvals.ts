@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { publishEventStore } from '../../../../packages/core/src/publish_event';
 import { auditLog } from '../../../../packages/core/src/audit_log';
 import { eventBus } from '../../../../packages/core/src/event_bus';
+import { generateSite } from '../../../../packages/core/src/site_generator';
 
 const router = Router();
 
@@ -110,8 +111,13 @@ router.post('/:id/publish', (req, res) => {
     return;
   }
 
-  const externalUrl = req.body?.externalUrl ?? '';
   const now = Date.now();
+
+  // Generate static site from artifacts
+  const siteResult = generateSite(event.id, event.artifactId);
+  const externalUrl = siteResult.error
+    ? (req.body?.externalUrl ?? '')
+    : `/sites/${event.id}/index.html`;
 
   publishEventStore.updateStatus(event.id, 'published', {
     externalUrl,

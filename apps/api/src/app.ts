@@ -32,6 +32,7 @@ app.use('/api/workspaces', workspacesRouter);
 app.use('/api/blueprints', blueprintsRouter);
 app.use('/api/approvals', approvalsRouter);
 
+app.use('/sites', express.static(path.join(__dirname, '..', 'output', 'sites')));
 app.use(express.static(path.join(__dirname, '..', 'public')));
 
 export default app;
