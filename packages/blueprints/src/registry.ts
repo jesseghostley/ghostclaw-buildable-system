@@ -8,6 +8,11 @@ class BlueprintRegistry {
     return blueprint;
   }
 
+  /** Alias for register — satisfies IBlueprintStore interface. */
+  create(blueprint: Blueprint): Blueprint {
+    return this.register(blueprint);
+  }
+
   getById(id: string): Blueprint | undefined {
     return this.blueprints.get(id);
   }

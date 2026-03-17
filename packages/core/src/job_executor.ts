@@ -47,34 +47,64 @@ const JOB_HANDLERS: Record<string, JobHandler> = {
 
   generate_page_content: (inputPayload) => {
     const payload = inputPayload.signalPayload as Record<string, unknown> | null;
+    const prev = inputPayload.previousStepOutput as Record<string, unknown> | undefined;
     const businessName = String(payload?.businessName ?? 'Unnamed Contractor');
     const trade = String(payload?.trade ?? 'general');
     const location = String(payload?.location ?? 'your area');
+
+    // Use site structure from previous step if available
+    const siteStructure = prev?.siteStructure as Record<string, unknown> | undefined;
+    const pages = (siteStructure?.pages as string[] | undefined) ?? ['home', 'services', 'about', 'gallery', 'contact'];
+    const sections = (siteStructure?.sections as Record<string, string[]> | undefined) ?? {};
+
     return {
       result: `Page content generated for ${businessName}`,
+      usedForwardedStructure: !!siteStructure,
       pageContent: {
         home: {
           title: `${businessName} — Professional ${trade} Services in ${location}`,
           hero: `Trusted ${trade} contractor serving ${location} with quality workmanship and reliable service.`,
+          sections: sections.home ?? ['hero', 'services_overview', 'testimonials', 'cta'],
           cta: 'Get Your Free Estimate Today',
         },
         services: {
           title: `Our ${trade} Services`,
           description: `Full-service ${trade} solutions for residential and commercial properties in ${location}.`,
+          sections: sections.services ?? ['service_list', 'pricing', 'faq'],
+        },
+        about: {
+          title: `About ${businessName}`,
+          sections: sections.about ?? ['story', 'team', 'certifications'],
+        },
+        gallery: {
+          title: 'Our Work',
+          sections: sections.gallery ?? ['project_gallery', 'before_after'],
         },
         contact: {
           title: 'Contact Us',
           description: `Ready to start your ${trade} project? Get in touch for a free consultation.`,
+          sections: sections.contact ?? ['form', 'map', 'hours'],
         },
       },
+      siteStructure: siteStructure ?? null,
+      pagesGenerated: pages,
     };
   },
 
   review_and_approve: (inputPayload) => {
     const payload = inputPayload.signalPayload as Record<string, unknown> | null;
+    const prev = inputPayload.previousStepOutput as Record<string, unknown> | undefined;
     const businessName = String(payload?.businessName ?? 'Unnamed Contractor');
+
+    // Validate forwarded content from previous step
+    const pageContent = prev?.pageContent as Record<string, unknown> | undefined;
+    const pagesGenerated = prev?.pagesGenerated as string[] | undefined;
+    const hasContent = !!pageContent;
+    const pageCount = pagesGenerated?.length ?? 0;
+
     return {
       result: `QA review completed for ${businessName}`,
+      usedForwardedContent: hasContent,
       qaReport: {
         businessName,
         checksPerformed: [
@@ -84,7 +114,9 @@ const JOB_HANDLERS: Record<string, JobHandler> = {
           'contact_info_present',
           'mobile_responsive_flag',
         ],
-        passed: true,
+        pageCount,
+        contentReceived: hasContent,
+        passed: hasContent && pageCount >= 3,
         requiresApproval: true,
         approvalReason: 'New contractor website ready for publishing — requires operator review.',
       },
@@ -94,11 +126,18 @@ const JOB_HANDLERS: Record<string, JobHandler> = {
 
 export function executeJobs(): Artifact[] {
   const artifacts: Artifact[] = [];
+  let previousStepOutput: Record<string, unknown> | null = null;
 
   while (true) {
     const job = jobQueue.dequeue();
     if (!job) {
       break;
+    }
+
+    // Forward previous step's output into this job's input payload.
+    if (previousStepOutput) {
+      job.inputPayload = { ...job.inputPayload, previousStepOutput };
+      job.updatedAt = Date.now();
     }
 
     const assignedAgent = agentRegistry.findAgentForJob(job.jobType);
@@ -158,6 +197,9 @@ export function executeJobs(): Artifact[] {
       job.outputPayload = outputPayload;
       job.updatedAt = Date.now();
       jobQueue.markComplete(job.id);
+
+      // Store output for forwarding to the next step in the pipeline.
+      previousStepOutput = outputPayload;
 
       const artifactId = `artifact_${job.id}`;
       const completedAt = Date.now();
