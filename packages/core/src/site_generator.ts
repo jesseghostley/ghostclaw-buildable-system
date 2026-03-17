@@ -5,6 +5,8 @@ import { runtimeStore, Artifact } from './runtime_loop';
 export interface SiteGeneratorResult {
   outputDir: string;
   files: string[];
+  businessSlug: string;
+  siteUrl: string;
   error?: string;
 }
 
@@ -12,125 +14,218 @@ function findArtifactsByType(type: string): Artifact[] {
   return runtimeStore.artifacts.filter((a) => a.type === type);
 }
 
-function htmlTemplate(title: string, nav: string[], body: string): string {
-  const navLinks = nav
+function slugify(text: string): string {
+  return text.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+}
+
+function escapeHtml(str: string): string {
+  return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
+// ---------------------------------------------------------------------------
+// CSS
+// ---------------------------------------------------------------------------
+
+function buildStylesCss(): string {
+  return `*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f8fafc; color: #1e293b; line-height: 1.7; }
+a { color: #2563eb; text-decoration: none; }
+a:hover { text-decoration: underline; }
+
+/* Navigation */
+nav { background: #0f172a; padding: 16px 32px; display: flex; align-items: center; gap: 24px; }
+nav .brand { color: #f8fafc; font-weight: 700; font-size: 18px; margin-right: auto; }
+nav a { color: #93c5fd; font-size: 14px; }
+
+/* Hero */
+.hero { background: linear-gradient(135deg, #1e40af 0%, #1e3a5f 100%); color: #fff; padding: 72px 32px; text-align: center; }
+.hero h1 { font-size: 2.2rem; margin-bottom: 16px; }
+.hero p { font-size: 1.15rem; opacity: 0.92; max-width: 640px; margin: 0 auto 24px; }
+.cta { display: inline-block; background: #f59e0b; color: #1e293b; padding: 14px 36px; border-radius: 6px; font-weight: 700; font-size: 16px; text-decoration: none; }
+.cta:hover { background: #d97706; text-decoration: none; }
+
+/* Main content */
+main { max-width: 820px; margin: 40px auto; padding: 0 24px; }
+.card { background: #fff; border-radius: 10px; padding: 32px; margin-bottom: 28px; box-shadow: 0 1px 4px rgba(0,0,0,0.06); }
+.card h2 { color: #1e40af; margin-bottom: 12px; font-size: 1.3rem; }
+.card p { color: #475569; }
+
+/* Section badges */
+.badge { display: inline-block; background: #dbeafe; color: #1e40af; padding: 3px 12px; border-radius: 4px; font-size: 12px; margin: 4px 3px; font-weight: 500; }
+
+/* Contact form placeholder */
+.form-placeholder { background: #f1f5f9; border: 2px dashed #cbd5e1; border-radius: 8px; padding: 32px; text-align: center; color: #64748b; }
+
+/* Footer */
+footer { background: #0f172a; color: #94a3b8; padding: 28px 32px; text-align: center; font-size: 13px; margin-top: 56px; }
+footer a { color: #93c5fd; }
+
+/* QA badge */
+.qa-badge { display: inline-block; background: #dcfce7; color: #166534; padding: 2px 10px; border-radius: 4px; font-size: 11px; font-weight: 600; margin-left: 8px; }
+`;
+}
+
+// ---------------------------------------------------------------------------
+// HTML helpers
+// ---------------------------------------------------------------------------
+
+function htmlPage(
+  title: string,
+  businessName: string,
+  pages: string[],
+  body: string,
+  footerNav: string[],
+): string {
+  const navLinks = pages
     .map((p) => {
       const href = p === 'home' ? 'index.html' : `${p}.html`;
-      return `<a href="${href}">${p.charAt(0).toUpperCase() + p.slice(1)}</a>`;
+      const label = p.charAt(0).toUpperCase() + p.slice(1);
+      return `<a href="${href}">${label}</a>`;
     })
-    .join(' | ');
+    .join('\n    ');
+
+  const footerLinks = footerNav
+    .map((l) => escapeHtml(l))
+    .join(' &middot; ');
 
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>${title}</title>
-  <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f8fafc; color: #1e293b; line-height: 1.6; }
-    nav { background: #0f172a; color: #e2e8f0; padding: 16px 32px; font-size: 14px; }
-    nav a { color: #93c5fd; text-decoration: none; margin-right: 8px; }
-    nav a:hover { text-decoration: underline; }
-    .hero { background: #1e40af; color: white; padding: 64px 32px; text-align: center; }
-    .hero h1 { font-size: 2rem; margin-bottom: 12px; }
-    .hero p { font-size: 1.1rem; opacity: 0.9; max-width: 600px; margin: 0 auto; }
-    .cta { display: inline-block; margin-top: 24px; background: #f59e0b; color: #1e293b; padding: 12px 32px; border-radius: 6px; font-weight: 700; text-decoration: none; }
-    main { max-width: 800px; margin: 32px auto; padding: 0 24px; }
-    section { background: white; border-radius: 8px; padding: 32px; margin-bottom: 24px; box-shadow: 0 1px 3px rgba(0,0,0,0.06); }
-    section h2 { margin-bottom: 12px; color: #1e40af; }
-    footer { background: #0f172a; color: #94a3b8; padding: 24px 32px; text-align: center; font-size: 13px; margin-top: 48px; }
-    .badge { display: inline-block; background: #dbeafe; color: #1e40af; padding: 2px 10px; border-radius: 4px; font-size: 12px; margin: 4px 2px; }
-  </style>
+  <title>${escapeHtml(title)}</title>
+  <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-  <nav>${navLinks}</nav>
+  <nav>
+    <span class="brand">${escapeHtml(businessName)}</span>
+    ${navLinks}
+  </nav>
   ${body}
-  <footer>Generated by GhostClaw Runtime &mdash; ${new Date().toISOString()}</footer>
+  <footer>
+    <p>&copy; ${new Date().getFullYear()} ${escapeHtml(businessName)}. All rights reserved.</p>
+    <p style="margin-top:6px">${footerLinks}</p>
+    <p style="margin-top:12px;font-size:11px;opacity:0.6">Generated by GhostClaw &mdash; ${new Date().toISOString()}</p>
+  </footer>
 </body>
 </html>`;
 }
 
-function buildHomePage(pageContent: any, siteStructure: any): string {
-  const pc = pageContent?.home || {};
-  const cta = pc.cta ? `<a class="cta" href="contact.html">${pc.cta}</a>` : '';
-  const sections = (pc.sections || [])
-    .map((s: string) => `<span class="badge">${s}</span>`)
+// ---------------------------------------------------------------------------
+// Page builders
+// ---------------------------------------------------------------------------
+
+function buildHomePage(pc: any, ss: any, qa: any): string {
+  const home = pc?.home || {};
+  const businessName = ss?.businessName || 'Contractor';
+  const pages = ss?.pages || ['home', 'services', 'contact'];
+  const footerNav = ss?.navigation?.footer || [];
+
+  const ctaHtml = home.cta
+    ? `<a class="cta" href="contact.html">${escapeHtml(home.cta)}</a>`
+    : '';
+
+  const qaBadge = qa?.passed
+    ? '<span class="qa-badge">QA Passed</span>'
+    : '';
+
+  const sectionBadges = (home.sections || [])
+    .map((s: string) => `<span class="badge">${escapeHtml(s)}</span>`)
     .join(' ');
 
   const body = `<div class="hero">
-  <h1>${pc.title || siteStructure?.businessName || 'Welcome'}</h1>
-  <p>${pc.hero || ''}</p>
-  ${cta}
-</div>
-<main>
-  <section>
-    <h2>What We Offer</h2>
-    <p>${sections || 'Professional services tailored to your needs.'}</p>
-  </section>
-</main>`;
+    <h1>${escapeHtml(home.title || businessName)}${qaBadge}</h1>
+    <p>${escapeHtml(home.hero || '')}</p>
+    ${ctaHtml}
+  </div>
+  <main>
+    <div class="card">
+      <h2>What We Offer</h2>
+      <p>${sectionBadges || 'Professional services tailored to your needs.'}</p>
+    </div>
+  </main>`;
 
-  const pages = siteStructure?.pages || ['home', 'services', 'contact'];
-  return htmlTemplate(pc.title || 'Home', pages, body);
+  return htmlPage(home.title || businessName, businessName, pages, body, footerNav);
 }
 
-function buildServicesPage(pageContent: any, siteStructure: any): string {
-  const pc = pageContent?.services || {};
-  const sections = (pc.sections || [])
-    .map((s: string) => `<section><h2>${s.replace(/_/g, ' ').replace(/\b\w/g, (c: string) => c.toUpperCase())}</h2><p>Details coming soon.</p></section>`)
-    .join('\n');
+function buildServicesPage(pc: any, ss: any): string {
+  const svc = pc?.services || {};
+  const businessName = ss?.businessName || 'Contractor';
+  const pages = ss?.pages || ['home', 'services', 'contact'];
+  const footerNav = ss?.navigation?.footer || [];
+
+  const cards = (svc.sections || ['service_list', 'pricing', 'faq'])
+    .map((s: string) => {
+      const label = s.replace(/_/g, ' ').replace(/\b\w/g, (c: string) => c.toUpperCase());
+      return `<div class="card"><h2>${escapeHtml(label)}</h2><p>Details about our ${escapeHtml(s.replace(/_/g, ' '))} offerings.</p></div>`;
+    })
+    .join('\n    ');
 
   const body = `<div class="hero">
-  <h1>${pc.title || 'Our Services'}</h1>
-  <p>${pc.description || ''}</p>
-</div>
-<main>
-  ${sections || '<section><h2>Services</h2><p>Full-service solutions for your project.</p></section>'}
-</main>`;
+    <h1>${escapeHtml(svc.title || 'Our Services')}</h1>
+    <p>${escapeHtml(svc.description || '')}</p>
+  </div>
+  <main>
+    ${cards}
+  </main>`;
 
-  const pages = siteStructure?.pages || ['home', 'services', 'contact'];
-  return htmlTemplate(pc.title || 'Services', pages, body);
+  return htmlPage(svc.title || 'Services', businessName, pages, body, footerNav);
 }
 
-function buildContactPage(pageContent: any, siteStructure: any): string {
-  const pc = pageContent?.contact || {};
+function buildContactPage(pc: any, ss: any, phone: string, email: string): string {
+  const contact = pc?.contact || {};
+  const businessName = ss?.businessName || 'Contractor';
+  const pages = ss?.pages || ['home', 'services', 'contact'];
+  const footerNav = ss?.navigation?.footer || [];
+
+  const contactDetails: string[] = [];
+  if (phone) contactDetails.push(`<p><strong>Phone:</strong> ${escapeHtml(phone)}</p>`);
+  if (email) contactDetails.push(`<p><strong>Email:</strong> <a href="mailto:${escapeHtml(email)}">${escapeHtml(email)}</a></p>`);
 
   const body = `<div class="hero">
-  <h1>${pc.title || 'Contact Us'}</h1>
-  <p>${pc.description || 'Get in touch with our team.'}</p>
-</div>
-<main>
-  <section>
-    <h2>Send Us a Message</h2>
-    <p>Call us or fill out the form below to get started on your project.</p>
-  </section>
-</main>`;
+    <h1>${escapeHtml(contact.title || 'Contact Us')}</h1>
+    <p>${escapeHtml(contact.description || 'Get in touch with our team.')}</p>
+  </div>
+  <main>
+    <div class="card">
+      <h2>Get In Touch</h2>
+      ${contactDetails.length > 0 ? contactDetails.join('\n      ') : '<p>Reach out to discuss your project.</p>'}
+    </div>
+    <div class="card">
+      <h2>Request a Free Estimate</h2>
+      <div class="form-placeholder">Contact form placeholder &mdash; connect your form provider here.</div>
+    </div>
+  </main>`;
 
-  const pages = siteStructure?.pages || ['home', 'services', 'contact'];
-  return htmlTemplate(pc.title || 'Contact', pages, body);
+  return htmlPage(contact.title || 'Contact', businessName, pages, body, footerNav);
 }
+
+// ---------------------------------------------------------------------------
+// Main generator
+// ---------------------------------------------------------------------------
 
 export function generateSite(publishEventId: string, artifactId: string): SiteGeneratorResult {
-  // Find the referenced artifact
+  // 1. Collect data from artifacts
   const artifact = runtimeStore.artifacts.find((a) => a.id === artifactId);
-
-  // Gather all pageContent and siteStructure artifacts
   const pageContentArtifacts = findArtifactsByType('generate_page_content');
   const siteStructureArtifacts = findArtifactsByType('design_site_structure');
+  const qaArtifacts = findArtifactsByType('review_and_approve');
 
   let pageContent: any = null;
   let siteStructure: any = null;
+  let qaReport: any = null;
 
-  // Try to get data from the specific artifact first
+  // Try the specific artifact first
   if (artifact) {
     try {
       const parsed = JSON.parse(artifact.content);
       if (parsed.pageContent) pageContent = parsed.pageContent;
       if (parsed.siteStructure) siteStructure = parsed.siteStructure;
+      if (parsed.qaReport) qaReport = parsed.qaReport;
     } catch (_) { /* ignore */ }
   }
 
-  // Fall back to any available artifacts of the right type
+  // Fall back to latest artifacts of each type
   if (!pageContent && pageContentArtifacts.length > 0) {
     try {
       const parsed = JSON.parse(pageContentArtifacts[pageContentArtifacts.length - 1].content);
@@ -144,27 +239,68 @@ export function generateSite(publishEventId: string, artifactId: string): SiteGe
       if (parsed.siteStructure) siteStructure = parsed.siteStructure;
     } catch (_) { /* ignore */ }
   }
-
-  if (!pageContent && !siteStructure) {
-    return { outputDir: '', files: [], error: 'No pageContent or siteStructure artifacts found.' };
+  if (!qaReport && qaArtifacts.length > 0) {
+    try {
+      const parsed = JSON.parse(qaArtifacts[qaArtifacts.length - 1].content);
+      if (parsed.qaReport) qaReport = parsed.qaReport;
+    } catch (_) { /* ignore */ }
   }
 
-  const outputDir = path.resolve(__dirname, '..', '..', '..', 'apps', 'api', 'output', 'sites', publishEventId);
+  if (!pageContent && !siteStructure) {
+    return { outputDir: '', files: [], businessSlug: '', siteUrl: '', error: 'No pageContent or siteStructure artifacts found.' };
+  }
+
+  // 2. Extract business details from signal (for phone/email)
+  let phone = '';
+  let email = '';
+  if (runtimeStore.signals.length > 0) {
+    const sig = runtimeStore.signals[runtimeStore.signals.length - 1];
+    const sp = (sig as any).payload || {};
+    phone = sp.phone || '';
+    email = sp.email || '';
+  }
+
+  // 3. Determine output path
+  const businessName = siteStructure?.businessName || qaReport?.businessName || 'site';
+  const businessSlug = slugify(businessName);
+  const outputDir = path.resolve(__dirname, '..', '..', '..', 'output', 'sites', publishEventId);
   fs.mkdirSync(outputDir, { recursive: true });
 
   const files: string[] = [];
 
-  const homeHtml = buildHomePage(pageContent, siteStructure);
-  fs.writeFileSync(path.join(outputDir, 'index.html'), homeHtml);
+  // 4. Write styles.css
+  fs.writeFileSync(path.join(outputDir, 'styles.css'), buildStylesCss());
+  files.push('styles.css');
+
+  // 5. Write HTML pages
+  fs.writeFileSync(path.join(outputDir, 'index.html'), buildHomePage(pageContent, siteStructure, qaReport));
   files.push('index.html');
 
-  const servicesHtml = buildServicesPage(pageContent, siteStructure);
-  fs.writeFileSync(path.join(outputDir, 'services.html'), servicesHtml);
+  fs.writeFileSync(path.join(outputDir, 'services.html'), buildServicesPage(pageContent, siteStructure));
   files.push('services.html');
 
-  const contactHtml = buildContactPage(pageContent, siteStructure);
-  fs.writeFileSync(path.join(outputDir, 'contact.html'), contactHtml);
+  fs.writeFileSync(path.join(outputDir, 'contact.html'), buildContactPage(pageContent, siteStructure, phone, email));
   files.push('contact.html');
 
-  return { outputDir, files };
+  // 6. Write site.json manifest
+  const siteUrl = `/sites/${publishEventId}/index.html`;
+  const manifest = {
+    publishEventId,
+    businessName,
+    businessSlug,
+    generatedAt: new Date().toISOString(),
+    outputDir,
+    siteUrl,
+    files,
+    artifacts: {
+      siteStructure: siteStructureArtifacts.length > 0 ? siteStructureArtifacts[siteStructureArtifacts.length - 1].id : null,
+      pageContent: pageContentArtifacts.length > 0 ? pageContentArtifacts[pageContentArtifacts.length - 1].id : null,
+      qaReport: qaArtifacts.length > 0 ? qaArtifacts[qaArtifacts.length - 1].id : null,
+    },
+    qaStatus: qaReport?.passed ? 'passed' : 'unknown',
+  };
+  fs.writeFileSync(path.join(outputDir, 'site.json'), JSON.stringify(manifest, null, 2));
+  files.push('site.json');
+
+  return { outputDir, files, businessSlug, siteUrl };
 }

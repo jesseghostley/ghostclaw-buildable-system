@@ -117,7 +117,7 @@ router.post('/:id/publish', (req, res) => {
   const siteResult = generateSite(event.id, event.artifactId);
   const externalUrl = siteResult.error
     ? (req.body?.externalUrl ?? '')
-    : `/sites/${event.id}/index.html`;
+    : siteResult.siteUrl;
 
   publishEventStore.updateStatus(event.id, 'published', {
     externalUrl,
@@ -135,10 +135,20 @@ router.post('/:id/publish', (req, res) => {
     timestamp: now,
     summary: `Publish event "${event.id}" published to ${event.destination}.`,
     workspaceId: 'default',
-    metadata: { externalUrl },
+    metadata: {
+      externalUrl,
+      outputDir: siteResult.outputDir,
+      files: siteResult.files,
+      businessSlug: siteResult.businessSlug,
+    },
   });
 
-  res.json(published);
+  res.json({
+    ...published,
+    site: siteResult.error
+      ? { error: siteResult.error }
+      : { outputDir: siteResult.outputDir, files: siteResult.files, siteUrl: siteResult.siteUrl, businessSlug: siteResult.businessSlug },
+  });
 });
 
 export default router;
