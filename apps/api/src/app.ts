@@ -1,4 +1,5 @@
 import express from 'express';
+import path from 'path';
 import runtimeRouter from './routes/runtime';
 import signalsRouter from './routes/signals';
 import skillInvocationsRouter from './routes/skill_invocations';
@@ -30,5 +31,7 @@ app.use('/api/ghost-mart', ghostMartRouter);
 app.use('/api/workspaces', workspacesRouter);
 app.use('/api/blueprints', blueprintsRouter);
 app.use('/api/approvals', approvalsRouter);
+
+app.use(express.static(path.join(__dirname, '..', 'public')));
 
 export default app;
