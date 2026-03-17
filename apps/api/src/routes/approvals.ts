@@ -11,6 +11,15 @@ router.get('/pending', (_req, res) => {
   res.json({ pending, count: pending.length });
 });
 
+// GET /api/approvals/history — list approved, published, and rejected events
+router.get('/history', (_req, res) => {
+  const approved = publishEventStore.listByStatus('approved');
+  const published = publishEventStore.listByStatus('published');
+  const rejected = publishEventStore.listByStatus('rejected');
+  const items = [...approved, ...published, ...rejected].sort((a, b) => b.publishedAt - a.publishedAt);
+  res.json({ items, count: items.length });
+});
+
 // GET /api/approvals/:id — get a specific publish event
 router.get('/:id', (req, res) => {
   const event = publishEventStore.getById(req.params.id);
