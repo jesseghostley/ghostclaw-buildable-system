@@ -59,7 +59,7 @@ const seedStrategies: PlannerStrategy[] = [
     id: 'rule_contractor_website_strategy',
     name: 'Contractor Website Strategy',
     description: 'Builds a contractor website through site architecture, content generation, and QA review.',
-    supportedSignals: ['contractor_website_requested'],
+    supportedSignals: ['contractor_website_requested', 'contractor_website'],
     strategyType: 'rule',
     status: 'active',
   },

@@ -22,6 +22,7 @@ const SIGNAL_TO_ACTION_MAP: Record<string, PlannerAction> = {
   marketplace_gap_detected: 'create_new_skill',
   runtime_error_detected: 'handle_runtime_error',
   contractor_website_requested: 'build_contractor_website',
+  contractor_website: 'build_contractor_website',
 };
 
 const ACTION_METADATA: Record<
