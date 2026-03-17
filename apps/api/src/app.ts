@@ -9,6 +9,7 @@ import ghostMartRouter from './routes/ghost_mart';
 import workspacesRouter from './routes/workspaces';
 import blueprintsRouter from './routes/blueprints';
 import approvalsRouter from './routes/approvals';
+import batchesRouter from './routes/batches';
 import { registerRuntimeEventLogSubscribers } from '../../../packages/core/src/runtime_event_log_subscriber';
 import { eventBus } from '../../../packages/core/src/event_bus';
 
@@ -31,6 +32,7 @@ app.use('/api/ghost-mart', ghostMartRouter);
 app.use('/api/workspaces', workspacesRouter);
 app.use('/api/blueprints', blueprintsRouter);
 app.use('/api/approvals', approvalsRouter);
+app.use('/api/batches', batchesRouter);
 
 app.use('/sites', express.static(path.join(__dirname, '..', '..', '..', 'output', 'sites')));
 app.use(express.static(path.join(__dirname, '..', 'public')));
