@@ -12,18 +12,12 @@ import {
   resetEventLogSubscriberState,
 } from './runtime_event_log_subscriber';
 import { runtimeEventLog as defaultRuntimeEventLog } from './runtime_event_log';
-
-let _auditEntryCounter = 0;
-
-function nextAuditId(): string {
-  return `audit_${++_auditEntryCounter}`;
-}
+import { uniqueId } from './unique_id';
 
 /**
- * Resets the audit entry counter — for test isolation only.
+ * Resets subscriber-side state — for test isolation only.
  */
 export function resetSubscriberState(): void {
-  _auditEntryCounter = 0;
   resetEventLogSubscriberState();
 }
 
@@ -49,7 +43,7 @@ export function registerRuntimeSubscribers(
 
   bus.on('signal.received', (signal) => {
     const entry: AuditLogEntry = {
-      id: nextAuditId(),
+      id: uniqueId('audit'),
       eventType: 'signal.received',
       objectType: 'Signal',
       objectId: signal.id,
@@ -63,7 +57,7 @@ export function registerRuntimeSubscribers(
 
   bus.on('plan.created', (plan) => {
     const entry: AuditLogEntry = {
-      id: nextAuditId(),
+      id: uniqueId('audit'),
       eventType: 'plan.created',
       objectType: 'Plan',
       objectId: plan.id,
@@ -77,7 +71,7 @@ export function registerRuntimeSubscribers(
 
   bus.on('skill.invocation.started', (invocation) => {
     const entry: AuditLogEntry = {
-      id: nextAuditId(),
+      id: uniqueId('audit'),
       eventType: 'skill_invocation.started',
       objectType: 'SkillInvocation',
       objectId: invocation.id,
@@ -91,7 +85,7 @@ export function registerRuntimeSubscribers(
 
   bus.on('skill.invocation.completed', (invocation) => {
     const entry: AuditLogEntry = {
-      id: nextAuditId(),
+      id: uniqueId('audit'),
       eventType: 'skill_invocation.completed',
       objectType: 'SkillInvocation',
       objectId: invocation.id,
@@ -105,7 +99,7 @@ export function registerRuntimeSubscribers(
 
   bus.on('skill.invocation.failed', (invocation) => {
     const entry: AuditLogEntry = {
-      id: nextAuditId(),
+      id: uniqueId('audit'),
       eventType: 'skill_invocation.failed',
       objectType: 'SkillInvocation',
       objectId: invocation.id,
@@ -119,7 +113,7 @@ export function registerRuntimeSubscribers(
 
   bus.on('artifact.created', (artifact) => {
     const entry: AuditLogEntry = {
-      id: nextAuditId(),
+      id: uniqueId('audit'),
       eventType: 'artifact.created',
       objectType: 'Artifact',
       objectId: artifact.id,
@@ -133,7 +127,7 @@ export function registerRuntimeSubscribers(
 
   bus.on('publish.requested', (publishEvent) => {
     const entry: AuditLogEntry = {
-      id: nextAuditId(),
+      id: uniqueId('audit'),
       eventType: 'publish_event.initiated',
       objectType: 'PublishEvent',
       objectId: publishEvent.id,
@@ -147,7 +141,7 @@ export function registerRuntimeSubscribers(
 
   bus.on('publish.completed', (publishEvent) => {
     const entry: AuditLogEntry = {
-      id: nextAuditId(),
+      id: uniqueId('audit'),
       eventType: 'publish_event.published',
       objectType: 'PublishEvent',
       objectId: publishEvent.id,
@@ -162,7 +156,7 @@ export function registerRuntimeSubscribers(
   // ─── Publish flow subscriber ───────────────────────────────────────────────
 
   bus.on('artifact.created', (artifact) => {
-    const publishEventId = `publish_${artifact.id}`;
+    const publishEventId = uniqueId('pub');
     const publishEvent = publishStore.create({
       id: publishEventId,
       artifactId: artifact.id,

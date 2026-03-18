@@ -7,6 +7,7 @@ import { publishEventStore } from './publish_event';
 import { auditLog } from './audit_log';
 import type { Artifact } from './runtime_loop';
 import { skillRegistry } from '../../skills/src/registry';
+import { uniqueId } from './unique_id';
 
 // Ensure built-in skills are registered on import.
 import '../../skills/src/index';
@@ -74,7 +75,7 @@ export function executeJobs(): Artifact[] {
     eventBus.emit('job.assigned', { ...job, agentName: assignedAgent.agentName });
 
     // Create a first-class Assignment record for this job-to-agent binding.
-    const assignmentId = `assign_${job.id}`;
+    const assignmentId = uniqueId('assign');
     assignmentStore.create({
       id: assignmentId,
       jobId: job.id,
@@ -92,7 +93,7 @@ export function executeJobs(): Artifact[] {
     // Record whether this job was resolved via the skill registry.
     const resolvedViaSkillRegistry = !!skillRegistry.getById(job.jobType);
 
-    const invocationId = `inv_${job.id}`;
+    const invocationId = uniqueId('inv');
 
     const invocation = skillInvocationStore.create({
       id: invocationId,
@@ -131,7 +132,7 @@ export function executeJobs(): Artifact[] {
       // Store output for forwarding to the next step in the pipeline.
       previousStepOutput = outputPayload;
 
-      const artifactId = `artifact_${job.id}`;
+      const artifactId = uniqueId('artifact');
       const completedAt = Date.now();
 
       skillInvocationStore.updateStatus(invocationId, 'completed', {
@@ -154,7 +155,7 @@ export function executeJobs(): Artifact[] {
 
       // Audit: log job completion
       auditLog.append({
-        id: `audit_${job.id}_completed`,
+        id: uniqueId('audit'),
         eventType: 'job.completed',
         objectType: 'Job',
         objectId: job.id,
@@ -169,7 +170,7 @@ export function executeJobs(): Artifact[] {
       // pending PublishEvent so an operator must approve before publishing.
       const qaReport = outputPayload.qaReport as Record<string, unknown> | undefined;
       if (qaReport?.requiresApproval) {
-        const publishId = `pub_${artifactId}`;
+        const publishId = uniqueId('pub');
         const pubEvent = publishEventStore.create({
           id: publishId,
           artifactId,
@@ -181,7 +182,7 @@ export function executeJobs(): Artifact[] {
         eventBus.emit('publish.requested', pubEvent);
 
         auditLog.append({
-          id: `audit_${publishId}_initiated`,
+          id: uniqueId('audit'),
           eventType: 'publish_event.initiated',
           objectType: 'PublishEvent',
           objectId: publishId,

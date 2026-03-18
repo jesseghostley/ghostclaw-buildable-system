@@ -5,6 +5,7 @@ import { publishEventStore } from '../../../../packages/core/src/publish_event';
 import { auditLog } from '../../../../packages/core/src/audit_log';
 import { eventBus } from '../../../../packages/core/src/event_bus';
 import { generateSite } from '../../../../packages/core/src/site_generator';
+import { uniqueId } from '../../../../packages/core/src/unique_id';
 
 const router = Router();
 
@@ -54,7 +55,7 @@ router.post('/:id/approve', (req, res) => {
   });
 
   auditLog.append({
-    id: `audit_${event.id}_approved`,
+    id: uniqueId('audit'),
     eventType: 'publish_event.approved',
     objectType: 'PublishEvent',
     objectId: event.id,
@@ -88,7 +89,7 @@ router.post('/:id/reject', (req, res) => {
   });
 
   auditLog.append({
-    id: `audit_${event.id}_rejected`,
+    id: uniqueId('audit'),
     eventType: 'publish_event.rejected',
     objectType: 'PublishEvent',
     objectId: event.id,
@@ -129,7 +130,7 @@ router.post('/:id/publish', (req, res) => {
   eventBus.emit('publish.completed', published);
 
   auditLog.append({
-    id: `audit_${event.id}_published`,
+    id: uniqueId('audit'),
     eventType: 'publish_event.published',
     objectType: 'PublishEvent',
     objectId: event.id,

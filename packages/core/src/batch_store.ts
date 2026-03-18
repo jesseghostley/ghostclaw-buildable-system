@@ -1,5 +1,6 @@
 import { publishEventStore } from './publish_event';
 import { getStores } from './store_provider';
+import { uniqueId } from './unique_id';
 import type Database from 'better-sqlite3';
 
 export type SiteRequest = {
@@ -106,9 +107,7 @@ function rowToBatch(row: Record<string, unknown>): Batch {
 // ── Public API (unchanged signatures) ────────────────────────────────────────
 
 export function createBatch(sites: SiteRequest[]): Batch {
-  const ts = Date.now().toString(36);
-  const rand = Math.random().toString(36).slice(2, 8);
-  const id = `batch_${ts}_${rand}`;
+  const id = uniqueId('batch');
   const batch: Batch = {
     id,
     createdAt: Date.now(),

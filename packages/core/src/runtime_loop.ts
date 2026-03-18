@@ -7,6 +7,7 @@ import { skillInvocationStore, type SkillInvocation } from './skill_invocation';
 import { assignmentStore, type Assignment } from './assignment';
 import { eventBus } from './event_bus';
 import { getStores } from './store_provider';
+import { uniqueId } from './unique_id';
 
 /**
  * =============================================================================
@@ -106,15 +107,6 @@ export const runtimeStore = {
   assignments: [] as Assignment[],
 };
 
-/**
- * Generate a persistence-safe unique ID.
- * Format: {prefix}_{timestamp}_{random} — never reuses IDs after restart.
- */
-function uniqueId(prefix: string): string {
-  const ts = Date.now().toString(36);
-  const rand = Math.random().toString(36).slice(2, 8);
-  return `${prefix}_${ts}_${rand}`;
-}
 
 function createPlan(signal: Signal): Plan {
   const decision = routeSignal(signal);
