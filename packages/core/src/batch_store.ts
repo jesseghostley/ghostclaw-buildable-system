@@ -34,7 +34,6 @@ export type Batch = {
 
 // ── In-memory fallback ───────────────────────────────────────────────────────
 const batches: Map<string, Batch> = new Map();
-let batchCounter = 0;
 
 // ── SQLite helpers ───────────────────────────────────────────────────────────
 
@@ -107,8 +106,9 @@ function rowToBatch(row: Record<string, unknown>): Batch {
 // ── Public API (unchanged signatures) ────────────────────────────────────────
 
 export function createBatch(sites: SiteRequest[]): Batch {
-  batchCounter++;
-  const id = `batch_${batchCounter}_${Date.now()}`;
+  const ts = Date.now().toString(36);
+  const rand = Math.random().toString(36).slice(2, 8);
+  const id = `batch_${ts}_${rand}`;
   const batch: Batch = {
     id,
     createdAt: Date.now(),

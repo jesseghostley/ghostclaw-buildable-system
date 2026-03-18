@@ -106,15 +106,21 @@ export const runtimeStore = {
   assignments: [] as Assignment[],
 };
 
-function nextId(prefix: string, index: number): string {
-  return `${prefix}_${index + 1}`;
+/**
+ * Generate a persistence-safe unique ID.
+ * Format: {prefix}_{timestamp}_{random} — never reuses IDs after restart.
+ */
+function uniqueId(prefix: string): string {
+  const ts = Date.now().toString(36);
+  const rand = Math.random().toString(36).slice(2, 8);
+  return `${prefix}_${ts}_${rand}`;
 }
 
 function createPlan(signal: Signal): Plan {
   const decision = routeSignal(signal);
   const strategy = getPlannerStrategy(decision.strategyId);
   return {
-    id: nextId('plan', runtimeStore.plans.length),
+    id: uniqueId('plan'),
     signalId: signal.id,
     action: decision.plannerAction,
     strategyId: decision.strategyId,
@@ -135,8 +141,8 @@ function createJobs(plan: Plan, signal: Signal): Job[] {
     build_contractor_website: ['design_site_structure', 'generate_page_content', 'review_and_approve'],
   };
 
-  return jobTypeByAction[plan.action].map((jobType, index) => ({
-    id: nextId('job', runtimeStore.jobs.length + index),
+  return jobTypeByAction[plan.action].map((jobType, _index) => ({
+    id: uniqueId('job'),
     planId: plan.id,
     jobType,
     assignedAgent: null,
@@ -167,7 +173,7 @@ export function processSignal(input: Pick<Signal, 'name' | 'payload'>): {
   const stores = getStores();
 
   const signal: Signal = {
-    id: nextId('signal', runtimeStore.signals.length),
+    id: uniqueId('signal'),
     name: input.name,
     payload: input.payload,
     createdAt: Date.now(),
