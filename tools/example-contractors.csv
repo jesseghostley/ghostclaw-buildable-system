@@ -1,0 +1,10 @@
+businessName,trade,location,phone,email
+Apex Roofing,roofing,"Denver, CO",303-555-0101,info@apexroofing.com
+Summit Plumbing,plumbing,"Boulder, Colorado",303-555-0202,hello@summitplumbing.com
+Apex Roofing,roofing,"Denver, CO",303-555-9999,dupe@apexroofing.com
+,electrical,"Austin, TX",,
+Green Valley Landscaping,landscaping,"Portland, OR",503-555-0303,
+Pro Solar Install,solar,"Phoenix, AZ",480-555-0404,contact@prosolar.com
+Reliable HVAC,hvac,Dallas Texas,214-555-0505,service@reliablehvac.com
+Missing Location Co,plumbing,,,missing@example.com
+Rocky Mountain Fencing,fencing,"Colorado Springs, CO",,info@rmfencing.com

@@ -1,0 +1,91 @@
+{
+  "sites": [
+    {
+      "businessName": "Apex Roofing",
+      "trade": "roofing",
+      "location": "Denver, CO",
+      "phone": "303-555-0101",
+      "email": "info@apexroofing.com",
+      "row_id": 1,
+      "city": "Denver",
+      "state": "CO",
+      "tags": [
+        "roofing",
+        "construction",
+        "contractor-site"
+      ]
+    },
+    {
+      "businessName": "Summit Plumbing",
+      "trade": "plumbing",
+      "location": "Boulder, CO",
+      "phone": "303-555-0202",
+      "email": "hello@summitplumbing.com",
+      "row_id": 2,
+      "city": "Boulder",
+      "state": "CO",
+      "tags": [
+        "plumbing",
+        "home-services",
+        "contractor-site"
+      ]
+    },
+    {
+      "businessName": "Green Valley Landscaping",
+      "trade": "landscaping",
+      "location": "Portland, OR",
+      "phone": "503-555-0303",
+      "row_id": 5,
+      "city": "Portland",
+      "state": "OR",
+      "tags": [
+        "landscaping",
+        "contractor-site"
+      ]
+    },
+    {
+      "businessName": "Pro Solar Install",
+      "trade": "solar",
+      "location": "Phoenix, AZ",
+      "phone": "480-555-0404",
+      "email": "contact@prosolar.com",
+      "row_id": 6,
+      "city": "Phoenix",
+      "state": "AZ",
+      "tags": [
+        "solar",
+        "specialty",
+        "contractor-site"
+      ]
+    },
+    {
+      "businessName": "Reliable HVAC",
+      "trade": "hvac",
+      "location": "Dallas, TX",
+      "phone": "214-555-0505",
+      "email": "service@reliablehvac.com",
+      "row_id": 7,
+      "city": "Dallas",
+      "state": "TX",
+      "tags": [
+        "hvac",
+        "home-services",
+        "contractor-site"
+      ]
+    },
+    {
+      "businessName": "Rocky Mountain Fencing",
+      "trade": "fencing",
+      "location": "Colorado Springs, CO",
+      "email": "info@rmfencing.com",
+      "row_id": 9,
+      "city": "Colorado Springs",
+      "state": "CO",
+      "tags": [
+        "fencing",
+        "specialty",
+        "contractor-site"
+      ]
+    }
+  ]
+}
