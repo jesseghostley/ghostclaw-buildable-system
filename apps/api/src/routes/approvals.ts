@@ -1,4 +1,6 @@
 import { Router } from 'express';
+import * as path from 'path';
+import * as fs from 'fs';
 import { publishEventStore } from '../../../../packages/core/src/publish_event';
 import { auditLog } from '../../../../packages/core/src/audit_log';
 import { eventBus } from '../../../../packages/core/src/event_bus';
@@ -147,8 +149,45 @@ router.post('/:id/publish', (req, res) => {
     ...published,
     site: siteResult.error
       ? { error: siteResult.error }
-      : { outputDir: siteResult.outputDir, files: siteResult.files, siteUrl: siteResult.siteUrl, businessSlug: siteResult.businessSlug },
+      : {
+          outputDir: siteResult.outputDir,
+          files: siteResult.files,
+          siteUrl: siteResult.siteUrl,
+          businessSlug: siteResult.businessSlug,
+          zipPath: siteResult.zipPath,
+        },
   });
+});
+
+// GET /api/approvals/:id/export — download the cPanel-ready .tar.gz archive
+router.get('/:id/export', (req, res) => {
+  const event = publishEventStore.getById(req.params.id);
+  if (!event) {
+    res.status(404).json({ error: `Publish event "${req.params.id}" not found.` });
+    return;
+  }
+  if (event.status !== 'published') {
+    res.status(409).json({ error: `Cannot export event in "${event.status}" state. Must be "published".` });
+    return;
+  }
+
+  const siteRoot = path.resolve(__dirname, '..', '..', '..', '..', 'output', 'sites', event.id);
+  // Find the .tar.gz file in the site root
+  let archivePath: string | null = null;
+  if (fs.existsSync(siteRoot)) {
+    const files = fs.readdirSync(siteRoot);
+    const archive = files.find((f) => f.endsWith('.tar.gz'));
+    if (archive) archivePath = path.join(siteRoot, archive);
+  }
+
+  if (!archivePath || !fs.existsSync(archivePath)) {
+    res.status(404).json({ error: 'Export archive not found. Re-publish to regenerate.' });
+    return;
+  }
+
+  res.setHeader('Content-Type', 'application/gzip');
+  res.setHeader('Content-Disposition', `attachment; filename="${path.basename(archivePath)}"`);
+  fs.createReadStream(archivePath).pipe(res);
 });
 
 export default router;
