@@ -1,7 +1,32 @@
-import { uniqueId } from '../packages/core/src/unique_id';
+import { uniqueId, ulid } from '../packages/core/src/unique_id';
 
-describe('uniqueId', () => {
-  it('produces IDs with the given prefix', () => {
+describe('ulid()', () => {
+  it('produces a 26-character Crockford Base32 string', () => {
+    const id = ulid();
+    expect(id).toHaveLength(26);
+    expect(id).toMatch(/^[0-9A-HJKMNP-TV-Z]{26}$/);
+  });
+
+  it('is lexicographically sortable by time', () => {
+    const id1 = ulid();
+    // Advance clock by at least 1ms
+    const start = Date.now();
+    while (Date.now() === start) { /* spin */ }
+    const id2 = ulid();
+    expect(id2 > id1).toBe(true);
+  });
+
+  it('produces unique IDs even within the same millisecond', () => {
+    const ids = new Set<string>();
+    for (let i = 0; i < 1000; i++) {
+      ids.add(ulid());
+    }
+    expect(ids.size).toBe(1000);
+  });
+});
+
+describe('uniqueId(prefix)', () => {
+  it('produces IDs with the correct prefix', () => {
     expect(uniqueId('signal')).toMatch(/^signal_/);
     expect(uniqueId('plan')).toMatch(/^plan_/);
     expect(uniqueId('job')).toMatch(/^job_/);
@@ -10,6 +35,17 @@ describe('uniqueId', () => {
     expect(uniqueId('batch')).toMatch(/^batch_/);
     expect(uniqueId('audit')).toMatch(/^audit_/);
     expect(uniqueId('el')).toMatch(/^el_/);
+    expect(uniqueId('assign')).toMatch(/^assign_/);
+    expect(uniqueId('inv')).toMatch(/^inv_/);
+  });
+
+  it('format is {prefix}_{26-char-ulid}', () => {
+    const id = uniqueId('signal');
+    const underscoreIdx = id.indexOf('_');
+    expect(underscoreIdx).toBe(6); // "signal" is 6 chars
+    const ulidPart = id.slice(underscoreIdx + 1);
+    expect(ulidPart).toHaveLength(26);
+    expect(ulidPart).toMatch(/^[0-9A-HJKMNP-TV-Z]{26}$/);
   });
 
   it('never produces duplicate IDs in 10,000 sequential calls', () => {
@@ -31,53 +67,86 @@ describe('uniqueId', () => {
     expect(ids.size).toBe(10_000);
   });
 
-  it('produces IDs that are valid for SQLite TEXT PRIMARY KEY', () => {
+  it('produces IDs safe for SQLite TEXT PRIMARY KEY', () => {
     for (let i = 0; i < 100; i++) {
       const id = uniqueId('signal');
-      // No spaces, no special chars that would break SQL
-      expect(id).toMatch(/^[a-z0-9_]+$/);
-      // Reasonable length
-      expect(id.length).toBeGreaterThan(10);
-      expect(id.length).toBeLessThan(40);
+      // Only alphanumeric + underscore
+      expect(id).toMatch(/^[a-z0-9A-Z_]+$/);
+      // prefix(6) + underscore(1) + ulid(26) = 33
+      expect(id.length).toBe(33);
     }
-  });
-
-  it('format is {prefix}_{timestamp36}_{random6}', () => {
-    const id = uniqueId('sig');
-    const parts = id.split('_');
-    // prefix + timestamp + random = 3 parts
-    expect(parts.length).toBe(3);
-    expect(parts[0]).toBe('sig');
-    // timestamp part should be base-36 decodable
-    const decoded = parseInt(parts[1], 36);
-    expect(decoded).toBeGreaterThan(0);
-    // random part should be 1-6 chars
-    expect(parts[2].length).toBeGreaterThan(0);
-    expect(parts[2].length).toBeLessThanOrEqual(6);
   });
 });
 
 describe('ID collision safety across simulated restarts', () => {
-  it('IDs generated at different times never collide even with same prefix', () => {
+  it('IDs generated in separate "runs" never collide', () => {
     // Simulate: generate IDs, "restart" (clear all state), generate again
-    const beforeRestart = new Set<string>();
-    for (let i = 0; i < 100; i++) {
-      beforeRestart.add(uniqueId('signal'));
-      beforeRestart.add(uniqueId('job'));
-      beforeRestart.add(uniqueId('plan'));
+    const run1 = new Set<string>();
+    for (let i = 0; i < 500; i++) {
+      run1.add(uniqueId('signal'));
+      run1.add(uniqueId('job'));
+      run1.add(uniqueId('plan'));
+      run1.add(uniqueId('artifact'));
+      run1.add(uniqueId('audit'));
+      run1.add(uniqueId('el'));
+    }
+    expect(run1.size).toBe(3000);
+
+    // "Restart" — uniqueId has zero state, nothing to clear
+    const run2 = new Set<string>();
+    for (let i = 0; i < 500; i++) {
+      run2.add(uniqueId('signal'));
+      run2.add(uniqueId('job'));
+      run2.add(uniqueId('plan'));
+      run2.add(uniqueId('artifact'));
+      run2.add(uniqueId('audit'));
+      run2.add(uniqueId('el'));
+    }
+    expect(run2.size).toBe(3000);
+
+    // Zero overlap between runs
+    for (const id of run2) {
+      expect(run1.has(id)).toBe(false);
+    }
+  });
+
+  it('three consecutive "restarts" produce zero collisions across all entity types', () => {
+    const allIds = new Set<string>();
+    const prefixes = ['signal', 'plan', 'job', 'artifact', 'pub', 'batch', 'audit', 'el', 'assign', 'inv'];
+    const runsCount = 3;
+    const idsPerPrefixPerRun = 100;
+
+    for (let run = 0; run < runsCount; run++) {
+      for (const prefix of prefixes) {
+        for (let i = 0; i < idsPerPrefixPerRun; i++) {
+          const id = uniqueId(prefix);
+          expect(allIds.has(id)).toBe(false);
+          allIds.add(id);
+        }
+      }
     }
 
-    // "Restart" — uniqueId has no state to clear, that's the point
-    const afterRestart = new Set<string>();
-    for (let i = 0; i < 100; i++) {
-      afterRestart.add(uniqueId('signal'));
-      afterRestart.add(uniqueId('job'));
-      afterRestart.add(uniqueId('plan'));
-    }
+    expect(allIds.size).toBe(runsCount * prefixes.length * idsPerPrefixPerRun);
+  });
+});
 
-    // No overlap
-    for (const id of afterRestart) {
-      expect(beforeRestart.has(id)).toBe(false);
+describe('signals.id collision regression', () => {
+  it('signal IDs are never signal_1, signal_2, etc. (counter-based)', () => {
+    for (let i = 0; i < 100; i++) {
+      const id = uniqueId('signal');
+      // Must NOT match the old counter pattern
+      expect(id).not.toMatch(/^signal_\d+$/);
+      // Must be prefix + ULID
+      expect(id).toMatch(/^signal_[0-9A-HJKMNP-TV-Z]{26}$/);
     }
+  });
+
+  it('two batches of 3 signal IDs (simulating two batch submissions) never collide', () => {
+    // This is the exact failure scenario: POST batch (3 signals) → restart → POST batch (3 signals)
+    const batch1 = [uniqueId('signal'), uniqueId('signal'), uniqueId('signal')];
+    const batch2 = [uniqueId('signal'), uniqueId('signal'), uniqueId('signal')];
+
+    const all = [...batch1, ...batch2];
+    expect(new Set(all).size).toBe(6);
   });
 });
