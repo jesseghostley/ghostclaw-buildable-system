@@ -55,6 +55,14 @@ const seedStrategies: PlannerStrategy[] = [
     strategyType: 'rule',
     status: 'active',
   },
+  {
+    id: 'rule_contractor_website_strategy',
+    name: 'Contractor Website Strategy',
+    description: 'Builds a contractor website through site architecture, content generation, and QA review.',
+    supportedSignals: ['contractor_website_requested', 'contractor_website'],
+    strategyType: 'rule',
+    status: 'active',
+  },
 ];
 
 seedStrategies.forEach(registerPlannerStrategy);

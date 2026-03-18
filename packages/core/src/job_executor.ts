@@ -3,11 +3,22 @@ import { jobQueue } from './job_queue';
 import { skillInvocationStore } from './skill_invocation';
 import { assignmentStore } from './assignment';
 import { eventBus } from './event_bus';
+import { publishEventStore } from './publish_event';
+import { auditLog } from './audit_log';
 import type { Artifact } from './runtime_loop';
+import { skillRegistry } from '../../skills/src/registry';
+
+// Ensure built-in skills are registered on import.
+import '../../skills/src/index';
 
 export type JobHandler = (inputPayload: Record<string, unknown>) => Record<string, unknown>;
 
-const JOB_HANDLERS: Record<string, JobHandler> = {
+/**
+ * Legacy job handlers for non-contractor workflows.
+ * Contractor Website Factory skills (design_site_structure, generate_page_content,
+ * review_and_approve) are now served exclusively by the skill registry.
+ */
+const LEGACY_JOB_HANDLERS: Record<string, JobHandler> = {
   draft_cluster_outline: (inputPayload) => ({
     result: `Cluster outline generated for ${String(inputPayload.signalName ?? 'unknown_signal')}`,
   }),
@@ -22,13 +33,32 @@ const JOB_HANDLERS: Record<string, JobHandler> = {
   }),
 };
 
+/**
+ * Resolve a handler for a given job type.
+ * Priority: skill registry first, then legacy fallback.
+ */
+function resolveHandler(jobType: string): JobHandler | undefined {
+  const skill = skillRegistry.getById(jobType);
+  if (skill) {
+    return (input) => skill.handler(input);
+  }
+  return LEGACY_JOB_HANDLERS[jobType];
+}
+
 export function executeJobs(): Artifact[] {
   const artifacts: Artifact[] = [];
+  let previousStepOutput: Record<string, unknown> | null = null;
 
   while (true) {
     const job = jobQueue.dequeue();
     if (!job) {
       break;
+    }
+
+    // Forward previous step's output into this job's input payload.
+    if (previousStepOutput) {
+      job.inputPayload = { ...job.inputPayload, previousStepOutput };
+      job.updatedAt = Date.now();
     }
 
     const assignedAgent = agentRegistry.findAgentForJob(job.jobType);
@@ -53,11 +83,14 @@ export function executeJobs(): Artifact[] {
       createdAt: Date.now(),
     });
 
-    const handler = JOB_HANDLERS[job.jobType];
+    const handler = resolveHandler(job.jobType);
     if (!handler) {
       jobQueue.markFailed(job.id);
       continue;
     }
+
+    // Record whether this job was resolved via the skill registry.
+    const resolvedViaSkillRegistry = !!skillRegistry.getById(job.jobType);
 
     const invocationId = `inv_${job.id}`;
 
@@ -85,9 +118,18 @@ export function executeJobs(): Artifact[] {
 
     try {
       const outputPayload = handler(job.inputPayload);
+
+      // Tag output with resolution source for observability.
+      if (resolvedViaSkillRegistry) {
+        (outputPayload as Record<string, unknown>).resolvedVia = 'skill_registry';
+      }
+
       job.outputPayload = outputPayload;
       job.updatedAt = Date.now();
       jobQueue.markComplete(job.id);
+
+      // Store output for forwarding to the next step in the pipeline.
+      previousStepOutput = outputPayload;
 
       const artifactId = `artifact_${job.id}`;
       const completedAt = Date.now();
@@ -99,14 +141,56 @@ export function executeJobs(): Artifact[] {
       });
       eventBus.emit('skill.invocation.completed', skillInvocationStore.getById(invocationId)!);
 
-      artifacts.push({
+      const artifact: Artifact = {
         id: artifactId,
         jobId: job.id,
         skillInvocationId: invocationId,
         type: job.jobType,
-        content: `${assignedAgent.agentName} executed ${job.jobType}`,
+        content: JSON.stringify(outputPayload),
         createdAt: completedAt,
+        workspaceId: 'default',
+      };
+      artifacts.push(artifact);
+
+      // Audit: log job completion
+      auditLog.append({
+        id: `audit_${job.id}_completed`,
+        eventType: 'job.completed',
+        objectType: 'Job',
+        objectId: job.id,
+        actorId: assignedAgent.agentName,
+        timestamp: completedAt,
+        summary: `${assignedAgent.agentName} completed ${job.jobType}`,
+        workspaceId: 'default',
       });
+      eventBus.emit('audit.logged', auditLog.listAll().at(-1)!);
+
+      // Approval gate: if the QA review says approval is required, create a
+      // pending PublishEvent so an operator must approve before publishing.
+      const qaReport = outputPayload.qaReport as Record<string, unknown> | undefined;
+      if (qaReport?.requiresApproval) {
+        const publishId = `pub_${artifactId}`;
+        const pubEvent = publishEventStore.create({
+          id: publishId,
+          artifactId,
+          publishedAt: completedAt,
+          destination: 'website_cms',
+          status: 'pending',
+          publishedBy: assignedAgent.agentName,
+        });
+        eventBus.emit('publish.requested', pubEvent);
+
+        auditLog.append({
+          id: `audit_${publishId}_initiated`,
+          eventType: 'publish_event.initiated',
+          objectType: 'PublishEvent',
+          objectId: publishId,
+          actorId: assignedAgent.agentName,
+          timestamp: Date.now(),
+          summary: `Publishing approval requested for ${String(qaReport.businessName ?? 'contractor')} website — awaiting operator review.`,
+          workspaceId: 'default',
+        });
+      }
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : String(err);
       console.error(`[SkillInvocation] Invocation ${invocationId} failed for job ${job.id}:`, errorMessage);

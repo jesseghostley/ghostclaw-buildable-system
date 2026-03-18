@@ -36,3 +36,8 @@ agentRegistry.registerAgent('WebsiteBuilderAgent', ['generate_metadata', 'genera
 agentRegistry.registerAgent('RuntimeMonitorAgent', ['monitor_runtime_health']);
 agentRegistry.registerAgent('SkillBuilderAgent', ['scaffold_skill_package', 'refresh_page_sections']);
 agentRegistry.registerAgent('DiagnosticsAgent', ['run_diagnostics']);
+
+// Contractor Website Factory agents
+agentRegistry.registerAgent('SiteArchitectAgent', ['design_site_structure']);
+agentRegistry.registerAgent('PageContentAgent', ['generate_page_content']);
+agentRegistry.registerAgent('QAReviewAgent', ['review_and_approve']);

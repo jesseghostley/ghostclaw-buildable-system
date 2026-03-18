@@ -10,6 +10,8 @@ import type {
   IAuditLogStore,
   IWorkspacePolicyStore,
   IRuntimeEventLogStore,
+  IBlueprintStore,
+  IWorkspaceStore,
 } from './interfaces';
 
 import Database from 'better-sqlite3';
@@ -34,6 +36,12 @@ import { SqliteAssignmentStore } from './sqlite/SqliteAssignmentStore';
 import { SqlitePublishEventStore } from './sqlite/SqlitePublishEventStore';
 import { SqliteWorkspacePolicyStore } from './sqlite/SqliteWorkspacePolicyStore';
 import { SqliteRuntimeEventLogStore } from './sqlite/SqliteRuntimeEventLogStore';
+import { SqliteBlueprintStore } from './sqlite/SqliteBlueprintStore';
+import { SqliteWorkspaceStore } from './sqlite/SqliteWorkspaceStore';
+
+// In-memory implementations for blueprint and workspace (used in memory mode)
+import { blueprintRegistry as inMemoryBlueprintRegistry } from '../../../../packages/blueprints/src/registry';
+import { workspaceStore as inMemoryWorkspaceStore } from '../../../../packages/workspaces/src/store';
 
 export type StoreBundle = {
   signalStore: ISignalStore;
@@ -46,6 +54,10 @@ export type StoreBundle = {
   auditLogStore: IAuditLogStore;
   workspacePolicyStore: IWorkspacePolicyStore;
   runtimeEventLogStore: IRuntimeEventLogStore;
+  blueprintStore: IBlueprintStore;
+  workspaceStore: IWorkspaceStore;
+  /** Raw database handle — only present in sqlite mode. */
+  db: Database.Database | null;
 };
 
 export function createStores(config: StorageConfig): StoreBundle {
@@ -67,6 +79,9 @@ export function createStores(config: StorageConfig): StoreBundle {
       auditLogStore: new SqliteAuditLogStore(db),
       workspacePolicyStore: new SqliteWorkspacePolicyStore(db),
       runtimeEventLogStore: new SqliteRuntimeEventLogStore(db),
+      blueprintStore: new SqliteBlueprintStore(db),
+      workspaceStore: new SqliteWorkspaceStore(db),
+      db,
     };
   }
 
@@ -82,5 +97,8 @@ export function createStores(config: StorageConfig): StoreBundle {
     auditLogStore: new InMemoryAuditLog(),
     workspacePolicyStore: new InMemoryWorkspacePolicyStore(),
     runtimeEventLogStore: new InMemoryRuntimeEventLogStore(),
+    blueprintStore: inMemoryBlueprintRegistry,
+    workspaceStore: inMemoryWorkspaceStore,
+    db: null,
   };
 }

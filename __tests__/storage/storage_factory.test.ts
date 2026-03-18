@@ -18,11 +18,13 @@ import { SqliteAssignmentStore } from '../../packages/core/src/storage/sqlite/Sq
 import { SqlitePublishEventStore } from '../../packages/core/src/storage/sqlite/SqlitePublishEventStore';
 import { SqliteWorkspacePolicyStore } from '../../packages/core/src/storage/sqlite/SqliteWorkspacePolicyStore';
 import { SqliteRuntimeEventLogStore } from '../../packages/core/src/storage/sqlite/SqliteRuntimeEventLogStore';
+import { SqliteBlueprintStore } from '../../packages/core/src/storage/sqlite/SqliteBlueprintStore';
+import { SqliteWorkspaceStore } from '../../packages/core/src/storage/sqlite/SqliteWorkspaceStore';
 import * as os from 'os';
 import * as path from 'path';
 
 describe('createStores — memory mode', () => {
-  it('returns in-memory store instances for all 9 domains', () => {
+  it('returns in-memory store instances for all 12 domains', () => {
     const stores = createStores({ mode: 'memory' });
 
     expect(stores.signalStore).toBeInstanceOf(InMemorySignalStore);
@@ -34,13 +36,16 @@ describe('createStores — memory mode', () => {
     expect(stores.publishEventStore).toBeInstanceOf(InMemoryPublishEventStore);
     expect(stores.auditLogStore).toBeInstanceOf(InMemoryAuditLog);
     expect(stores.workspacePolicyStore).toBeInstanceOf(InMemoryWorkspacePolicyStore);
+    // Blueprint and workspace use in-memory registries in memory mode
+    expect(stores.blueprintStore).toBeDefined();
+    expect(stores.workspaceStore).toBeDefined();
   });
 });
 
 describe('createStores — sqlite mode', () => {
   const dbPath = path.join(os.tmpdir(), `ghostclaw-test-${Date.now()}.sqlite`);
 
-  it('returns SQLite store instances for all 10 domains', () => {
+  it('returns SQLite store instances for all 12 domains', () => {
     const stores = createStores({ mode: 'sqlite', sqlitePath: dbPath });
 
     expect(stores.signalStore).toBeInstanceOf(SqliteSignalStore);
@@ -53,6 +58,8 @@ describe('createStores — sqlite mode', () => {
     expect(stores.auditLogStore).toBeInstanceOf(SqliteAuditLogStore);
     expect(stores.workspacePolicyStore).toBeInstanceOf(SqliteWorkspacePolicyStore);
     expect(stores.runtimeEventLogStore).toBeInstanceOf(SqliteRuntimeEventLogStore);
+    expect(stores.blueprintStore).toBeInstanceOf(SqliteBlueprintStore);
+    expect(stores.workspaceStore).toBeInstanceOf(SqliteWorkspaceStore);
   });
 
   it('throws when sqlitePath is missing in sqlite mode', () => {
