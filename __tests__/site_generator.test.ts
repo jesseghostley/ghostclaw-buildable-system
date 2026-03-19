@@ -297,13 +297,46 @@ describe('Site Generator V2', () => {
       }
     });
 
-    it('homepage H1 is the business name, not an awkward compound string', () => {
+    it('homepage H1 is the business name only, not a stitched compound', () => {
       const h1Match = indexHtml.match(/<h1>([^<]+)/);
       expect(h1Match).not.toBeNull();
       const h1 = h1Match![1].trim();
-      // Should be the business name, not "Business - trade" format
+      // Must be the business name, nothing else
+      expect(h1).toBe('Apex Roofing Co');
+      // Must not contain awkward patterns
       expect(h1).not.toContain(' - ');
-      expect(h1).toContain('Apex Roofing Co');
+      expect(h1).not.toContain(' — ');
+      expect(h1).not.toMatch(/professional/i);
+      expect(h1).not.toMatch(/services/i);
+    });
+
+    it('homepage H1 does not contain "Professional {trade} Services" pattern', () => {
+      const heroSection = indexHtml.match(/<div class="hero-content">([\s\S]*?)<\/div>/)?.[1] || '';
+      expect(heroSection).not.toMatch(/Professional\s+\w+\s+Services/i);
+    });
+
+    it('homepage subtitle contains trade and city naturally, no awkward casing', () => {
+      // Get the <p> right after the <h1> in .hero-content
+      const heroContent = indexHtml.match(/<div class="hero-content">([\s\S]*?)<\/div>/)?.[1] || '';
+      const subtitleMatch = heroContent.match(/<p>([^<]+)<\/p>/);
+      expect(subtitleMatch).not.toBeNull();
+      const subtitle = subtitleMatch![1];
+      // Should contain the trade and city
+      expect(subtitle).toMatch(/roofing/i);
+      expect(subtitle).toMatch(/Denver/);
+      // Should not have capitalization issue like "roofing Services"
+      expect(subtitle).not.toMatch(/[a-z]\s+Services\b/);
+    });
+
+    it('meta description is specific, not generic filler', () => {
+      const metaMatch = indexHtml.match(/<meta name="description" content="([^"]+)"/);
+      expect(metaMatch).not.toBeNull();
+      const desc = metaMatch![1];
+      // Should mention both business and location
+      expect(desc).toContain('Apex Roofing Co');
+      expect(desc).toContain('Denver');
+      // Should not be generic "Professional X services" filler
+      expect(desc).not.toMatch(/^Professional\s/);
     });
 
     it('homepage sections contain human-readable headings', () => {
@@ -336,6 +369,42 @@ describe('Site Generator V2', () => {
       // Body text should mention "roofing" and "Denver"
       expect(servicesHtml).toMatch(/roofing services for homeowners/i);
       expect(servicesHtml).toMatch(/Denver/);
+    });
+  });
+
+  describe('Storm damage trade regression', () => {
+    it('renders clean H1 and subtitle for multi-word trade names', () => {
+      runtimeStore.signals.length = 0;
+      runtimeStore.plans.length = 0;
+      runtimeStore.jobs.length = 0;
+      runtimeStore.artifacts.length = 0;
+
+      seedBatchSite('sig_sd', 'plan_sd', 'Ouachita Hills Storm Damage', 'storm damage restoration', 'Warren, AR', '870-555-0303', 'info@ouachita.com');
+      const result = generateSite('test_storm', 'plan_sd_art_3');
+      const html = fs.readFileSync(path.join(result.outputDir, 'index.html'), 'utf-8');
+
+      // H1 should be business name only
+      const h1Match = html.match(/<h1>([^<]+)/);
+      expect(h1Match![1].trim()).toBe('Ouachita Hills Storm Damage');
+
+      // Subtitle should not say "Professional storm damage restoration Services"
+      const heroContent = html.match(/<div class="hero-content">([\s\S]*?)<\/div>/)?.[1] || '';
+      expect(heroContent).not.toMatch(/Professional\s+storm/i);
+      expect(heroContent).not.toMatch(/[a-z]\s+Services\b/);
+
+      // Subtitle should contain trade and city naturally
+      const subtitleMatch = heroContent.match(/<p>([^<]+)<\/p>/);
+      expect(subtitleMatch![1]).toMatch(/storm damage restoration/i);
+      expect(subtitleMatch![1]).toMatch(/Warren/);
+
+      // Meta description should be specific
+      const metaMatch = html.match(/<meta name="description" content="([^"]+)"/);
+      expect(metaMatch![1]).toContain('Ouachita Hills Storm Damage');
+      expect(metaMatch![1]).toContain('Warren');
+      expect(metaMatch![1]).not.toMatch(/^Professional\s/);
+
+      cleanDir(path.join(TEST_OUTPUT_ROOT, 'test_storm'));
+      seedArtifacts('Apex Roofing Co', 'roofing', 'Denver, CO', '303-555-0101', 'info@apex.com');
     });
   });
 

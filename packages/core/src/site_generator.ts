@@ -352,7 +352,7 @@ function buildHomePage(ctx: SiteContext, assets: Record<string, string>): string
   const home = ctx.pageContent?.home || {};
   const qaBadge = ctx.qaReport?.passed ? '<span class="qa-badge">QA Passed</span>' : '';
 
-  const h1 = escapeHtml(buildHomeH1(ctx, home));
+  const h1 = escapeHtml(buildHomeH1(ctx));
   const subtitle = escapeHtml(buildHomeSubtitle(ctx, home));
 
   // Filter internal tokens, render only human-readable service badges
@@ -393,8 +393,8 @@ function buildHomePage(ctx: SiteContext, assets: Record<string, string>): string
   </main>`;
 
   const meta: PageMeta = {
-    title: `${ctx.businessName} — ${tradeTc} in ${ctx.location}`,
-    description: home.hero || `${ctx.businessName} provides professional ${ctx.trade} services in ${ctx.location}. Call today for a free estimate.`,
+    title: `${ctx.businessName} | ${tradeTc} in ${ctx.location}`,
+    description: buildHomeMetaDescription(ctx),
     canonical: ctx.baseUrl + '/',
   };
 
@@ -622,25 +622,38 @@ function humanizeSections(sections: string[]): string[] {
 
 /**
  * Build a natural-sounding H1 for a contractor homepage.
- * Prefers businessName alone; the trade+location goes in the subtitle.
+ * Always returns the business name alone — trade+location belongs in the subtitle.
  */
-function buildHomeH1(ctx: SiteContext, homeData: any): string {
-  // If the artifact title looks like "Business Name - trade", just use business name
-  const rawTitle: string = homeData?.title || '';
-  if (rawTitle && !rawTitle.includes(' - ') && !rawTitle.includes('_')) {
-    return rawTitle;
-  }
+function buildHomeH1(ctx: SiteContext): string {
   return ctx.businessName;
 }
 
 /**
  * Build the hero subtitle — the line below the H1.
+ * Generates a clean, location-aware line. Ignores artifact hero text if it
+ * matches the generic "Professional X services in Y" pattern — that template
+ * filler reads poorly as rendered copy.
  */
 function buildHomeSubtitle(ctx: SiteContext, homeData: any): string {
   const raw: string = homeData?.hero || '';
-  // If artifact provided a real sentence, use it
-  if (raw && raw.length > 10) return raw;
-  return `Trusted ${ctx.trade} services in ${ctx.location}. Licensed, insured, and locally owned.`;
+  // Reject common template filler patterns
+  const isGenericFiller = !raw
+    || raw.length <= 10
+    || /^professional\s+/i.test(raw)
+    || /\bservices\b.*\bin\b/i.test(raw);
+
+  if (!isGenericFiller) return raw;
+
+  const city = ctx.city || ctx.location;
+  return `${city}'s trusted ${ctx.trade} team. Licensed, insured, and ready to work.`;
+}
+
+/**
+ * Build a useful meta description — not just the hero subtitle rehashed.
+ */
+function buildHomeMetaDescription(ctx: SiteContext): string {
+  const city = ctx.city || ctx.location;
+  return `${ctx.businessName} provides ${ctx.trade} services in ${ctx.location}. Call ${ctx.phone || 'us'} for a free estimate from a local, licensed team in ${city}.`;
 }
 
 function parseLocation(location: string): { city: string; state: string } {
