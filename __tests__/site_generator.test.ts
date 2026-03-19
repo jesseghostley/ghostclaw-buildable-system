@@ -13,20 +13,56 @@ function cleanDir(dir: string): void {
 
 function seedArtifacts(businessName: string, trade: string, location: string, phone: string, email: string): void {
   runtimeStore.signals.length = 0;
+  runtimeStore.plans.length = 0;
+  runtimeStore.jobs.length = 0;
   runtimeStore.artifacts.length = 0;
 
+  seedBatchSite('signal_1', 'plan_1', businessName, trade, location, phone, email);
+}
+
+/**
+ * Add a single site's full chain (signal → plan → jobs → artifacts) to runtimeStore.
+ * Does NOT clear the store — allows stacking multiple sites for batch tests.
+ */
+function seedBatchSite(
+  signalId: string,
+  planId: string,
+  businessName: string,
+  trade: string,
+  location: string,
+  phone: string,
+  email: string,
+): { artifactIds: string[] } {
+  const jobIds = [`${planId}_job_1`, `${planId}_job_2`, `${planId}_job_3`];
+  const artifactIds = [`${planId}_art_1`, `${planId}_art_2`, `${planId}_art_3`];
+
   runtimeStore.signals.push({
-    id: 'signal_1',
+    id: signalId,
     name: 'contractor_website',
     payload: { businessName, trade, location, phone, email },
     createdAt: Date.now(),
   });
 
+  runtimeStore.plans.push({
+    id: planId,
+    signalId,
+    action: 'build_contractor_website' as any,
+    strategyId: 'contractor_website',
+    strategyType: 'rule' as any,
+    createdAt: Date.now(),
+  });
+
+  runtimeStore.jobs.push(
+    { id: jobIds[0], planId, jobType: 'design_site_structure', assignedAgent: null, status: 'completed', inputPayload: null, outputPayload: null, retryCount: 0, createdAt: Date.now(), updatedAt: Date.now() } as any,
+    { id: jobIds[1], planId, jobType: 'generate_page_content', assignedAgent: null, status: 'completed', inputPayload: null, outputPayload: null, retryCount: 0, createdAt: Date.now(), updatedAt: Date.now() } as any,
+    { id: jobIds[2], planId, jobType: 'review_and_approve', assignedAgent: null, status: 'completed', inputPayload: null, outputPayload: null, retryCount: 0, createdAt: Date.now(), updatedAt: Date.now() } as any,
+  );
+
   runtimeStore.artifacts.push(
     {
-      id: 'artifact_job_1',
-      jobId: 'job_1',
-      skillInvocationId: 'inv_1',
+      id: artifactIds[0],
+      jobId: jobIds[0],
+      skillInvocationId: `${planId}_inv_1`,
       type: 'design_site_structure',
       content: JSON.stringify({
         siteStructure: {
@@ -38,9 +74,9 @@ function seedArtifacts(businessName: string, trade: string, location: string, ph
       createdAt: Date.now(),
     },
     {
-      id: 'artifact_job_2',
-      jobId: 'job_2',
-      skillInvocationId: 'inv_2',
+      id: artifactIds[1],
+      jobId: jobIds[1],
+      skillInvocationId: `${planId}_inv_2`,
       type: 'generate_page_content',
       content: JSON.stringify({
         pageContent: {
@@ -69,9 +105,9 @@ function seedArtifacts(businessName: string, trade: string, location: string, ph
       createdAt: Date.now(),
     },
     {
-      id: 'artifact_job_3',
-      jobId: 'job_3',
-      skillInvocationId: 'inv_3',
+      id: artifactIds[2],
+      jobId: jobIds[2],
+      skillInvocationId: `${planId}_inv_3`,
       type: 'review_and_approve',
       content: JSON.stringify({
         qaReport: { passed: true, businessName },
@@ -79,6 +115,8 @@ function seedArtifacts(businessName: string, trade: string, location: string, ph
       createdAt: Date.now(),
     },
   );
+
+  return { artifactIds };
 }
 
 describe('Site Generator V2', () => {
@@ -95,7 +133,7 @@ describe('Site Generator V2', () => {
   });
 
   it('generates all required files in public_html/', () => {
-    const result = generateSite(PUB_ID, 'artifact_job_3');
+    const result = generateSite(PUB_ID, 'plan_1_art_3');
     expect(result.error).toBeUndefined();
     expect(result.outputDir).toBe(publicHtml);
 
@@ -158,7 +196,7 @@ describe('Site Generator V2', () => {
   });
 
   it('creates a .tar.gz archive for cPanel export', () => {
-    const result = generateSite(PUB_ID, 'artifact_job_3');
+    const result = generateSite(PUB_ID, 'plan_1_art_3');
     expect(result.zipPath).toBeDefined();
     expect(fs.existsSync(result.zipPath!)).toBe(true);
     expect(result.zipPath!).toMatch(/\.tar\.gz$/);
@@ -176,7 +214,7 @@ describe('Site Generator V2', () => {
     let servicesHtml: string;
 
     beforeAll(() => {
-      generateSite(PUB_ID, 'artifact_job_3');
+      generateSite(PUB_ID, 'plan_1_art_3');
       indexHtml = fs.readFileSync(path.join(publicHtml, 'index.html'), 'utf-8');
       servicesHtml = fs.readFileSync(path.join(publicHtml, 'services.html'), 'utf-8');
     });
@@ -245,7 +283,7 @@ describe('Site Generator V2', () => {
     });
 
     it('copies real asset when present, uses placeholder for missing', () => {
-      const result = generateSite(PUB_ID_2, 'artifact_job_3');
+      const result = generateSite(PUB_ID_2, 'plan_1_art_3');
       const assetsDir = path.join(result.outputDir, 'assets');
 
       // logo.png should be the real file (copied from assets_source)
@@ -257,7 +295,7 @@ describe('Site Generator V2', () => {
     });
 
     it('asset-manifest.json reflects real vs fallback paths', () => {
-      const result = generateSite(PUB_ID_2, 'artifact_job_3');
+      const result = generateSite(PUB_ID_2, 'plan_1_art_3');
       const manifest = JSON.parse(fs.readFileSync(path.join(result.outputDir, 'asset-manifest.json'), 'utf-8'));
 
       // logo was provided as a real file
@@ -281,7 +319,7 @@ describe('Site Generator V2', () => {
       fs.writeFileSync(path.join(srcDir, 'service-2.jpg'), 'SVC2');
       fs.writeFileSync(path.join(srcDir, 'gallery-1.jpg'), 'GAL');
 
-      const result = generateSite(PUB_ID_3, 'artifact_job_3');
+      const result = generateSite(PUB_ID_3, 'plan_1_art_3');
       const manifest = JSON.parse(fs.readFileSync(path.join(result.outputDir, 'asset-manifest.json'), 'utf-8'));
 
       expect(manifest.logo).toBe('/assets/logo.png');
@@ -313,6 +351,127 @@ describe('Site Generator V2', () => {
       expect(slugify('Apex Roofing Co')).toBe('apex-roofing-co');
       expect(slugify("Smith & Sons, LLC")).toBe('smith-sons-llc');
       expect(slugify('  Leading  Spaces  ')).toBe('leading-spaces');
+    });
+  });
+
+  describe('5-site batch publish mapping', () => {
+    const BATCH_SITES = [
+      { businessName: 'Apex Roofing Co', trade: 'roofing', location: 'Denver, CO', phone: '303-555-0101', email: 'info@apex.com' },
+      { businessName: 'Lone Star Plumbing', trade: 'plumbing', location: 'Austin, TX', phone: '512-555-0202', email: 'info@lonestar.com' },
+      { businessName: 'Ouachita Hills Storm Damage', trade: 'storm damage restoration', location: 'Warren, AR', phone: '870-555-0303', email: 'info@ouachita.com' },
+      { businessName: 'Pacific HVAC Solutions', trade: 'HVAC', location: 'Portland, OR', phone: '503-555-0404', email: 'info@pacific.com' },
+      { businessName: 'Great Lakes Electricians', trade: 'electrical', location: 'Chicago, IL', phone: '312-555-0505', email: 'info@greatlakes.com' },
+    ];
+
+    const batchPubIds = BATCH_SITES.map((_, i) => `batch_pub_${i + 1}`);
+    const batchSiteRoots = batchPubIds.map((id) => path.join(TEST_OUTPUT_ROOT, id));
+    let batchArtifactIds: string[][] = [];
+
+    beforeAll(() => {
+      // Clear the store completely
+      runtimeStore.signals.length = 0;
+      runtimeStore.plans.length = 0;
+      runtimeStore.jobs.length = 0;
+      runtimeStore.artifacts.length = 0;
+
+      // Seed all 5 sites into the same runtimeStore (simulates a batch)
+      batchArtifactIds = BATCH_SITES.map((site, i) => {
+        const { artifactIds } = seedBatchSite(
+          `batch_signal_${i + 1}`,
+          `batch_plan_${i + 1}`,
+          site.businessName,
+          site.trade,
+          site.location,
+          site.phone,
+          site.email,
+        );
+        return artifactIds;
+      });
+    });
+
+    afterAll(() => {
+      batchSiteRoots.forEach(cleanDir);
+      // Re-seed original test data for any tests that run after
+      seedArtifacts('Apex Roofing Co', 'roofing', 'Denver, CO', '303-555-0101', 'info@apex.com');
+    });
+
+    it('generates 5 unique publish IDs with unique output folders', () => {
+      const results = batchPubIds.map((pubId, i) => {
+        // Use the QA artifact (last in chain) as the trigger artifact
+        return generateSite(pubId, batchArtifactIds[i][2]);
+      });
+
+      // All should succeed
+      results.forEach((r) => expect(r.error).toBeUndefined());
+
+      // 5 unique output directories
+      const dirs = new Set(results.map((r) => r.outputDir));
+      expect(dirs.size).toBe(5);
+    });
+
+    it('each site.json has the correct unique business name', () => {
+      batchPubIds.forEach((pubId, i) => {
+        generateSite(pubId, batchArtifactIds[i][2]);
+        const siteJson = JSON.parse(
+          fs.readFileSync(path.join(TEST_OUTPUT_ROOT, pubId, 'public_html', 'site.json'), 'utf-8'),
+        );
+        expect(siteJson.businessName).toBe(BATCH_SITES[i].businessName);
+        expect(siteJson.trade).toBe(BATCH_SITES[i].trade);
+      });
+    });
+
+    it('each site has unique artifact chain references', () => {
+      const allArtifactSets: string[][] = [];
+
+      batchPubIds.forEach((pubId, i) => {
+        generateSite(pubId, batchArtifactIds[i][2]);
+        const siteJson = JSON.parse(
+          fs.readFileSync(path.join(TEST_OUTPUT_ROOT, pubId, 'public_html', 'site.json'), 'utf-8'),
+        );
+        const artifactRefs = [
+          siteJson.artifacts.siteStructure,
+          siteJson.artifacts.pageContent,
+          siteJson.artifacts.qaReport,
+        ];
+        allArtifactSets.push(artifactRefs);
+      });
+
+      // Each site should have different artifact IDs
+      for (let i = 0; i < allArtifactSets.length; i++) {
+        for (let j = i + 1; j < allArtifactSets.length; j++) {
+          expect(allArtifactSets[i]).not.toEqual(allArtifactSets[j]);
+        }
+      }
+    });
+
+    it('page titles match the intended business and city for each folder', () => {
+      batchPubIds.forEach((pubId, i) => {
+        generateSite(pubId, batchArtifactIds[i][2]);
+        const indexHtml = fs.readFileSync(
+          path.join(TEST_OUTPUT_ROOT, pubId, 'public_html', 'index.html'),
+          'utf-8',
+        );
+        const titleMatch = indexHtml.match(/<title>([^<]+)<\/title>/);
+        expect(titleMatch).not.toBeNull();
+        // Title should contain this site's business name, not another site's
+        expect(titleMatch![1]).toContain(BATCH_SITES[i].businessName);
+      });
+    });
+
+    it('no two sites share the same index.html title', () => {
+      const titles: string[] = [];
+      batchPubIds.forEach((pubId, i) => {
+        generateSite(pubId, batchArtifactIds[i][2]);
+        const indexHtml = fs.readFileSync(
+          path.join(TEST_OUTPUT_ROOT, pubId, 'public_html', 'index.html'),
+          'utf-8',
+        );
+        const titleMatch = indexHtml.match(/<title>([^<]+)<\/title>/);
+        titles.push(titleMatch![1]);
+      });
+
+      const uniqueTitles = new Set(titles);
+      expect(uniqueTitles.size).toBe(5);
     });
   });
 

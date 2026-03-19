@@ -17,6 +17,8 @@ export interface SiteGeneratorResult {
 /** Data bag collected from artifacts + signal for template rendering. */
 export interface SiteContext {
   publishEventId: string;
+  /** The signalId that originated this site's artifact chain (null if chain is broken). */
+  signalId: string | null;
   businessName: string;
   businessSlug: string;
   trade: string;
@@ -569,11 +571,53 @@ function parseLocation(location: string): { city: string; state: string } {
 
 // ── Context Builder ──────────────────────────────────────────────────────────
 
+/**
+ * Trace an artifact back to its originating signal via: artifact → job → plan → signal.
+ * Returns the signalId or null if the chain is broken.
+ */
+function traceArtifactToSignal(artifactId: string): string | null {
+  const artifact = runtimeStore.artifacts.find((a) => a.id === artifactId);
+  if (!artifact) return null;
+
+  const job = runtimeStore.jobs.find((j) => j.id === artifact.jobId);
+  if (!job) return null;
+
+  const plan = runtimeStore.plans.find((p) => p.id === job.planId);
+  if (!plan) return null;
+
+  return plan.signalId;
+}
+
+/**
+ * Find all artifacts that belong to the same signal chain.
+ * Walks: signal → plans → jobs → artifacts, filtered by type.
+ */
+function findArtifactsByTypeInChain(type: string, signalId: string): Artifact[] {
+  const planIds = new Set(
+    runtimeStore.plans.filter((p) => p.signalId === signalId).map((p) => p.id),
+  );
+  const jobIds = new Set(
+    runtimeStore.jobs.filter((j) => planIds.has(j.planId)).map((j) => j.id),
+  );
+  return runtimeStore.artifacts.filter((a) => a.type === type && jobIds.has(a.jobId));
+}
+
 function buildSiteContext(publishEventId: string, artifactId: string): SiteContext | { error: string } {
   const artifact = runtimeStore.artifacts.find((a) => a.id === artifactId);
-  const pageContentArtifacts = findArtifactsByType('generate_page_content');
-  const siteStructureArtifacts = findArtifactsByType('design_site_structure');
-  const qaArtifacts = findArtifactsByType('review_and_approve');
+
+  // Trace the trigger artifact back to its originating signal
+  const signalId = traceArtifactToSignal(artifactId);
+
+  // Scope all artifact lookups to this signal's chain
+  const pageContentArtifacts = signalId
+    ? findArtifactsByTypeInChain('generate_page_content', signalId)
+    : findArtifactsByType('generate_page_content');
+  const siteStructureArtifacts = signalId
+    ? findArtifactsByTypeInChain('design_site_structure', signalId)
+    : findArtifactsByType('design_site_structure');
+  const qaArtifacts = signalId
+    ? findArtifactsByTypeInChain('review_and_approve', signalId)
+    : findArtifactsByType('review_and_approve');
 
   let pageContent: any = null;
   let siteStructure: any = null;
@@ -612,14 +656,16 @@ function buildSiteContext(publishEventId: string, artifactId: string): SiteConte
     return { error: 'No pageContent or siteStructure artifacts found.' };
   }
 
-  // Extract from signal
+  // Extract from the signal that belongs to this artifact's chain (not the global last one)
   let phone = '';
   let email = '';
   let trade = '';
   let location = '';
-  if (runtimeStore.signals.length > 0) {
-    const sig = runtimeStore.signals[runtimeStore.signals.length - 1];
-    const sp = (sig as any).payload || {};
+  const chainSignal = signalId
+    ? runtimeStore.signals.find((s) => s.id === signalId)
+    : runtimeStore.signals[runtimeStore.signals.length - 1];
+  if (chainSignal) {
+    const sp = (chainSignal as any).payload || {};
     phone = sp.phone || '';
     email = sp.email || '';
     trade = sp.trade || '';
@@ -632,6 +678,7 @@ function buildSiteContext(publishEventId: string, artifactId: string): SiteConte
 
   return {
     publishEventId,
+    signalId,
     businessName,
     businessSlug,
     trade: trade || 'contracting',
@@ -727,9 +774,9 @@ export function generateSite(publishEventId: string, artifactId: string): SiteGe
     siteUrl,
     files,
     artifacts: {
-      siteStructure: findArtifactsByType('design_site_structure').slice(-1)[0]?.id ?? null,
-      pageContent: findArtifactsByType('generate_page_content').slice(-1)[0]?.id ?? null,
-      qaReport: findArtifactsByType('review_and_approve').slice(-1)[0]?.id ?? null,
+      siteStructure: (ctx.signalId ? findArtifactsByTypeInChain('design_site_structure', ctx.signalId) : findArtifactsByType('design_site_structure')).slice(-1)[0]?.id ?? null,
+      pageContent: (ctx.signalId ? findArtifactsByTypeInChain('generate_page_content', ctx.signalId) : findArtifactsByType('generate_page_content')).slice(-1)[0]?.id ?? null,
+      qaReport: (ctx.signalId ? findArtifactsByTypeInChain('review_and_approve', ctx.signalId) : findArtifactsByType('review_and_approve')).slice(-1)[0]?.id ?? null,
     },
     qaStatus: ctx.qaReport?.passed ? 'passed' : 'unknown',
     seo: {
