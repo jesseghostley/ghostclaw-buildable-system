@@ -99,13 +99,16 @@ describe('Site Generator V2', () => {
     expect(result.error).toBeUndefined();
     expect(result.outputDir).toBe(publicHtml);
 
-    const expected = ['index.html', 'services.html', 'about.html', 'contact.html', 'styles.css', 'robots.txt', 'sitemap.xml'];
+    const expected = [
+      'index.html', 'services.html', 'about.html', 'contact.html',
+      'styles.css', 'robots.txt', 'sitemap.xml', 'site.json', 'asset-manifest.json',
+    ];
     for (const f of expected) {
       expect(fs.existsSync(path.join(publicHtml, f))).toBe(true);
     }
   });
 
-  it('creates assets/ directory with placeholder SVGs', () => {
+  it('creates assets/ directory with placeholder SVGs including service-2', () => {
     const assetsDir = path.join(publicHtml, 'assets');
     expect(fs.existsSync(assetsDir)).toBe(true);
 
@@ -113,19 +116,45 @@ describe('Site Generator V2', () => {
     expect(assetFiles).toContain('logo.svg');
     expect(assetFiles).toContain('hero-1.svg');
     expect(assetFiles).toContain('service-1.svg');
+    expect(assetFiles).toContain('service-2.svg');
     expect(assetFiles).toContain('gallery-1.svg');
   });
 
-  it('creates site.json manifest at site root (not in public_html)', () => {
-    const manifestPath = path.join(siteRoot, 'site.json');
+  it('creates asset-manifest.json with role-based keys and fallback tracking', () => {
+    const manifestPath = path.join(publicHtml, 'asset-manifest.json');
     expect(fs.existsSync(manifestPath)).toBe(true);
     const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf-8'));
+
+    expect(manifest.logo).toMatch(/^\/assets\/logo\./);
+    expect(manifest.hero).toMatch(/^\/assets\/hero-1\./);
+    expect(manifest.servicePrimary).toMatch(/^\/assets\/service-1\./);
+    expect(manifest.serviceSecondary).toMatch(/^\/assets\/service-2\./);
+    expect(manifest.galleryPrimary).toMatch(/^\/assets\/gallery-1\./);
+    expect(manifest.fallbacksUsed).toBe(true);
+  });
+
+  it('creates site.json in both public_html and site root', () => {
+    expect(fs.existsSync(path.join(publicHtml, 'site.json'))).toBe(true);
+    expect(fs.existsSync(path.join(siteRoot, 'site.json'))).toBe(true);
+
+    const manifest = JSON.parse(fs.readFileSync(path.join(publicHtml, 'site.json'), 'utf-8'));
     expect(manifest.businessName).toBe('Apex Roofing Co');
     expect(manifest.trade).toBe('roofing');
     expect(manifest.city).toBe('Denver');
     expect(manifest.state).toBe('CO');
     expect(manifest.seo.hasJsonLd).toBe(true);
     expect(manifest.seo.hasSitemap).toBe(true);
+  });
+
+  it('HTML pages reference assets from the resolved paths', () => {
+    const index = fs.readFileSync(path.join(publicHtml, 'index.html'), 'utf-8');
+    const services = fs.readFileSync(path.join(publicHtml, 'services.html'), 'utf-8');
+    // Index references hero and service-1
+    expect(index).toMatch(/assets\/hero-1\./);
+    expect(index).toMatch(/assets\/service-1\./);
+    // Services page references service-1 and service-2
+    expect(services).toMatch(/assets\/service-1\./);
+    expect(services).toMatch(/assets\/service-2\./);
   });
 
   it('creates a .tar.gz archive for cPanel export', () => {
@@ -225,6 +254,44 @@ describe('Site Generator V2', () => {
 
       // hero-1 should be SVG placeholder
       expect(fs.existsSync(path.join(assetsDir, 'hero-1.svg'))).toBe(true);
+    });
+
+    it('asset-manifest.json reflects real vs fallback paths', () => {
+      const result = generateSite(PUB_ID_2, 'artifact_job_3');
+      const manifest = JSON.parse(fs.readFileSync(path.join(result.outputDir, 'asset-manifest.json'), 'utf-8'));
+
+      // logo was provided as a real file
+      expect(manifest.logo).toBe('/assets/logo.png');
+      // hero was not provided — fallback SVG
+      expect(manifest.hero).toBe('/assets/hero-1.svg');
+      // Mix of real and fallback → fallbacksUsed true
+      expect(manifest.fallbacksUsed).toBe(true);
+    });
+
+    it('fallbacksUsed is false when all assets are provided', () => {
+      const PUB_ID_3 = 'test_pub_003';
+      const siteRoot3 = path.join(TEST_OUTPUT_ROOT, PUB_ID_3);
+      const srcDir = path.join(siteRoot3, 'assets_source');
+      fs.mkdirSync(srcDir, { recursive: true });
+
+      // Provide ALL asset files
+      fs.writeFileSync(path.join(srcDir, 'logo.png'), 'LOGO');
+      fs.writeFileSync(path.join(srcDir, 'hero-1.jpg'), 'HERO');
+      fs.writeFileSync(path.join(srcDir, 'service-1.jpg'), 'SVC1');
+      fs.writeFileSync(path.join(srcDir, 'service-2.jpg'), 'SVC2');
+      fs.writeFileSync(path.join(srcDir, 'gallery-1.jpg'), 'GAL');
+
+      const result = generateSite(PUB_ID_3, 'artifact_job_3');
+      const manifest = JSON.parse(fs.readFileSync(path.join(result.outputDir, 'asset-manifest.json'), 'utf-8'));
+
+      expect(manifest.logo).toBe('/assets/logo.png');
+      expect(manifest.hero).toBe('/assets/hero-1.jpg');
+      expect(manifest.servicePrimary).toBe('/assets/service-1.jpg');
+      expect(manifest.serviceSecondary).toBe('/assets/service-2.jpg');
+      expect(manifest.galleryPrimary).toBe('/assets/gallery-1.jpg');
+      expect(manifest.fallbacksUsed).toBe(false);
+
+      cleanDir(siteRoot3);
     });
   });
 

@@ -83,21 +83,52 @@ const ASSET_SLOTS: AssetSlot[] = [
   { filename: 'logo.png', placeholder: PLACEHOLDER_SVG_LOGO },
   { filename: 'hero-1.jpg', placeholder: PLACEHOLDER_SVG_HERO },
   { filename: 'service-1.jpg', placeholder: PLACEHOLDER_SVG_SERVICE },
+  { filename: 'service-2.jpg', placeholder: PLACEHOLDER_SVG_SERVICE },
   { filename: 'gallery-1.jpg', placeholder: PLACEHOLDER_SVG_GALLERY },
 ];
 
+/** Maps asset filenames to their manifest keys. */
+const ASSET_MANIFEST_KEYS: Record<string, string> = {
+  'logo.png': 'logo',
+  'hero-1.jpg': 'hero',
+  'service-1.jpg': 'servicePrimary',
+  'service-2.jpg': 'serviceSecondary',
+  'gallery-1.jpg': 'galleryPrimary',
+};
+
+export interface AssetManifest {
+  [key: string]: string | boolean;
+  logo: string;
+  hero: string;
+  servicePrimary: string;
+  serviceSecondary: string;
+  galleryPrimary: string;
+  fallbacksUsed: boolean;
+}
+
+interface ResolvedAssets {
+  /** Map from base filename (e.g. "hero-1") to relative path for HTML templates. */
+  paths: Record<string, string>;
+  /** The asset-manifest.json content. */
+  manifest: AssetManifest;
+}
+
 /**
  * For each asset slot, check if a real file exists in `assetsSourceDir`.
- * If not, write the SVG placeholder. Returns the path to use in HTML (always assets/*).
+ * If not, write the SVG placeholder. Returns both the HTML path map and the
+ * asset-manifest.json data with fallback tracking.
  */
-function resolveAssets(publicHtmlDir: string, assetsSourceDir?: string): Record<string, string> {
+function resolveAssets(publicHtmlDir: string, assetsSourceDir?: string): ResolvedAssets {
   const assetsDir = path.join(publicHtmlDir, 'assets');
   fs.mkdirSync(assetsDir, { recursive: true });
 
-  const resolved: Record<string, string> = {};
+  const paths: Record<string, string> = {};
+  const manifest: Record<string, string | boolean> = {};
+  let anyFallback = false;
 
   for (const slot of ASSET_SLOTS) {
     const baseName = slot.filename.replace(/\.[^.]+$/, '');
+    const manifestKey = ASSET_MANIFEST_KEYS[slot.filename] || baseName;
     const destReal = path.join(assetsDir, slot.filename);
 
     // Check if a real asset was provided
@@ -111,16 +142,21 @@ function resolveAssets(publicHtmlDir: string, assetsSourceDir?: string): Record<
     }
 
     if (found) {
-      resolved[baseName] = `assets/${slot.filename}`;
+      paths[baseName] = `assets/${slot.filename}`;
+      manifest[manifestKey] = `/assets/${slot.filename}`;
     } else {
       // Write SVG placeholder
       const svgName = `${baseName}.svg`;
       fs.writeFileSync(path.join(assetsDir, svgName), slot.placeholder);
-      resolved[baseName] = `assets/${svgName}`;
+      paths[baseName] = `assets/${svgName}`;
+      manifest[manifestKey] = `/assets/${svgName}`;
+      anyFallback = true;
     }
   }
 
-  return resolved;
+  manifest.fallbacksUsed = anyFallback;
+
+  return { paths, manifest: manifest as AssetManifest };
 }
 
 // ── SEO: JSON-LD ─────────────────────────────────────────────────────────────
@@ -358,10 +394,11 @@ function buildHomePage(ctx: SiteContext, assets: Record<string, string>): string
 function buildServicesPage(ctx: SiteContext, assets: Record<string, string>): string {
   const svc = ctx.pageContent?.services || {};
 
+  const serviceImages = [assets['service-1'], assets['service-2']];
   const cards = (svc.sections || ['service_list', 'pricing', 'faq'])
     .map((s: string, i: number) => {
       const label = s.replace(/_/g, ' ').replace(/\b\w/g, (c: string) => c.toUpperCase());
-      const imgTag = i === 0 ? `<img src="${assets['service-1']}" alt="${escapeHtml(label)}">` : '';
+      const imgTag = i < serviceImages.length ? `<img src="${serviceImages[i]}" alt="${escapeHtml(label)}">` : '';
       return `<div class="card">${imgTag}<h2>${escapeHtml(label)}</h2><p>Details about our ${escapeHtml(s.replace(/_/g, ' '))} offerings.</p></div>`;
     })
     .join('\n    ');
@@ -633,7 +670,10 @@ export function generateSite(publishEventId: string, artifactId: string): SiteGe
 
   // Resolve assets (real images or SVG placeholders)
   const assetsSourceDir = path.join(siteRoot, 'assets_source');
-  const assets = resolveAssets(publicHtml, fs.existsSync(assetsSourceDir) ? assetsSourceDir : undefined);
+  const { paths: assets, manifest: assetManifest } = resolveAssets(
+    publicHtml,
+    fs.existsSync(assetsSourceDir) ? assetsSourceDir : undefined,
+  );
 
   // styles.css
   fs.writeFileSync(path.join(publicHtml, 'styles.css'), buildStylesCss());
@@ -660,6 +700,10 @@ export function generateSite(publishEventId: string, artifactId: string): SiteGe
   fs.writeFileSync(path.join(publicHtml, 'sitemap.xml'), buildSitemapXml(ctx.baseUrl, ctx.pages, ctx.generatedAt));
   files.push('sitemap.xml');
 
+  // asset-manifest.json (inside public_html — drives asset resolution for templates)
+  fs.writeFileSync(path.join(publicHtml, 'asset-manifest.json'), JSON.stringify(assetManifest, null, 2));
+  files.push('asset-manifest.json');
+
   // Asset files (already written by resolveAssets, record them)
   const assetsDir = path.join(publicHtml, 'assets');
   if (fs.existsSync(assetsDir)) {
@@ -668,9 +712,9 @@ export function generateSite(publishEventId: string, artifactId: string): SiteGe
     }
   }
 
-  // site.json manifest (outside public_html — metadata, not served)
+  // site.json — written to both public_html (served) and site root (metadata)
   const siteUrl = `/sites/${publishEventId}/public_html/index.html`;
-  const manifest = {
+  const siteManifest = {
     publishEventId,
     businessName: ctx.businessName,
     businessSlug: ctx.businessSlug,
@@ -697,8 +741,9 @@ export function generateSite(publishEventId: string, artifactId: string): SiteGe
       hasRobotsTxt: true,
     },
   };
-  fs.writeFileSync(path.join(siteRoot, 'site.json'), JSON.stringify(manifest, null, 2));
+  fs.writeFileSync(path.join(publicHtml, 'site.json'), JSON.stringify(siteManifest, null, 2));
   files.push('site.json');
+  fs.writeFileSync(path.join(siteRoot, 'site.json'), JSON.stringify(siteManifest, null, 2));
 
   // Zip archive for cPanel deployment
   const zipName = `${ctx.businessSlug}-${publishEventId}.tar.gz`;
