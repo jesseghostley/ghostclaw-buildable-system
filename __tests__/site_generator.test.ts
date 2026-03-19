@@ -221,7 +221,7 @@ describe('Site Generator V2', () => {
 
     it('has unique title tags per page', () => {
       expect(indexHtml).toMatch(/<title>Apex Roofing Co.*Roofing.*Denver/i);
-      expect(servicesHtml).toMatch(/<title>Services.*Apex Roofing/i);
+      expect(servicesHtml).toMatch(/<title>Roofing Services.*Apex Roofing/i);
     });
 
     it('has meta description', () => {
@@ -264,6 +264,124 @@ describe('Site Generator V2', () => {
       expect(sitemap).toMatch(/about\.html/);
       expect(sitemap).toMatch(/contact\.html/);
       expect(sitemap).toContain('<priority>1.0</priority>');
+    });
+  });
+
+  describe('Template copy quality', () => {
+    let indexHtml: string;
+    let servicesHtml: string;
+    let aboutHtml: string;
+    let contactHtml: string;
+
+    beforeAll(() => {
+      seedArtifacts('Apex Roofing Co', 'roofing', 'Denver, CO', '303-555-0101', 'info@apex.com');
+      generateSite(PUB_ID, 'plan_1_art_3');
+      indexHtml = fs.readFileSync(path.join(publicHtml, 'index.html'), 'utf-8');
+      servicesHtml = fs.readFileSync(path.join(publicHtml, 'services.html'), 'utf-8');
+      aboutHtml = fs.readFileSync(path.join(publicHtml, 'about.html'), 'utf-8');
+      contactHtml = fs.readFileSync(path.join(publicHtml, 'contact.html'), 'utf-8');
+    });
+
+    it('no raw internal placeholder tokens visible in rendered pages', () => {
+      const internalTokens = [
+        'services_overview', 'testimonials', 'json_ld', 'sitemap',
+        'navigation', 'sidebar',
+      ];
+      const allPages = [indexHtml, servicesHtml, aboutHtml, contactHtml];
+      for (const page of allPages) {
+        for (const token of internalTokens) {
+          // Only check within visible body content (between <body> and </body>)
+          const bodyContent = page.match(/<body>([\s\S]*)<\/body>/)?.[1] || '';
+          expect(bodyContent).not.toContain(token);
+        }
+      }
+    });
+
+    it('homepage H1 is the business name, not an awkward compound string', () => {
+      const h1Match = indexHtml.match(/<h1>([^<]+)/);
+      expect(h1Match).not.toBeNull();
+      const h1 = h1Match![1].trim();
+      // Should be the business name, not "Business - trade" format
+      expect(h1).not.toContain(' - ');
+      expect(h1).toContain('Apex Roofing Co');
+    });
+
+    it('homepage sections contain human-readable headings', () => {
+      // Should not have "Quality Work" as a heading
+      expect(indexHtml).not.toMatch(/<h2>Quality Work<\/h2>/);
+      // Should have trade-specific headings
+      expect(indexHtml).toMatch(/<h2>.*Roofing.*<\/h2>/i);
+    });
+
+    it('services page headings are human-readable, not raw slugs', () => {
+      // Should not have "Service List" as a raw heading
+      expect(servicesHtml).not.toMatch(/<h2>Service List<\/h2>/);
+      // Should have descriptive headings
+      expect(servicesHtml).toMatch(/<h2>Our Roofing Services<\/h2>/);
+      expect(servicesHtml).toMatch(/<h2>Transparent Pricing<\/h2>/);
+    });
+
+    it('services page H1 includes trade and city', () => {
+      const h1Match = servicesHtml.match(/<h1>([^<]+)<\/h1>/);
+      expect(h1Match).not.toBeNull();
+      expect(h1Match![1]).toContain('Roofing');
+      expect(h1Match![1]).toContain('Denver');
+    });
+
+    it('about page "Why Choose Us" heading references the city', () => {
+      expect(aboutHtml).toMatch(/Why Denver Trusts/);
+    });
+
+    it('services card copy references trade and location', () => {
+      // Body text should mention "roofing" and "Denver"
+      expect(servicesHtml).toMatch(/roofing services for homeowners/i);
+      expect(servicesHtml).toMatch(/Denver/);
+    });
+  });
+
+  describe('Template quality with internal-token sections', () => {
+    it('filters out internal tokens like hero, cta, services_overview from badges', () => {
+      // Seed with sections that include internal tokens
+      runtimeStore.signals.length = 0;
+      runtimeStore.plans.length = 0;
+      runtimeStore.jobs.length = 0;
+      runtimeStore.artifacts.length = 0;
+
+      seedBatchSite('sig_tok', 'plan_tok', 'TokenTest Co', 'plumbing', 'Dallas, TX', '555-0000', 'test@test.com');
+      // Override the page content to include internal tokens in sections
+      const pcArtifact = runtimeStore.artifacts.find((a) => a.type === 'generate_page_content' && a.jobId === 'plan_tok_job_2');
+      if (pcArtifact) {
+        pcArtifact.content = JSON.stringify({
+          pageContent: {
+            home: {
+              title: 'TokenTest Co',
+              hero: 'We fix pipes in Dallas.',
+              cta: 'Call Now',
+              sections: ['hero', 'cta', 'services_overview', 'testimonials', 'residential', 'commercial'],
+            },
+            services: { title: 'Services', sections: ['service_list', 'pricing'] },
+            about: { title: 'About' },
+            contact: { title: 'Contact' },
+          },
+        });
+      }
+
+      const result = generateSite('test_tok_pub', 'plan_tok_art_3');
+      const html = fs.readFileSync(path.join(result.outputDir, 'index.html'), 'utf-8');
+      const bodyContent = html.match(/<body>([\s\S]*)<\/body>/)?.[1] || '';
+
+      // Internal tokens should be filtered out
+      expect(bodyContent).not.toContain('>hero<');
+      expect(bodyContent).not.toContain('>cta<');
+      expect(bodyContent).not.toContain('>services_overview<');
+      expect(bodyContent).not.toContain('>testimonials<');
+      // Real sections should still appear as badges
+      expect(bodyContent).toContain('Residential');
+      expect(bodyContent).toContain('Commercial');
+
+      // Cleanup
+      cleanDir(path.join(TEST_OUTPUT_ROOT, 'test_tok_pub'));
+      seedArtifacts('Apex Roofing Co', 'roofing', 'Denver, CO', '303-555-0101', 'info@apex.com');
     });
   });
 

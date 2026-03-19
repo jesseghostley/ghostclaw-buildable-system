@@ -352,40 +352,48 @@ function buildHomePage(ctx: SiteContext, assets: Record<string, string>): string
   const home = ctx.pageContent?.home || {};
   const qaBadge = ctx.qaReport?.passed ? '<span class="qa-badge">QA Passed</span>' : '';
 
-  const sectionBadges = (home.sections || [])
-    .map((s: string) => `<span class="badge">${escapeHtml(s)}</span>`)
-    .join(' ');
+  const h1 = escapeHtml(buildHomeH1(ctx, home));
+  const subtitle = escapeHtml(buildHomeSubtitle(ctx, home));
 
-  const ctaHtml = home.cta ? `<a class="cta" href="contact.html">${escapeHtml(home.cta)}</a>` : `<a class="cta" href="contact.html">Get a Free Estimate</a>`;
+  // Filter internal tokens, render only human-readable service badges
+  const humanSections = humanizeSections(home.sections || []);
+  const sectionBadges = humanSections.length > 0
+    ? humanSections.map((s: string) => `<span class="badge">${escapeHtml(s)}</span>`).join(' ')
+    : '';
+
+  const ctaText = home.cta || 'Get a Free Estimate';
+  const ctaHtml = `<a class="cta" href="contact.html">${escapeHtml(ctaText)}</a>`;
+
+  const tradeTc = titleCase(ctx.trade);
 
   const body = `<div class="hero">
     <div class="hero-bg" style="background-image:url('${assets['hero-1']}')"></div>
     <div class="hero-content">
-      <h1>${escapeHtml(home.title || ctx.businessName)}${qaBadge}</h1>
-      <p>${escapeHtml(home.hero || `Professional ${ctx.trade} services in ${ctx.location}.`)}</p>
+      <h1>${h1}${qaBadge}</h1>
+      <p>${subtitle}</p>
       ${ctaHtml}
     </div>
   </div>
   <main>
     <div class="card">
-      <h2>What We Offer</h2>
-      <p>${sectionBadges || `Professional ${escapeHtml(ctx.trade)} services tailored to your needs.`}</p>
+      <h2>${escapeHtml(tradeTc)} Services We Provide</h2>
+      ${sectionBadges ? `<p>${sectionBadges}</p>` : `<p>From routine maintenance to full-scale projects, we handle all aspects of ${escapeHtml(ctx.trade)} for residential and commercial properties in ${escapeHtml(ctx.city || ctx.location)}.</p>`}
     </div>
     <div class="grid-2">
       <div class="card">
-        <img src="${assets['service-1']}" alt="${escapeHtml(ctx.trade)} services">
-        <h2>Quality Work</h2>
-        <p>Our experienced team delivers reliable, high-quality ${escapeHtml(ctx.trade)} solutions for every project.</p>
+        <img src="${assets['service-1']}" alt="${escapeHtml(tradeTc)} work by ${escapeHtml(ctx.businessName)}">
+        <h2>Expert ${escapeHtml(tradeTc)} You Can Count On</h2>
+        <p>Our experienced team has been delivering dependable ${escapeHtml(ctx.trade)} results across ${escapeHtml(ctx.city || ctx.location)} and the surrounding area for years.</p>
       </div>
       <div class="card">
-        <h2>Serving ${escapeHtml(ctx.location)}</h2>
-        <p>Locally owned and operated, proudly serving ${escapeHtml(ctx.city || ctx.location)} and surrounding areas.</p>
+        <h2>Locally Owned in ${escapeHtml(ctx.city || ctx.location)}</h2>
+        <p>As a local ${escapeHtml(ctx.trade)} company, we understand ${escapeHtml(ctx.city || ctx.location)}&rsquo;s building codes, weather conditions, and what homeowners here need most.</p>
       </div>
     </div>
   </main>`;
 
   const meta: PageMeta = {
-    title: `${ctx.businessName} — ${titleCase(ctx.trade)} in ${ctx.location}`,
+    title: `${ctx.businessName} — ${tradeTc} in ${ctx.location}`,
     description: home.hero || `${ctx.businessName} provides professional ${ctx.trade} services in ${ctx.location}. Call today for a free estimate.`,
     canonical: ctx.baseUrl + '/',
   };
@@ -393,28 +401,56 @@ function buildHomePage(ctx: SiteContext, assets: Record<string, string>): string
   return htmlPage(ctx, meta, 'home', body, assets);
 }
 
+/**
+ * Map common service section slugs to trade-aware, human-readable card content.
+ */
+function serviceCardContent(slug: string, ctx: SiteContext): { heading: string; body: string } {
+  const tradeTc = titleCase(ctx.trade);
+  const city = ctx.city || ctx.location;
+  const map: Record<string, { heading: string; body: string }> = {
+    service_list: {
+      heading: `Our ${tradeTc} Services`,
+      body: `We offer a complete range of ${ctx.trade} services for homeowners and businesses in ${city}. Every job is handled by trained, licensed professionals.`,
+    },
+    pricing: {
+      heading: 'Transparent Pricing',
+      body: `We provide upfront, honest estimates with no hidden fees. Every ${ctx.trade} project is scoped clearly before work begins.`,
+    },
+    faq: {
+      heading: 'Frequently Asked Questions',
+      body: `Have questions about our ${ctx.trade} process, timelines, or warranties? We're happy to walk you through every step.`,
+    },
+  };
+  if (map[slug]) return map[slug];
+  // Fallback: humanize the slug
+  const label = titleCase(slug.replace(/_/g, ' '));
+  return { heading: label, body: `${ctx.businessName} delivers professional ${label.toLowerCase()} services throughout ${city}.` };
+}
+
 function buildServicesPage(ctx: SiteContext, assets: Record<string, string>): string {
   const svc = ctx.pageContent?.services || {};
+  const tradeTc = titleCase(ctx.trade);
 
   const serviceImages = [assets['service-1'], assets['service-2']];
-  const cards = (svc.sections || ['service_list', 'pricing', 'faq'])
+  const sections: string[] = svc.sections || ['service_list', 'pricing', 'faq'];
+  const cards = sections
     .map((s: string, i: number) => {
-      const label = s.replace(/_/g, ' ').replace(/\b\w/g, (c: string) => c.toUpperCase());
-      const imgTag = i < serviceImages.length ? `<img src="${serviceImages[i]}" alt="${escapeHtml(label)}">` : '';
-      return `<div class="card">${imgTag}<h2>${escapeHtml(label)}</h2><p>Details about our ${escapeHtml(s.replace(/_/g, ' '))} offerings.</p></div>`;
+      const { heading, body } = serviceCardContent(s, ctx);
+      const imgTag = i < serviceImages.length ? `<img src="${serviceImages[i]}" alt="${escapeHtml(heading)}">` : '';
+      return `<div class="card">${imgTag}<h2>${escapeHtml(heading)}</h2><p>${escapeHtml(body)}</p></div>`;
     })
     .join('\n    ');
 
   const body = `<div class="hero">
-    <h1>${escapeHtml(svc.title || 'Our Services')}</h1>
-    <p>${escapeHtml(svc.description || `${ctx.businessName} offers a full range of ${ctx.trade} services.`)}</p>
+    <h1>${escapeHtml(tradeTc)} Services in ${escapeHtml(ctx.city || ctx.location)}</h1>
+    <p>${escapeHtml(svc.description || `${ctx.businessName} offers a full range of ${ctx.trade} services for residential and commercial properties.`)}</p>
   </div>
   <main>
     ${cards}
   </main>`;
 
   const meta: PageMeta = {
-    title: `Services — ${ctx.businessName} | ${titleCase(ctx.trade)} in ${ctx.location}`,
+    title: `${tradeTc} Services — ${ctx.businessName} | ${ctx.location}`,
     description: svc.description || `Explore ${ctx.trade} services offered by ${ctx.businessName} in ${ctx.location}.`,
     canonical: ctx.baseUrl + '/services.html',
   };
@@ -424,24 +460,26 @@ function buildServicesPage(ctx: SiteContext, assets: Record<string, string>): st
 
 function buildAboutPage(ctx: SiteContext, assets: Record<string, string>): string {
   const about = ctx.pageContent?.about || {};
+  const tradeTc = titleCase(ctx.trade);
+  const city = escapeHtml(ctx.city || ctx.location);
 
   const body = `<div class="hero">
     <h1>${escapeHtml(about.title || `About ${ctx.businessName}`)}</h1>
-    <p>${escapeHtml(about.subtitle || `Your trusted ${ctx.trade} partner in ${ctx.location}.`)}</p>
+    <p>${escapeHtml(about.subtitle || `Your trusted ${ctx.trade} team in ${ctx.location}.`)}</p>
   </div>
   <main>
     <div class="card">
       <div class="about-content">
-        <img src="${assets['gallery-1']}" alt="About ${escapeHtml(ctx.businessName)}">
+        <img src="${assets['gallery-1']}" alt="The ${escapeHtml(ctx.businessName)} team">
         <div class="about-text">
           <h2>Who We Are</h2>
-          <p>${escapeHtml(about.description || `${ctx.businessName} is a locally owned and operated ${ctx.trade} company serving ${ctx.location} and the surrounding area. Our team is dedicated to delivering quality workmanship, honest pricing, and reliable service on every project.`)}</p>
+          <p>${escapeHtml(about.description || `${ctx.businessName} is a locally owned ${ctx.trade} company serving ${ctx.location} and the surrounding area. Our crew is dedicated to honest pricing, clean job sites, and work that holds up long after we leave.`)}</p>
         </div>
       </div>
     </div>
     <div class="card">
-      <h2>Why Choose Us</h2>
-      <p>Licensed &amp; insured professionals with years of experience in ${escapeHtml(ctx.trade)}. We stand behind our work with a satisfaction guarantee.</p>
+      <h2>Why ${city} Trusts ${escapeHtml(ctx.businessName)}</h2>
+      <p>Licensed and insured ${escapeHtml(ctx.trade)} professionals with hands-on experience across ${city}. We stand behind every job with a satisfaction guarantee.</p>
     </div>
   </main>`;
 
@@ -464,7 +502,7 @@ function buildContactPage(ctx: SiteContext, assets: Record<string, string>): str
 
   const body = `<div class="hero">
     <h1>${escapeHtml(contact.title || 'Contact Us')}</h1>
-    <p>${escapeHtml(contact.description || `Reach out for a free ${ctx.trade} estimate.`)}</p>
+    <p>${escapeHtml(contact.description || `Get a free ${ctx.trade} estimate from a local team that shows up on time.`)}</p>
   </div>
   <main>
     <div class="card">
@@ -560,6 +598,49 @@ export function createSiteArchive(publicHtmlDir: string, outputPath: string): vo
 
 function titleCase(s: string): string {
   return s.toLowerCase().replace(/(?:^|\s)\S/g, (ch) => ch.toUpperCase());
+}
+
+/**
+ * Internal section tokens that should never appear as visible copy.
+ * These come from planner/agent output and are structural, not user-facing.
+ */
+const INTERNAL_SECTION_TOKENS = new Set([
+  'hero', 'cta', 'services_overview', 'testimonials', 'footer',
+  'header', 'nav', 'navigation', 'sidebar', 'meta', 'seo',
+  'schema', 'json_ld', 'sitemap', 'robots',
+]);
+
+/**
+ * Humanize a section slug: filter internal tokens, convert underscores
+ * to spaces, and title-case the result.
+ */
+function humanizeSections(sections: string[]): string[] {
+  return sections
+    .filter((s) => !INTERNAL_SECTION_TOKENS.has(s.toLowerCase()))
+    .map((s) => titleCase(s.replace(/_/g, ' ')));
+}
+
+/**
+ * Build a natural-sounding H1 for a contractor homepage.
+ * Prefers businessName alone; the trade+location goes in the subtitle.
+ */
+function buildHomeH1(ctx: SiteContext, homeData: any): string {
+  // If the artifact title looks like "Business Name - trade", just use business name
+  const rawTitle: string = homeData?.title || '';
+  if (rawTitle && !rawTitle.includes(' - ') && !rawTitle.includes('_')) {
+    return rawTitle;
+  }
+  return ctx.businessName;
+}
+
+/**
+ * Build the hero subtitle — the line below the H1.
+ */
+function buildHomeSubtitle(ctx: SiteContext, homeData: any): string {
+  const raw: string = homeData?.hero || '';
+  // If artifact provided a real sentence, use it
+  if (raw && raw.length > 10) return raw;
+  return `Trusted ${ctx.trade} services in ${ctx.location}. Licensed, insured, and locally owned.`;
 }
 
 function parseLocation(location: string): { city: string; state: string } {
