@@ -408,6 +408,36 @@ describe('Site Generator V2', () => {
     });
   });
 
+  describe('Trade name ending in "services" does not produce double "services services"', () => {
+    it('meta description and page copy avoid "services services"', () => {
+      runtimeStore.signals.length = 0;
+      runtimeStore.plans.length = 0;
+      runtimeStore.jobs.length = 0;
+      runtimeStore.artifacts.length = 0;
+
+      seedBatchSite('sig_svc', 'plan_svc', 'Star City Emergency Roof Tarping', 'emergency storm services', 'Star City, AR', '870-555-9999', 'info@starcity.com');
+      const result = generateSite('test_svc_dup', 'plan_svc_art_3');
+      const indexHtml = fs.readFileSync(path.join(result.outputDir, 'index.html'), 'utf-8');
+      const servicesHtml = fs.readFileSync(path.join(result.outputDir, 'services.html'), 'utf-8');
+
+      // No page should ever contain "services services"
+      expect(indexHtml).not.toMatch(/services\s+services/i);
+      expect(servicesHtml).not.toMatch(/services\s+services/i);
+
+      // Meta description should not double up
+      const metaMatch = indexHtml.match(/<meta name="description" content="([^"]+)"/);
+      expect(metaMatch![1]).not.toMatch(/services\s+services/i);
+      expect(metaMatch![1]).toContain('emergency storm services');
+
+      // Services page title should not double up
+      const svcTitleMatch = servicesHtml.match(/<title>([^<]+)<\/title>/);
+      expect(svcTitleMatch![1]).not.toMatch(/services\s+services/i);
+
+      cleanDir(path.join(TEST_OUTPUT_ROOT, 'test_svc_dup'));
+      seedArtifacts('Apex Roofing Co', 'roofing', 'Denver, CO', '303-555-0101', 'info@apex.com');
+    });
+  });
+
   describe('Template quality with internal-token sections', () => {
     it('filters out internal tokens like hero, cta, services_overview from badges', () => {
       // Seed with sections that include internal tokens

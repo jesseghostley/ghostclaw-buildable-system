@@ -171,7 +171,7 @@ function buildLocalBusinessJsonLd(ctx: SiteContext): string {
     url: ctx.baseUrl,
   };
 
-  if (ctx.trade) ld.description = `${ctx.businessName} — professional ${ctx.trade} services in ${ctx.location}`;
+  if (ctx.trade) ld.description = `${ctx.businessName} — professional ${tradeServices(ctx.trade)} in ${ctx.location}`;
   if (ctx.phone) ld.telephone = ctx.phone;
   if (ctx.email) ld.email = ctx.email;
 
@@ -376,7 +376,7 @@ function buildHomePage(ctx: SiteContext, assets: Record<string, string>): string
   </div>
   <main>
     <div class="card">
-      <h2>${escapeHtml(tradeTc)} Services We Provide</h2>
+      <h2>${escapeHtml(tradeServices(tradeTc))} We Provide</h2>
       ${sectionBadges ? `<p>${sectionBadges}</p>` : `<p>From routine maintenance to full-scale projects, we handle all aspects of ${escapeHtml(ctx.trade)} for residential and commercial properties in ${escapeHtml(ctx.city || ctx.location)}.</p>`}
     </div>
     <div class="grid-2">
@@ -409,8 +409,8 @@ function serviceCardContent(slug: string, ctx: SiteContext): { heading: string; 
   const city = ctx.city || ctx.location;
   const map: Record<string, { heading: string; body: string }> = {
     service_list: {
-      heading: `Our ${tradeTc} Services`,
-      body: `We offer a complete range of ${ctx.trade} services for homeowners and businesses in ${city}. Every job is handled by trained, licensed professionals.`,
+      heading: `Our ${tradeServices(tradeTc)}`,
+      body: `We offer a complete range of ${tradeServices(ctx.trade)} for homeowners and businesses in ${city}. Every job is handled by trained, licensed professionals.`,
     },
     pricing: {
       heading: 'Transparent Pricing',
@@ -424,7 +424,7 @@ function serviceCardContent(slug: string, ctx: SiteContext): { heading: string; 
   if (map[slug]) return map[slug];
   // Fallback: humanize the slug
   const label = titleCase(slug.replace(/_/g, ' '));
-  return { heading: label, body: `${ctx.businessName} delivers professional ${label.toLowerCase()} services throughout ${city}.` };
+  return { heading: label, body: `${ctx.businessName} delivers professional ${tradeServices(label.toLowerCase())} throughout ${city}.` };
 }
 
 function buildServicesPage(ctx: SiteContext, assets: Record<string, string>): string {
@@ -442,16 +442,16 @@ function buildServicesPage(ctx: SiteContext, assets: Record<string, string>): st
     .join('\n    ');
 
   const body = `<div class="hero">
-    <h1>${escapeHtml(tradeTc)} Services in ${escapeHtml(ctx.city || ctx.location)}</h1>
-    <p>${escapeHtml(svc.description || `${ctx.businessName} offers a full range of ${ctx.trade} services for residential and commercial properties.`)}</p>
+    <h1>${escapeHtml(tradeServices(tradeTc))} in ${escapeHtml(ctx.city || ctx.location)}</h1>
+    <p>${escapeHtml(dedupeServices(svc.description || `${ctx.businessName} offers a full range of ${tradeServices(ctx.trade)} for residential and commercial properties.`))}</p>
   </div>
   <main>
     ${cards}
   </main>`;
 
   const meta: PageMeta = {
-    title: `${tradeTc} Services — ${ctx.businessName} | ${ctx.location}`,
-    description: svc.description || `Explore ${ctx.trade} services offered by ${ctx.businessName} in ${ctx.location}.`,
+    title: `${tradeServices(tradeTc)} — ${ctx.businessName} | ${ctx.location}`,
+    description: dedupeServices(svc.description || `Explore ${tradeServices(ctx.trade)} offered by ${ctx.businessName} in ${ctx.location}.`),
     canonical: ctx.baseUrl + '/services.html',
   };
 
@@ -517,7 +517,7 @@ function buildContactPage(ctx: SiteContext, assets: Record<string, string>): str
 
   const meta: PageMeta = {
     title: `Contact — ${ctx.businessName} | ${ctx.location}`,
-    description: contact.description || `Contact ${ctx.businessName} for ${ctx.trade} services in ${ctx.location}. Free estimates available.`,
+    description: contact.description || `Contact ${ctx.businessName} for ${tradeServices(ctx.trade)} in ${ctx.location}. Free estimates available.`,
     canonical: ctx.baseUrl + '/contact.html',
   };
 
@@ -601,6 +601,25 @@ function titleCase(s: string): string {
 }
 
 /**
+ * Append "services" to a trade name only if it doesn't already end with
+ * "service" or "services" — prevents "emergency storm services services".
+ * Preserves casing: if the trade is Title Cased, appends "Services".
+ */
+function tradeServices(trade: string): string {
+  if (/services?\s*$/i.test(trade)) return trade;
+  // Match the casing of the input: if first char is uppercase, append "Services"
+  const suffix = /^[A-Z]/.test(trade) ? 'Services' : 'services';
+  return `${trade} ${suffix}`;
+}
+
+/**
+ * Sanitize any text that may contain "services services" from artifact content.
+ */
+function dedupeServices(text: string): string {
+  return text.replace(/\bservices\s+services\b/gi, 'services');
+}
+
+/**
  * Internal section tokens that should never appear as visible copy.
  * These come from planner/agent output and are structural, not user-facing.
  */
@@ -653,7 +672,7 @@ function buildHomeSubtitle(ctx: SiteContext, homeData: any): string {
  */
 function buildHomeMetaDescription(ctx: SiteContext): string {
   const city = ctx.city || ctx.location;
-  return `${ctx.businessName} provides ${ctx.trade} services in ${ctx.location}. Call ${ctx.phone || 'us'} for a free estimate from a local, licensed team in ${city}.`;
+  return `${ctx.businessName} provides ${tradeServices(ctx.trade)} in ${ctx.location}. Call ${ctx.phone || 'us'} for a free estimate from a local, licensed team in ${city}.`;
 }
 
 function parseLocation(location: string): { city: string; state: string } {
@@ -875,7 +894,7 @@ export function generateSite(publishEventId: string, artifactId: string): SiteGe
     qaStatus: ctx.qaReport?.passed ? 'passed' : 'unknown',
     seo: {
       title: `${ctx.businessName} — ${titleCase(ctx.trade)} in ${ctx.location}`,
-      description: `${ctx.businessName} provides professional ${ctx.trade} services in ${ctx.location}.`,
+      description: `${ctx.businessName} provides professional ${tradeServices(ctx.trade)} in ${ctx.location}.`,
       canonical: ctx.baseUrl + '/',
       hasJsonLd: true,
       hasSitemap: true,
