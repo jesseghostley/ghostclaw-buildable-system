@@ -168,8 +168,14 @@ export function executeJobs(): Artifact[] {
 
       // Approval gate: if the QA review says approval is required, create a
       // pending PublishEvent so an operator must approve before publishing.
+      // Guard: skip if this artifact already has a pending or approved event
+      // (idempotency — prevents duplicates on retry or re-entrant execution).
       const qaReport = outputPayload.qaReport as Record<string, unknown> | undefined;
-      if (qaReport?.requiresApproval) {
+      const existingPubEvents = publishEventStore.listByArtifactId(artifactId);
+      const alreadyHasActive = existingPubEvents.some(
+        (pe) => pe.status === 'pending' || pe.status === 'approved',
+      );
+      if (qaReport?.requiresApproval && !alreadyHasActive) {
         const publishId = uniqueId('pub');
         const pubEvent = publishEventStore.create({
           id: publishId,

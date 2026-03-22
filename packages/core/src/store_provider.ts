@@ -16,6 +16,7 @@
 
 import { createStores, type StoreBundle } from './storage/storage_factory';
 import type { StorageConfig } from './storage/storage_config';
+import { hydrateRuntimeStore } from './runtime_loop';
 
 let _stores: StoreBundle | null = null;
 
@@ -67,6 +68,13 @@ export function initializeStores(config?: StorageConfig): StoreBundle {
 
   const runtimeEventLogModule = r('./runtime_event_log');
   runtimeEventLogModule.runtimeEventLog = _stores.runtimeEventLogStore;
+
+  // In sqlite mode, hydrate the in-memory runtimeStore arrays from durable
+  // storage so that site_generator and other consumers see data persisted
+  // across restarts.  Memory mode starts fresh by definition — no hydration.
+  if (resolvedConfig.mode === 'sqlite') {
+    hydrateRuntimeStore(_stores);
+  }
 
   console.log(
     `[GhostClaw] Stores initialized in "${resolvedConfig.mode}" mode` +

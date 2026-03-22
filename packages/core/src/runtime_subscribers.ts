@@ -154,8 +154,17 @@ export function registerRuntimeSubscribers(
   });
 
   // ─── Publish flow subscriber ───────────────────────────────────────────────
+  // Auto-publish artifacts that did NOT go through the approval gate.
+  // If job_executor already created a pending/approved PublishEvent for this
+  // artifact (approval gate), skip — the operator approval flow handles it.
 
   bus.on('artifact.created', (artifact) => {
+    const existing = publishStore.listByArtifactId(artifact.id);
+    const alreadyHasActive = existing.some(
+      (pe) => pe.status === 'pending' || pe.status === 'approved',
+    );
+    if (alreadyHasActive) return;
+
     const publishEventId = uniqueId('pub');
     const publishEvent = publishStore.create({
       id: publishEventId,

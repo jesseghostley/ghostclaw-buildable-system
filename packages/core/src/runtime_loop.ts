@@ -8,6 +8,7 @@ import { assignmentStore, type Assignment } from './assignment';
 import { eventBus } from './event_bus';
 import { getStores } from './store_provider';
 import { uniqueId } from './unique_id';
+import type { StoreBundle } from './storage/storage_factory';
 
 /**
  * =============================================================================
@@ -107,6 +108,42 @@ export const runtimeStore = {
   assignments: [] as Assignment[],
 };
 
+/**
+ * Populate runtimeStore arrays from the backing stores (SQLite).
+ * Called once during startup so that site_generator and other consumers that
+ * read runtimeStore see data persisted across restarts.
+ *
+ * Clears existing arrays first to guarantee idempotency.
+ */
+export function hydrateRuntimeStore(stores: StoreBundle): void {
+  // Clear first so repeated calls don't duplicate entries.
+  runtimeStore.signals.length = 0;
+  runtimeStore.plans.length = 0;
+  runtimeStore.jobs.length = 0;
+  runtimeStore.artifacts.length = 0;
+  runtimeStore.skillInvocations.length = 0;
+  runtimeStore.assignments.length = 0;
+
+  const signals = stores.signalStore.listAll();
+  const plans = stores.planStore.listAll();
+  const jobs = stores.jobStore.list();
+  const artifacts = stores.artifactStore.listAll();
+  const invocations = stores.skillInvocationStore.listAll();
+  const assignments = stores.assignmentStore.listAll();
+
+  runtimeStore.signals.push(...signals);
+  runtimeStore.plans.push(...plans);
+  runtimeStore.jobs.push(...jobs);
+  runtimeStore.artifacts.push(...artifacts);
+  runtimeStore.skillInvocations.push(...invocations);
+  runtimeStore.assignments.push(...assignments);
+
+  console.log(
+    `[GhostClaw] Hydrated runtimeStore: ${signals.length} signals, ${plans.length} plans, ` +
+      `${jobs.length} jobs, ${artifacts.length} artifacts, ${invocations.length} invocations, ` +
+      `${assignments.length} assignments.`,
+  );
+}
 
 function createPlan(signal: Signal): Plan {
   const decision = routeSignal(signal);
