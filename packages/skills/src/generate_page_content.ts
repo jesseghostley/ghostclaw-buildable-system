@@ -1,4 +1,5 @@
 import type { SkillDefinition } from './types';
+import { getCopyPool, pickCopy } from '../../../packages/core/src/copy_variation';
 
 export const generatePageContent: SkillDefinition = {
   id: 'generate_page_content',
@@ -35,19 +36,23 @@ export const generatePageContent: SkillDefinition = {
     const pages = (siteStructure?.pages as string[] | undefined) ?? ['home', 'services', 'about', 'gallery', 'contact'];
     const sections = (siteStructure?.sections as Record<string, string[]> | undefined) ?? {};
 
+    // Deterministic copy variation — same businessName always gets same copy
+    const pool = getCopyPool(trade);
+    const vars = { businessName, trade, location };
+
     return {
       result: `Page content generated for ${businessName}`,
       usedForwardedStructure: !!siteStructure,
       pageContent: {
         home: {
           title: `${businessName} — Professional ${trade} Services in ${location}`,
-          hero: `Trusted ${trade} contractor serving ${location} with quality workmanship and reliable service.`,
+          hero: pickCopy(pool.heroes, businessName, vars),
           sections: sections.home ?? ['hero', 'services_overview', 'testimonials', 'cta'],
-          cta: 'Get Your Free Estimate Today',
+          cta: pickCopy(pool.ctas, businessName, vars),
         },
         services: {
           title: `Our ${trade} Services`,
-          description: `Full-service ${trade} solutions for residential and commercial properties in ${location}.`,
+          description: pickCopy(pool.serviceDescriptions, businessName, vars),
           sections: sections.services ?? ['service_list', 'pricing', 'faq'],
         },
         about: {
@@ -60,7 +65,7 @@ export const generatePageContent: SkillDefinition = {
         },
         contact: {
           title: 'Contact Us',
-          description: `Ready to start your ${trade} project? Get in touch for a free consultation.`,
+          description: pickCopy(pool.contactDescriptions, businessName, vars),
           sections: sections.contact ?? ['form', 'map', 'hours'],
         },
       },

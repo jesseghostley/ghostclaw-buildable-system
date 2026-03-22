@@ -1,4 +1,5 @@
 import type { SkillDefinition } from './types';
+import { getLayoutVariant } from '../../../packages/core/src/copy_variation';
 
 export const designSiteStructure: SkillDefinition = {
   id: 'design_site_structure',
@@ -23,26 +24,24 @@ export const designSiteStructure: SkillDefinition = {
     const businessName = String(payload?.businessName ?? 'Unnamed Contractor');
     const trade = String(payload?.trade ?? 'general');
 
+    // Deterministic layout variation — same businessName always gets same layout
+    const layout = getLayoutVariant(trade, businessName);
+    const totalSections = Object.values(layout).reduce((sum, arr) => sum + arr.length, 0);
+
     return {
       result: `Site structure designed for ${businessName}`,
       siteStructure: {
         businessName,
         trade,
         pages: ['home', 'services', 'about', 'gallery', 'contact'],
-        sections: {
-          home: ['hero', 'services_overview', 'testimonials', 'cta'],
-          services: ['service_list', 'pricing', 'faq'],
-          about: ['story', 'team', 'certifications'],
-          gallery: ['project_gallery', 'before_after'],
-          contact: ['form', 'map', 'hours'],
-        },
+        sections: layout,
         navigation: {
           primary: ['Home', 'Services', 'About', 'Gallery', 'Contact'],
           footer: ['Privacy Policy', 'Terms of Service', 'Sitemap'],
         },
         metadata: {
           estimatedPages: 5,
-          estimatedSections: 14,
+          estimatedSections: totalSections,
           hasCTA: true,
           hasContactForm: true,
         },
