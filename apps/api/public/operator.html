@@ -8,6 +8,7 @@
       :root { color-scheme: dark; font-family: Arial, sans-serif; }
       body { margin: 0; padding: 16px; background: #0f172a; color: #e2e8f0; }
       h1 { margin: 0 0 16px; }
+      h2 { margin: 16px 0 8px; font-size: 1.05rem; }
       .actions { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; }
       .btn {
         padding: 8px 16px; border-radius: 6px; font-size: 13px;
@@ -22,6 +23,13 @@
       .btn--variation:hover { background: #1e3a5f; }
       .btn--export { border-color: #fde68a; color: #fde68a; }
       .btn--export:hover { background: #78350f; }
+      .btn--sm {
+        padding: 3px 10px; font-size: 11px; border-radius: 4px;
+      }
+      .btn--approve { border-color: #4ade80; color: #4ade80; }
+      .btn--approve:hover { background: #14532d; }
+      .btn--publish { border-color: #93c5fd; color: #93c5fd; }
+      .btn--publish:hover { background: #1e3a5f; }
       .log-box {
         background: #111827; border: 1px solid #334155; border-radius: 8px;
         padding: 12px; font-family: monospace; font-size: 12px;
@@ -34,6 +42,27 @@
       .log-box .info { color: #93c5fd; }
       .meta { color: #64748b; font-size: 12px; margin-bottom: 8px; }
       a { color: #93c5fd; }
+      .panel {
+        border: 1px solid #334155; border-radius: 8px; padding: 12px;
+        background: #111827; margin-bottom: 12px;
+      }
+      .panel h2 { margin: 0 0 8px; display: flex; align-items: center; gap: 8px; }
+      .panel h2 .count { font-size: 12px; color: #64748b; font-weight: 400; }
+      table { width: 100%; border-collapse: collapse; font-size: 12px; font-family: monospace; }
+      th { text-align: left; padding: 6px 8px; border-bottom: 1px solid #334155; color: #93c5fd; font-weight: 600; }
+      td { padding: 5px 8px; border-bottom: 1px solid #1e293b; vertical-align: middle; }
+      tr:hover { background: #1e293b; }
+      .badge {
+        display: inline-block; padding: 1px 6px; border-radius: 3px;
+        font-size: 11px; font-weight: 600; text-transform: uppercase;
+      }
+      .badge--pending { background: #78350f; color: #fde68a; }
+      .badge--approved { background: #1e3a5f; color: #93c5fd; }
+      .badge--published { background: #14532d; color: #4ade80; }
+      .badge--rejected { background: #7f1d1d; color: #fca5a5; }
+      .badge--failed { background: #7f1d1d; color: #fca5a5; }
+      .empty { color: #64748b; font-size: 12px; padding: 12px 0; font-family: monospace; }
+      .id-cell { max-width: 180px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     </style>
   </head>
   <body>
@@ -44,8 +73,23 @@
       <button class="btn btn--runtime" onclick="runScript('check-runtime')">Run Runtime Check</button>
       <button class="btn btn--variation" onclick="runScript('test-variation')">Run Variation Test</button>
       <button class="btn btn--export" onclick="runScript('check-export')">Run Export Check</button>
+      <button class="btn" onclick="refreshPanels()" style="margin-left:auto">Refresh Panels</button>
     </div>
 
+    <!-- Pending Approvals -->
+    <div class="panel">
+      <h2>Pending Approvals <span id="approvals-count" class="count"></span></h2>
+      <div id="approvals-table"></div>
+    </div>
+
+    <!-- Recent Batches -->
+    <div class="panel">
+      <h2>Recent Batches <span id="batches-count" class="count"></span></h2>
+      <div id="batches-table"></div>
+    </div>
+
+    <!-- Log Output -->
+    <h2>Log Output</h2>
     <div id="log" class="log-box">Ready. Click a button to run a script.</div>
 
     <script>
@@ -58,6 +102,10 @@
       function appendLog(html) {
         log.innerHTML += html + '\n';
         log.scrollTop = log.scrollHeight;
+      }
+
+      function escapeHtml(str) {
+        return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
       }
 
       async function runScript(name) {
@@ -95,9 +143,187 @@
         buttons.forEach(b => b.disabled = false);
       }
 
-      function escapeHtml(str) {
-        return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+      // ── Pending Approvals ───────────────────────────────────────────────
+
+      async function loadApprovals() {
+        const container = document.getElementById('approvals-table');
+        const countEl = document.getElementById('approvals-count');
+        try {
+          const res = await fetch('/api/approvals/pending');
+          const data = await res.json();
+          const items = data.pending || [];
+          countEl.textContent = `(${items.length})`;
+
+          if (items.length === 0) {
+            container.innerHTML = '<div class="empty">No pending approvals.</div>';
+            return;
+          }
+
+          let html = '<table><tr><th>ID</th><th>Status</th><th>Destination</th><th>Artifact</th><th>Actions</th></tr>';
+          for (const pe of items) {
+            html += `<tr>
+              <td class="id-cell" title="${escapeHtml(pe.id)}">${escapeHtml(pe.id)}</td>
+              <td><span class="badge badge--${pe.status}">${pe.status}</span></td>
+              <td>${escapeHtml(pe.destination || '-')}</td>
+              <td class="id-cell" title="${escapeHtml(pe.artifactId)}">${escapeHtml(pe.artifactId)}</td>
+              <td>
+                <button class="btn btn--sm btn--approve" onclick="approveEvent('${pe.id}')">Approve</button>
+              </td>
+            </tr>`;
+          }
+          html += '</table>';
+          container.innerHTML = html;
+
+          // Also load approved items that can be published
+          const histRes = await fetch('/api/approvals/history');
+          const histData = await histRes.json();
+          const approved = (histData.items || []).filter(i => i.status === 'approved');
+
+          if (approved.length > 0) {
+            let aHtml = '<div style="margin-top:12px"><strong style="font-size:12px;color:#93c5fd">Approved (ready to publish)</strong></div>';
+            aHtml += '<table><tr><th>ID</th><th>Status</th><th>Destination</th><th>Artifact</th><th>Actions</th></tr>';
+            for (const pe of approved) {
+              aHtml += `<tr>
+                <td class="id-cell" title="${escapeHtml(pe.id)}">${escapeHtml(pe.id)}</td>
+                <td><span class="badge badge--${pe.status}">${pe.status}</span></td>
+                <td>${escapeHtml(pe.destination || '-')}</td>
+                <td class="id-cell" title="${escapeHtml(pe.artifactId)}">${escapeHtml(pe.artifactId)}</td>
+                <td>
+                  <button class="btn btn--sm btn--publish" onclick="publishEvent('${pe.id}')">Publish</button>
+                </td>
+              </tr>`;
+            }
+            aHtml += '</table>';
+            container.innerHTML += aHtml;
+
+            countEl.textContent = `(${items.length} pending, ${approved.length} approved)`;
+          }
+        } catch (e) {
+          container.innerHTML = `<div class="empty" style="color:#fca5a5">Failed to load approvals: ${escapeHtml(e.message)}</div>`;
+        }
       }
+
+      async function approveEvent(id) {
+        appendLog(`<span class="ts">[${ts()}]</span> <span class="info">Approving ${id}...</span>`);
+        try {
+          const res = await fetch(`/api/approvals/${id}/approve`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ approvedBy: 'operator:console' }),
+          });
+          const data = await res.json();
+          if (res.ok) {
+            appendLog(`<span class="ts">[${ts()}]</span> <span class="ok">Approved: ${data.id} → ${data.status}</span>`);
+          } else {
+            appendLog(`<span class="ts">[${ts()}]</span> <span class="err">Error: ${escapeHtml(data.error || JSON.stringify(data))}</span>`);
+          }
+        } catch (e) {
+          appendLog(`<span class="ts">[${ts()}]</span> <span class="err">Network error: ${escapeHtml(e.message)}</span>`);
+        }
+        loadApprovals();
+      }
+
+      async function publishEvent(id) {
+        appendLog(`<span class="ts">[${ts()}]</span> <span class="info">Publishing ${id}...</span>`);
+        try {
+          const res = await fetch(`/api/approvals/${id}/publish`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+          });
+          const data = await res.json();
+          if (res.ok) {
+            appendLog(`<span class="ts">[${ts()}]</span> <span class="ok">Published: ${data.id} → ${data.status}</span>`);
+            if (data.externalUrl) {
+              appendLog(`<span class="ts">[${ts()}]</span> <span class="info">URL: ${escapeHtml(data.externalUrl)}</span>`);
+            }
+            if (data.site && data.site.businessSlug) {
+              appendLog(`<span class="ts">[${ts()}]</span> <span class="info">Site: ${escapeHtml(data.site.businessSlug)} (${data.site.files ? data.site.files.length : 0} files)</span>`);
+            }
+          } else {
+            appendLog(`<span class="ts">[${ts()}]</span> <span class="err">Error: ${escapeHtml(data.error || JSON.stringify(data))}</span>`);
+          }
+        } catch (e) {
+          appendLog(`<span class="ts">[${ts()}]</span> <span class="err">Network error: ${escapeHtml(e.message)}</span>`);
+        }
+        loadApprovals();
+      }
+
+      // ── Recent Batches ──────────────────────────────────────────────────
+
+      async function loadBatches() {
+        const container = document.getElementById('batches-table');
+        const countEl = document.getElementById('batches-count');
+        try {
+          const res = await fetch('/api/batches');
+          const data = await res.json();
+          const items = data.batches || [];
+          countEl.textContent = `(${items.length})`;
+
+          if (items.length === 0) {
+            container.innerHTML = '<div class="empty">No batches found.</div>';
+            return;
+          }
+
+          let html = '<table><tr><th>Batch ID</th><th>Created</th><th>Sites</th><th>Status</th><th>Actions</th></tr>';
+          for (const b of items) {
+            const date = new Date(b.createdAt).toLocaleString();
+            const sc = b.statusCounts || {};
+            const statusParts = [];
+            if (sc.published) statusParts.push(`${sc.published} published`);
+            if (sc.approved) statusParts.push(`${sc.approved} approved`);
+            if (sc.awaiting_approval) statusParts.push(`${sc.awaiting_approval} pending`);
+            if (sc.processing) statusParts.push(`${sc.processing} processing`);
+            if (sc.queued) statusParts.push(`${sc.queued} queued`);
+            if (sc.failed) statusParts.push(`${sc.failed} failed`);
+            const statusStr = statusParts.join(', ') || 'empty';
+
+            html += `<tr>
+              <td class="id-cell" title="${escapeHtml(b.id)}">${escapeHtml(b.id)}</td>
+              <td>${escapeHtml(date)}</td>
+              <td>${b.processed}/${b.totalSites}</td>
+              <td>${escapeHtml(statusStr)}</td>
+              <td>
+                <button class="btn btn--sm btn--export" onclick="exportBatch('${b.id}')">Export</button>
+              </td>
+            </tr>`;
+          }
+          html += '</table>';
+          container.innerHTML = html;
+        } catch (e) {
+          container.innerHTML = `<div class="empty" style="color:#fca5a5">Failed to load batches: ${escapeHtml(e.message)}</div>`;
+        }
+      }
+
+      async function exportBatch(id) {
+        appendLog(`<span class="ts">[${ts()}]</span> <span class="info">Exporting batch ${id}...</span>`);
+        try {
+          const res = await fetch(`/api/batches/${id}/export`);
+          const data = await res.json();
+          if (res.ok) {
+            appendLog(`<span class="ts">[${ts()}]</span> <span class="ok">Export complete: ${data.exported || 0} exported, ${data.skipped || 0} skipped</span>`);
+            if (data.sites && data.sites.length > 0) {
+              for (const site of data.sites) {
+                const archiveInfo = site.exportedArchivePath ? ` → ${site.exportedArchivePath}` : '';
+                appendLog(`  ${escapeHtml(site.businessName)} (${site.status})${escapeHtml(archiveInfo)}`);
+              }
+            }
+          } else {
+            appendLog(`<span class="ts">[${ts()}]</span> <span class="err">Error: ${escapeHtml(data.error || JSON.stringify(data))}</span>`);
+          }
+        } catch (e) {
+          appendLog(`<span class="ts">[${ts()}]</span> <span class="err">Network error: ${escapeHtml(e.message)}</span>`);
+        }
+        appendLog(`<span class="ts">[${ts()}]</span> ──────────────────────────────`);
+      }
+
+      // ── Init ────────────────────────────────────────────────────────────
+
+      function refreshPanels() {
+        loadApprovals();
+        loadBatches();
+      }
+
+      refreshPanels();
     </script>
   </body>
 </html>
