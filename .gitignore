@@ -3,3 +3,5 @@ dist/
 *.js.map
 output/sites/*/
 output/batches/*/
+*.sqlite
+ghostclaw.db
