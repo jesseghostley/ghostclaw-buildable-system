@@ -43,6 +43,7 @@ app.use('/api/approvals', approvalsRouter);
 app.use('/api/batches', batchesRouter);
 
 app.use('/sites', express.static(path.join(__dirname, '..', '..', '..', 'output', 'sites')));
+app.use('/batches', express.static(path.join(__dirname, '..', '..', '..', 'output', 'batches')));
 app.use(express.static(path.join(__dirname, '..', 'public')));
 
 export default app;

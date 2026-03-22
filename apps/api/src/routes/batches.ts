@@ -11,6 +11,7 @@ import {
   getBatchSummary,
   SiteRequest,
 } from '../../../../packages/core/src/batch_store';
+import { exportBatch } from '../../../../packages/core/src/batch_export';
 
 const router = Router();
 
@@ -130,6 +131,24 @@ router.get('/:id', (req, res) => {
   });
 
   res.json({ ...summary, sites });
+});
+
+// GET /api/batches/:id/export — export batch for VA handoff
+router.get('/:id/export', (req, res) => {
+  const batch = getBatch(req.params.id);
+  if (!batch) {
+    res.status(404).json({ error: `Batch "${req.params.id}" not found.` });
+    return;
+  }
+
+  const result = exportBatch(req.params.id);
+
+  if (result.error) {
+    res.status(500).json({ error: result.error });
+    return;
+  }
+
+  res.json(result.manifest);
 });
 
 export default router;
