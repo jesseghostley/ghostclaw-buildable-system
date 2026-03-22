@@ -88,6 +88,36 @@
       <div id="batches-table"></div>
     </div>
 
+    <!-- Batch Submit -->
+    <div class="panel">
+      <h2>Batch Submit</h2>
+      <div style="display:flex;gap:12px;flex-wrap:wrap">
+        <!-- Form entry -->
+        <div style="flex:1;min-width:280px">
+          <div style="font-size:12px;color:#93c5fd;font-weight:600;margin-bottom:6px">Add sites individually</div>
+          <div style="display:flex;flex-direction:column;gap:4px">
+            <input id="bs-name" type="text" placeholder="businessName *" style="background:#1e293b;border:1px solid #334155;border-radius:4px;color:#e2e8f0;font-size:12px;padding:5px 8px;font-family:monospace" />
+            <input id="bs-trade" type="text" placeholder="trade *" style="background:#1e293b;border:1px solid #334155;border-radius:4px;color:#e2e8f0;font-size:12px;padding:5px 8px;font-family:monospace" />
+            <input id="bs-location" type="text" placeholder="location *" style="background:#1e293b;border:1px solid #334155;border-radius:4px;color:#e2e8f0;font-size:12px;padding:5px 8px;font-family:monospace" />
+            <input id="bs-phone" type="text" placeholder="phone" style="background:#1e293b;border:1px solid #334155;border-radius:4px;color:#e2e8f0;font-size:12px;padding:5px 8px;font-family:monospace" />
+            <input id="bs-email" type="text" placeholder="email" style="background:#1e293b;border:1px solid #334155;border-radius:4px;color:#e2e8f0;font-size:12px;padding:5px 8px;font-family:monospace" />
+            <button class="btn btn--sm btn--approve" onclick="addSiteToBatch()" style="align-self:flex-start;margin-top:4px">Add Site</button>
+          </div>
+          <div id="bs-list" style="margin-top:8px;font-size:12px;font-family:monospace"></div>
+          <div style="margin-top:8px;display:flex;gap:8px">
+            <button id="bs-submit-btn" class="btn btn--sm btn--publish" onclick="submitBatchFromForm()" disabled>Submit Batch</button>
+            <button class="btn btn--sm" onclick="clearBatchList()">Clear</button>
+          </div>
+        </div>
+        <!-- JSON fallback -->
+        <div style="flex:1;min-width:280px">
+          <div style="font-size:12px;color:#93c5fd;font-weight:600;margin-bottom:6px">Or paste raw JSON</div>
+          <textarea id="bs-json" rows="10" placeholder='{ "sites": [ { "businessName": "...", "trade": "...", "location": "..." } ] }' style="width:100%;box-sizing:border-box;background:#1e293b;border:1px solid #334155;border-radius:4px;color:#e2e8f0;font-size:12px;padding:8px;font-family:monospace;resize:vertical"></textarea>
+          <button class="btn btn--sm btn--publish" onclick="submitBatchFromJson()" style="margin-top:4px">Submit JSON</button>
+        </div>
+      </div>
+    </div>
+
     <!-- Log Output -->
     <h2>Log Output</h2>
     <div id="log" class="log-box">Ready. Click a button to run a script.</div>
@@ -315,6 +345,125 @@
         }
         appendLog(`<span class="ts">[${ts()}]</span> ──────────────────────────────`);
       }
+
+      // ── Batch Submit ──────────────────────────────────────────────────
+
+      const batchSites = [];
+
+      function addSiteToBatch() {
+        const name = document.getElementById('bs-name').value.trim();
+        const trade = document.getElementById('bs-trade').value.trim();
+        const location = document.getElementById('bs-location').value.trim();
+        const phone = document.getElementById('bs-phone').value.trim();
+        const email = document.getElementById('bs-email').value.trim();
+
+        if (!name || !trade || !location) {
+          appendLog(`<span class="ts">[${ts()}]</span> <span class="err">businessName, trade, and location are required.</span>`);
+          return;
+        }
+
+        const site = { businessName: name, trade, location };
+        if (phone) site.phone = phone;
+        if (email) site.email = email;
+        batchSites.push(site);
+
+        renderBatchList();
+
+        // Clear form fields
+        document.getElementById('bs-name').value = '';
+        document.getElementById('bs-trade').value = '';
+        document.getElementById('bs-location').value = '';
+        document.getElementById('bs-phone').value = '';
+        document.getElementById('bs-email').value = '';
+        document.getElementById('bs-name').focus();
+      }
+
+      function removeSiteFromBatch(idx) {
+        batchSites.splice(idx, 1);
+        renderBatchList();
+      }
+
+      function renderBatchList() {
+        const container = document.getElementById('bs-list');
+        const submitBtn = document.getElementById('bs-submit-btn');
+        if (batchSites.length === 0) {
+          container.innerHTML = '<span style="color:#64748b">No sites added yet.</span>';
+          submitBtn.disabled = true;
+          return;
+        }
+        submitBtn.disabled = false;
+        let html = `<div style="color:#64748b;margin-bottom:4px">${batchSites.length} site(s) queued:</div>`;
+        for (let i = 0; i < batchSites.length; i++) {
+          const s = batchSites[i];
+          html += `<div style="display:flex;align-items:center;gap:6px;padding:2px 0">
+            <span>${escapeHtml(s.businessName)} — ${escapeHtml(s.trade)}, ${escapeHtml(s.location)}</span>
+            <button class="btn btn--sm" onclick="removeSiteFromBatch(${i})" style="padding:1px 6px;font-size:10px;border-color:#fca5a5;color:#fca5a5">x</button>
+          </div>`;
+        }
+        container.innerHTML = html;
+      }
+
+      function clearBatchList() {
+        batchSites.length = 0;
+        renderBatchList();
+      }
+
+      async function submitBatch(payload) {
+        appendLog(`<span class="ts">[${ts()}]</span> <span class="info">Submitting batch (${payload.sites.length} sites)...</span>`);
+        try {
+          const res = await fetch('/api/batches/contractor-sites', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload),
+          });
+          const data = await res.json();
+          if (res.ok) {
+            appendLog(`<span class="ts">[${ts()}]</span> <span class="ok">${escapeHtml(data.message || 'Batch created')}</span>`);
+            if (data.sites) {
+              for (const s of data.sites) {
+                const status = s.error ? `failed: ${s.error}` : s.status;
+                appendLog(`  ${escapeHtml(s.businessName)} — ${status}`);
+              }
+            }
+          } else {
+            appendLog(`<span class="ts">[${ts()}]</span> <span class="err">Error: ${escapeHtml(data.error || JSON.stringify(data))}</span>`);
+          }
+        } catch (e) {
+          appendLog(`<span class="ts">[${ts()}]</span> <span class="err">Network error: ${escapeHtml(e.message)}</span>`);
+        }
+        appendLog(`<span class="ts">[${ts()}]</span> ──────────────────────────────`);
+        loadBatches();
+      }
+
+      function submitBatchFromForm() {
+        if (batchSites.length === 0) return;
+        const payload = { sites: batchSites.slice() };
+        clearBatchList();
+        submitBatch(payload);
+      }
+
+      function submitBatchFromJson() {
+        const raw = document.getElementById('bs-json').value.trim();
+        if (!raw) {
+          appendLog(`<span class="ts">[${ts()}]</span> <span class="err">JSON textarea is empty.</span>`);
+          return;
+        }
+        let payload;
+        try {
+          payload = JSON.parse(raw);
+        } catch (e) {
+          appendLog(`<span class="ts">[${ts()}]</span> <span class="err">Invalid JSON: ${escapeHtml(e.message)}</span>`);
+          return;
+        }
+        if (!payload.sites || !Array.isArray(payload.sites) || payload.sites.length === 0) {
+          appendLog(`<span class="ts">[${ts()}]</span> <span class="err">JSON must have a non-empty "sites" array.</span>`);
+          return;
+        }
+        document.getElementById('bs-json').value = '';
+        submitBatch(payload);
+      }
+
+      renderBatchList();
 
       // ── Init ────────────────────────────────────────────────────────────
 
