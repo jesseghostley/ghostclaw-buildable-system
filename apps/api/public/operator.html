@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>GhostClaw Operator Console</title>
+    <style>
+      :root { color-scheme: dark; font-family: Arial, sans-serif; }
+      body { margin: 0; padding: 16px; background: #0f172a; color: #e2e8f0; }
+      h1 { margin: 0 0 16px; }
+      .actions { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; }
+      .btn {
+        padding: 8px 16px; border-radius: 6px; font-size: 13px;
+        font-weight: 600; cursor: pointer; border: 1px solid #334155;
+        background: #1e293b; color: #e2e8f0; font-family: monospace;
+      }
+      .btn:hover { background: #334155; }
+      .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+      .btn--runtime { border-color: #4ade80; color: #4ade80; }
+      .btn--runtime:hover { background: #14532d; }
+      .btn--variation { border-color: #93c5fd; color: #93c5fd; }
+      .btn--variation:hover { background: #1e3a5f; }
+      .btn--export { border-color: #fde68a; color: #fde68a; }
+      .btn--export:hover { background: #78350f; }
+      .log-box {
+        background: #111827; border: 1px solid #334155; border-radius: 8px;
+        padding: 12px; font-family: monospace; font-size: 12px;
+        white-space: pre-wrap; word-break: break-word;
+        min-height: 200px; max-height: 600px; overflow-y: auto;
+      }
+      .log-box .ts { color: #64748b; }
+      .log-box .ok { color: #4ade80; }
+      .log-box .err { color: #fca5a5; }
+      .log-box .info { color: #93c5fd; }
+      .meta { color: #64748b; font-size: 12px; margin-bottom: 8px; }
+      a { color: #93c5fd; }
+    </style>
+  </head>
+  <body>
+    <h1>GhostClaw Operator Console</h1>
+    <p class="meta"><a href="/">Back to Dashboard</a></p>
+
+    <div class="actions">
+      <button class="btn btn--runtime" onclick="runScript('check-runtime')">Run Runtime Check</button>
+      <button class="btn btn--variation" onclick="runScript('test-variation')">Run Variation Test</button>
+      <button class="btn btn--export" onclick="runScript('check-export')">Run Export Check</button>
+    </div>
+
+    <div id="log" class="log-box">Ready. Click a button to run a script.</div>
+
+    <script>
+      const log = document.getElementById('log');
+
+      function ts() {
+        return new Date().toLocaleTimeString();
+      }
+
+      function appendLog(html) {
+        log.innerHTML += html + '\n';
+        log.scrollTop = log.scrollHeight;
+      }
+
+      async function runScript(name) {
+        const buttons = document.querySelectorAll('.btn');
+        buttons.forEach(b => b.disabled = true);
+
+        appendLog(`<span class="ts">[${ts()}]</span> <span class="info">Running ${name}...</span>`);
+
+        try {
+          const res = await fetch('/api/operator/run', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ script: name }),
+          });
+          const data = await res.json();
+
+          if (data.success) {
+            appendLog(`<span class="ts">[${ts()}]</span> <span class="ok">OK</span>`);
+          } else {
+            appendLog(`<span class="ts">[${ts()}]</span> <span class="err">FAILED</span>`);
+          }
+
+          if (data.stdout) {
+            appendLog(escapeHtml(data.stdout));
+          }
+          if (data.stderr) {
+            appendLog(`<span class="err">${escapeHtml(data.stderr)}</span>`);
+          }
+
+          appendLog(`<span class="ts">[${ts()}]</span> ──────────────────────────────`);
+        } catch (e) {
+          appendLog(`<span class="ts">[${ts()}]</span> <span class="err">Network error: ${escapeHtml(e.message)}</span>`);
+        }
+
+        buttons.forEach(b => b.disabled = false);
+      }
+
+      function escapeHtml(str) {
+        return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+      }
+    </script>
+  </body>
+</html>

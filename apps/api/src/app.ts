@@ -11,6 +11,7 @@ import workspacesRouter from './routes/workspaces';
 import blueprintsRouter from './routes/blueprints';
 import approvalsRouter from './routes/approvals';
 import batchesRouter from './routes/batches';
+import operatorRouter from './routes/operator';
 import { registerRuntimeEventLogSubscribers } from '../../../packages/core/src/runtime_event_log_subscriber';
 import { eventBus } from '../../../packages/core/src/event_bus';
 
@@ -45,6 +46,7 @@ app.use('/api/workspaces', workspacesRouter);
 app.use('/api/blueprints', blueprintsRouter);
 app.use('/api/approvals', approvalsRouter);
 app.use('/api/batches', batchesRouter);
+app.use('/api/operator', operatorRouter);
 
 app.use('/sites', express.static(path.join(__dirname, '..', '..', '..', 'output', 'sites')));
 app.use('/batches', express.static(path.join(__dirname, '..', '..', '..', 'output', 'batches')));
