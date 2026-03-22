@@ -69,6 +69,15 @@ export function initializeStores(config?: StorageConfig): StoreBundle {
   const runtimeEventLogModule = r('./runtime_event_log');
   runtimeEventLogModule.runtimeEventLog = _stores.runtimeEventLogStore;
 
+  // Blueprint and workspace stores live in separate packages — replace their
+  // module-level singletons so that route handlers use the factory-created
+  // (potentially SQLite-backed) instances.
+  const blueprintModule = r('../../../packages/blueprints/src/registry');
+  blueprintModule.blueprintRegistry = _stores.blueprintStore;
+
+  const workspaceModule = r('../../../packages/workspaces/src/store');
+  workspaceModule.workspaceStore = _stores.workspaceStore;
+
   // In sqlite mode, hydrate the in-memory runtimeStore arrays from durable
   // storage so that site_generator and other consumers see data persisted
   // across restarts.  Memory mode starts fresh by definition — no hydration.

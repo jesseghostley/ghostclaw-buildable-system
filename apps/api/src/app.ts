@@ -28,7 +28,11 @@ app.use(express.json());
 registerRuntimeEventLogSubscribers(eventBus);
 
 app.get('/api/health', (_req, res) => {
-  res.json({ ok: true, service: 'ghostclaw-api' });
+  res.json({
+    ok: true,
+    service: 'ghostclaw-api',
+    storageMode: process.env.GHOSTCLAW_STORAGE_MODE || 'memory',
+  });
 });
 
 app.use('/api/signals', signalsRouter);
