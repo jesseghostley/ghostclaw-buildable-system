@@ -21,7 +21,7 @@ describe('GET /api/health', () => {
   it('returns ok', async () => {
     const res = await request(app).get('/api/health');
     expect(res.status).toBe(200);
-    expect(res.body).toEqual({ ok: true, service: 'ghostclaw-api' });
+    expect(res.body).toEqual({ ok: true, service: 'ghostclaw-api', storageMode: 'memory' });
   });
 });
 
@@ -91,10 +91,10 @@ describe('GET /api/runtime/agents', () => {
 });
 
 describe('GET /api/runtime/planner-strategies', () => {
-  it('returns all four seeded strategies', async () => {
+  it('returns all seeded strategies', async () => {
     const res = await request(app).get('/api/runtime/planner-strategies');
     expect(res.status).toBe(200);
-    expect(res.body.strategyCount).toBe(4);
+    expect(res.body.strategyCount).toBe(5);
   });
 });
 

@@ -1,3 +1,5 @@
 node_modules/
 dist/
 *.js.map
+output/sites/*/
+output/batches/*/

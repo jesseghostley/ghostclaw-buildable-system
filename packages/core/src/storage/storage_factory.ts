@@ -10,6 +10,8 @@ import type {
   IAuditLogStore,
   IWorkspacePolicyStore,
   IRuntimeEventLogStore,
+  IBlueprintStore,
+  IWorkspaceStore,
 } from './interfaces';
 
 import Database from 'better-sqlite3';
@@ -28,6 +30,18 @@ import { SqliteJobStore } from './sqlite/SqliteJobStore';
 import { SqliteSkillInvocationStore } from './sqlite/SqliteSkillInvocationStore';
 import { SqliteArtifactStore } from './sqlite/SqliteArtifactStore';
 import { SqliteAuditLogStore } from './sqlite/SqliteAuditLogStore';
+import { SqliteSignalStore } from './sqlite/SqliteSignalStore';
+import { SqlitePlanStore } from './sqlite/SqlitePlanStore';
+import { SqliteAssignmentStore } from './sqlite/SqliteAssignmentStore';
+import { SqlitePublishEventStore } from './sqlite/SqlitePublishEventStore';
+import { SqliteWorkspacePolicyStore } from './sqlite/SqliteWorkspacePolicyStore';
+import { SqliteRuntimeEventLogStore } from './sqlite/SqliteRuntimeEventLogStore';
+import { SqliteBlueprintStore } from './sqlite/SqliteBlueprintStore';
+import { SqliteWorkspaceStore } from './sqlite/SqliteWorkspaceStore';
+
+// In-memory implementations for blueprint and workspace (used in memory mode)
+import { blueprintRegistry as inMemoryBlueprintRegistry } from '../../../../packages/blueprints/src/registry';
+import { workspaceStore as inMemoryWorkspaceStore } from '../../../../packages/workspaces/src/store';
 
 export type StoreBundle = {
   signalStore: ISignalStore;
@@ -40,6 +54,10 @@ export type StoreBundle = {
   auditLogStore: IAuditLogStore;
   workspacePolicyStore: IWorkspacePolicyStore;
   runtimeEventLogStore: IRuntimeEventLogStore;
+  blueprintStore: IBlueprintStore;
+  workspaceStore: IWorkspaceStore;
+  /** Raw database handle — only present in sqlite mode. */
+  db: Database.Database | null;
 };
 
 export function createStores(config: StorageConfig): StoreBundle {
@@ -48,20 +66,22 @@ export function createStores(config: StorageConfig): StoreBundle {
       throw new Error('sqlitePath is required when storage mode is sqlite');
     }
 
-    // Dynamic require so that the module is only loaded in sqlite mode.
     const db = new Database(config.sqlitePath);
 
     return {
-      signalStore: new InMemorySignalStore(),
-      planStore: new InMemoryPlanStore(),
+      signalStore: new SqliteSignalStore(db),
+      planStore: new SqlitePlanStore(db),
       jobStore: new SqliteJobStore(db),
-      assignmentStore: new InMemoryAssignmentStore(),
+      assignmentStore: new SqliteAssignmentStore(db),
       skillInvocationStore: new SqliteSkillInvocationStore(db),
       artifactStore: new SqliteArtifactStore(db),
-      publishEventStore: new InMemoryPublishEventStore(),
+      publishEventStore: new SqlitePublishEventStore(db),
       auditLogStore: new SqliteAuditLogStore(db),
-      workspacePolicyStore: new InMemoryWorkspacePolicyStore(),
-      runtimeEventLogStore: new InMemoryRuntimeEventLogStore(),
+      workspacePolicyStore: new SqliteWorkspacePolicyStore(db),
+      runtimeEventLogStore: new SqliteRuntimeEventLogStore(db),
+      blueprintStore: new SqliteBlueprintStore(db),
+      workspaceStore: new SqliteWorkspaceStore(db),
+      db,
     };
   }
 
@@ -77,5 +97,8 @@ export function createStores(config: StorageConfig): StoreBundle {
     auditLogStore: new InMemoryAuditLog(),
     workspacePolicyStore: new InMemoryWorkspacePolicyStore(),
     runtimeEventLogStore: new InMemoryRuntimeEventLogStore(),
+    blueprintStore: inMemoryBlueprintRegistry,
+    workspaceStore: inMemoryWorkspaceStore,
+    db: null,
   };
 }

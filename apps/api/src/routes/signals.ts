@@ -5,10 +5,10 @@ import { skillInvocationStore } from '../../../../packages/core/src/skill_invoca
 const router = Router();
 
 router.post('/', (req, res) => {
-  const name = req.body?.name;
+  const name = req.body?.name || req.body?.type;
 
   if (typeof name !== 'string' || !name.trim()) {
-    res.status(400).json({ error: 'Signal "name" is required.' });
+    res.status(400).json({ error: 'Signal "name" (or "type") is required.' });
     return;
   }
 

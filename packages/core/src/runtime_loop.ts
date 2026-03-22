@@ -6,6 +6,9 @@ import { jobQueue, type QueueJob } from './job_queue';
 import { skillInvocationStore, type SkillInvocation } from './skill_invocation';
 import { assignmentStore, type Assignment } from './assignment';
 import { eventBus } from './event_bus';
+import { getStores } from './store_provider';
+import { uniqueId } from './unique_id';
+import type { StoreBundle } from './storage/storage_factory';
 
 /**
  * =============================================================================
@@ -105,15 +108,48 @@ export const runtimeStore = {
   assignments: [] as Assignment[],
 };
 
-function nextId(prefix: string, index: number): string {
-  return `${prefix}_${index + 1}`;
+/**
+ * Populate runtimeStore arrays from the backing stores (SQLite).
+ * Called once during startup so that site_generator and other consumers that
+ * read runtimeStore see data persisted across restarts.
+ *
+ * Clears existing arrays first to guarantee idempotency.
+ */
+export function hydrateRuntimeStore(stores: StoreBundle): void {
+  // Clear first so repeated calls don't duplicate entries.
+  runtimeStore.signals.length = 0;
+  runtimeStore.plans.length = 0;
+  runtimeStore.jobs.length = 0;
+  runtimeStore.artifacts.length = 0;
+  runtimeStore.skillInvocations.length = 0;
+  runtimeStore.assignments.length = 0;
+
+  const signals = stores.signalStore.listAll();
+  const plans = stores.planStore.listAll();
+  const jobs = stores.jobStore.list();
+  const artifacts = stores.artifactStore.listAll();
+  const invocations = stores.skillInvocationStore.listAll();
+  const assignments = stores.assignmentStore.listAll();
+
+  runtimeStore.signals.push(...signals);
+  runtimeStore.plans.push(...plans);
+  runtimeStore.jobs.push(...jobs);
+  runtimeStore.artifacts.push(...artifacts);
+  runtimeStore.skillInvocations.push(...invocations);
+  runtimeStore.assignments.push(...assignments);
+
+  console.log(
+    `[GhostClaw] Hydrated runtimeStore: ${signals.length} signals, ${plans.length} plans, ` +
+      `${jobs.length} jobs, ${artifacts.length} artifacts, ${invocations.length} invocations, ` +
+      `${assignments.length} assignments.`,
+  );
 }
 
 function createPlan(signal: Signal): Plan {
   const decision = routeSignal(signal);
   const strategy = getPlannerStrategy(decision.strategyId);
   return {
-    id: nextId('plan', runtimeStore.plans.length),
+    id: uniqueId('plan'),
     signalId: signal.id,
     action: decision.plannerAction,
     strategyId: decision.strategyId,
@@ -131,10 +167,11 @@ function createJobs(plan: Plan, signal: Signal): Job[] {
     optimize_existing_page: ['refresh_page_sections'],
     create_new_skill: ['scaffold_skill_package'],
     handle_runtime_error: ['run_diagnostics'],
+    build_contractor_website: ['design_site_structure', 'generate_page_content', 'review_and_approve'],
   };
 
-  return jobTypeByAction[plan.action].map((jobType, index) => ({
-    id: nextId('job', runtimeStore.jobs.length + index),
+  return jobTypeByAction[plan.action].map((jobType, _index) => ({
+    id: uniqueId('job'),
     planId: plan.id,
     jobType,
     assignedAgent: null,
@@ -158,17 +195,25 @@ export function processSignal(input: Pick<Signal, 'name' | 'payload'>): {
   skillInvocations: SkillInvocation[];
   assignments: Assignment[];
 } {
+  // When initializeStores() has been called (production), persist signals,
+  // plans, and artifacts to the backing store (SQLite or memory-via-factory).
+  // When null (tests that don't call initializeStores), the runtimeStore
+  // arrays remain the only storage — preserving existing test behaviour.
+  const stores = getStores();
+
   const signal: Signal = {
-    id: nextId('signal', runtimeStore.signals.length),
+    id: uniqueId('signal'),
     name: input.name,
     payload: input.payload,
     createdAt: Date.now(),
   };
   runtimeStore.signals.push(signal);
+  stores?.signalStore.create(signal);
   eventBus.emit('signal.received', signal);
 
   const plan = createPlan(signal);
   runtimeStore.plans.push(plan);
+  stores?.planStore.create(plan);
   eventBus.emit('plan.created', plan);
 
   const jobs = createJobs(plan, signal);
@@ -182,6 +227,7 @@ export function processSignal(input: Pick<Signal, 'name' | 'payload'>): {
   runtimeStore.artifacts.push(...artifacts);
 
   artifacts.forEach((artifact) => {
+    stores?.artifactStore.create(artifact);
     eventBus.emit('artifact.created', artifact);
   });
 
