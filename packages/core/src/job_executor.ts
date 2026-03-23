@@ -111,6 +111,46 @@ const JOB_HANDLERS: Record<string, JobHandler> = {
     result: `Diagnostics run for ${String(inputPayload.signalName ?? 'unknown_signal')}`,
   }),
   build_site_page: (inputPayload) => {
+    // Trade-aware FAQ content — deterministic, with generic fallback
+    const TRADE_FAQS: Record<string, Array<{ q: string; a: string }>> = {
+      hvac: [
+        { q: 'How much does HVAC service cost in {location}?', a: 'Costs vary by system type and scope. We provide free estimates for all residential and commercial HVAC work in {location}.' },
+        { q: 'Do you offer emergency HVAC repair?', a: 'Yes. We provide 24/7 emergency HVAC repair services across {location} and surrounding areas.' },
+        { q: 'How often should I service my HVAC system?', a: 'We recommend professional HVAC maintenance at least twice a year — once before summer and once before winter.' },
+        { q: 'What areas do you serve?', a: '{name} serves {location} and the surrounding metro area for all heating, cooling, and ventilation needs.' },
+      ],
+      plumbing: [
+        { q: 'How much does a plumber cost in {location}?', a: 'Rates depend on the job scope. We offer free quotes for all plumbing services in {location} with no hidden fees.' },
+        { q: 'Do you offer emergency plumbing?', a: 'Yes. We provide 24/7 emergency plumbing response across {location} and nearby communities.' },
+        { q: 'How do I know if I have a hidden leak?', a: 'Signs include unexplained water bills, damp spots, and mold. We offer professional leak detection in {location}.' },
+        { q: 'What areas do you serve?', a: '{name} serves {location} and surrounding areas for residential and commercial plumbing.' },
+      ],
+      electric: [
+        { q: 'How much does an electrician cost in {location}?', a: 'Pricing depends on the project. We provide transparent quotes for all electrical work in {location}.' },
+        { q: 'Do you handle emergency electrical work?', a: 'Yes. We offer 24/7 emergency electrical services across the {location} area.' },
+        { q: 'Do I need a permit for electrical work?', a: 'Many electrical projects require permits. {name} handles all permitting for jobs in {location}.' },
+        { q: 'What areas do you serve?', a: '{name} provides licensed electrical services throughout {location} and the surrounding region.' },
+      ],
+      roofing: [
+        { q: 'How much does a new roof cost in {location}?', a: 'Roof costs vary by material and size. We provide free inspections and estimates in {location}.' },
+        { q: 'Do you offer emergency roof repair?', a: 'Yes. We respond to storm damage and emergency roof leaks 24/7 in {location}.' },
+        { q: 'How long does a roof last?', a: 'Most roofs last 20\u201330 years depending on material. {name} offers inspections to assess remaining life.' },
+        { q: 'What areas do you serve?', a: '{name} provides roofing services across {location} and the surrounding metro area.' },
+      ],
+      landscaping: [
+        { q: 'How much does landscaping cost in {location}?', a: 'Pricing depends on scope and property size. We offer free consultations for all landscaping projects in {location}.' },
+        { q: 'Do you offer ongoing lawn maintenance?', a: 'Yes. {name} provides weekly and bi-weekly lawn care and landscape maintenance in {location}.' },
+        { q: 'What is the best time to landscape in {location}?', a: 'Spring and fall are ideal for most planting. We tailor our recommendations to the {location} climate.' },
+        { q: 'What areas do you serve?', a: '{name} serves {location} and surrounding communities for full-service landscaping.' },
+      ],
+    };
+
+    const GENERIC_FAQS: Array<{ q: string; a: string }> = [
+      { q: 'How much do your services cost in {location}?', a: 'Costs vary by project. Contact us for a free estimate on any {trade} work in {location}.' },
+      { q: 'Do you offer emergency services?', a: 'Yes. {name} provides 24/7 emergency {trade} services across {location} and surrounding areas.' },
+      { q: 'Are you licensed and insured?', a: '{name} is fully licensed and insured for all {trade} work in {location}.' },
+      { q: 'What areas do you serve?', a: '{name} serves {location} and the surrounding metro area for professional {trade} services.' },
+    ];
     const payload = (inputPayload.signalPayload ?? {}) as Record<string, unknown>;
     const sites = (Array.isArray(payload.sites) ? payload.sites : [payload]) as Array<
       Record<string, string>
@@ -186,11 +226,27 @@ const JOB_HANDLERS: Record<string, JobHandler> = {
         `<p>${name} delivers reliable, high-quality ${trade} solutions for residential and commercial clients.</p>`,
         `<p><a href="services.html" class="cta-button">View our services &rarr;</a></p>`,
         `<p><a href="contact.html" class="cta-button-secondary">Get in touch &rarr;</a></p>`,
+        '<h2>What Our Clients Say</h2>',
+        '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px;margin:24px 0">',
+        `<div class="card"><p>&ldquo;Excellent ${trade} work. Professional and on time.&rdquo;</p><p style="margin:8px 0 0;font-size:14px;font-style:italic">&mdash; satisfied client in ${location}</p></div>`,
+        `<div class="card"><p>&ldquo;Fair pricing and quality results. Highly recommend ${name}.&rdquo;</p><p style="margin:8px 0 0;font-size:14px;font-style:italic">&mdash; satisfied client in ${location}</p></div>`,
+        `<div class="card"><p>&ldquo;Responsive, reliable, and skilled. Will use again.&rdquo;</p><p style="margin:8px 0 0;font-size:14px;font-style:italic">&mdash; satisfied client in ${location}</p></div>`,
+        '</div>',
+        `<h2>Serving ${location}</h2>`,
+        `<p>${name} proudly provides professional ${trade} services across the ${location} metro area. Whether you need residential or commercial ${trade} solutions, our experienced team is ready to help.</p>`,
       ].join('\n');
 
       const servicesTitle = `Services \u2013 ${name}`;
       const servicesDesc = `Professional ${trade} services offered by ${name} in ${location}.`;
       const capTrade = trade.charAt(0).toUpperCase() + trade.slice(1);
+
+      // Resolve trade-specific FAQs with generic fallback, then interpolate
+      const rawFaqs = TRADE_FAQS[trade.toLowerCase()] ?? GENERIC_FAQS;
+      const faqs = rawFaqs.map((f) => ({
+        q: f.q.replace(/\{name\}/g, name).replace(/\{location\}/g, location).replace(/\{trade\}/g, trade),
+        a: f.a.replace(/\{name\}/g, name).replace(/\{location\}/g, location).replace(/\{trade\}/g, trade),
+      }));
+
       const servicesBody = [
         `<h1>${capTrade} Services</h1>`,
         `<p>${name} offers a full range of ${trade} services in the ${location} area:</p>`,
@@ -201,6 +257,10 @@ const JOB_HANDLERS: Record<string, JobHandler> = {
         `<div class="card"><strong>Installation &amp; Maintenance</strong><p style="margin:8px 0 0;font-size:14px">${capTrade} installation and ongoing maintenance.</p></div>`,
         '</div>',
         `<p><a href="contact.html" class="cta-button">Request a quote &rarr;</a></p>`,
+        '<h2>Frequently Asked Questions</h2>',
+        '<div style="display:grid;gap:16px;margin:24px 0">',
+        ...faqs.map((f) => `<div class="card"><strong>${f.q}</strong><p style="margin:8px 0 0;font-size:14px">${f.a}</p></div>`),
+        '</div>',
       ].join('\n');
 
       const contactTitle = `Contact \u2013 ${name}`;
@@ -211,6 +271,8 @@ const JOB_HANDLERS: Record<string, JobHandler> = {
         phone ? `<p><strong>Phone:</strong> ${phone}</p>` : '',
         email ? `<p><strong>Email:</strong> <a href="mailto:${email}" class="cta-button-secondary">${email}</a></p>` : '',
         location ? `<p><strong>Location:</strong> ${location}</p>` : '',
+        '<h2>Service Area</h2>',
+        `<p>${name} proudly serves ${location} and surrounding communities for all ${trade} needs.</p>`,
         `<form action="mailto:${email || 'contact@example.com'}" method="POST" enctype="text/plain" style="margin-top:24px">`,
         '<div class="form-group"><label for="name">Name</label><input type="text" id="name" name="name" required/></div>',
         '<div class="form-group"><label for="email">Email</label><input type="email" id="email" name="email" required/></div>',

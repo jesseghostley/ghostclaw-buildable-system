@@ -136,6 +136,20 @@ describe('processSignal', () => {
     // Service cards present on services page
     expect(site.files[`${s}/services.html`]).toContain('class="card"');
 
+    // FAQ section on services page (trade-specific for hvac)
+    expect(site.files[`${s}/services.html`]).toContain('Frequently Asked Questions');
+    expect(site.files[`${s}/services.html`]).toContain('How much does HVAC service cost in Denver, CO?');
+
+    // Testimonials on index page
+    expect(site.files[`${s}/index.html`]).toContain('What Our Clients Say');
+    expect(site.files[`${s}/index.html`]).toContain('satisfied client in Denver, CO');
+
+    // Service area on index page
+    expect(site.files[`${s}/index.html`]).toContain('Serving Denver, CO');
+
+    // Service area on contact page
+    expect(site.files[`${s}/contact.html`]).toContain('Service Area');
+
     // Contact form present on contact page
     expect(site.files[`${s}/contact.html`]).toContain('<form');
     expect(site.files[`${s}/contact.html`]).toContain('class="form-group"');
@@ -566,6 +580,135 @@ describe('Form and card token integration', () => {
 
     expect(index).toContain('border:2px solid #dc2626');
     expect(index).not.toContain('border:1px solid 2px solid');
+  });
+});
+
+describe('Local SEO and conversion sections', () => {
+  it('generates trade-specific FAQ for known trades', () => {
+    const result = processSignal({
+      name: 'contractor_site_requested',
+      payload: {
+        sites: [
+          { businessName: 'Ace Plumbing', trade: 'plumbing', location: 'Austin, TX' },
+        ],
+      },
+    });
+
+    const content = JSON.parse(result.artifacts[0].content);
+    const services = content.sites[0].files['ace-plumbing/services.html'];
+
+    expect(services).toContain('Frequently Asked Questions');
+    // Plumbing-specific FAQ
+    expect(services).toContain('How much does a plumber cost in Austin, TX?');
+    expect(services).toContain('hidden leak');
+    // Interpolated business name
+    expect(services).toContain('Ace Plumbing serves Austin, TX');
+  });
+
+  it('uses generic FAQ fallback for unknown trades', () => {
+    const result = processSignal({
+      name: 'contractor_site_requested',
+      payload: {
+        sites: [
+          { businessName: 'Niche Co', trade: 'welding', location: 'Portland, OR' },
+        ],
+      },
+    });
+
+    const content = JSON.parse(result.artifacts[0].content);
+    const services = content.sites[0].files['niche-co/services.html'];
+
+    expect(services).toContain('Frequently Asked Questions');
+    // Generic fallback with trade interpolation
+    expect(services).toContain('How much do your services cost in Portland, OR?');
+    expect(services).toContain('emergency welding services');
+    expect(services).toContain('licensed and insured');
+    expect(services).toContain('Niche Co serves Portland, OR');
+  });
+
+  it('generates testimonials section on index page', () => {
+    const result = processSignal({
+      name: 'contractor_site_requested',
+      payload: {
+        sites: [
+          { businessName: 'Roof Pro', trade: 'roofing', location: 'Denver, CO' },
+        ],
+      },
+    });
+
+    const content = JSON.parse(result.artifacts[0].content);
+    const index = content.sites[0].files['roof-pro/index.html'];
+
+    // Testimonials heading and cards
+    expect(index).toContain('<h2>What Our Clients Say</h2>');
+    expect(index).toContain('Excellent roofing work');
+    expect(index).toContain('Highly recommend Roof Pro');
+    expect(index).toContain('satisfied client in Denver, CO');
+
+    // Service area section
+    expect(index).toContain('<h2>Serving Denver, CO</h2>');
+    expect(index).toContain('Roof Pro proudly provides');
+  });
+
+  it('generates service area section on contact page', () => {
+    const result = processSignal({
+      name: 'contractor_site_requested',
+      payload: {
+        sites: [
+          { businessName: 'Spark Electric', trade: 'electric', location: 'Seattle, WA' },
+        ],
+      },
+    });
+
+    const content = JSON.parse(result.artifacts[0].content);
+    const contact = content.sites[0].files['spark-electric/contact.html'];
+
+    expect(contact).toContain('<h2>Service Area</h2>');
+    expect(contact).toContain('Spark Electric proudly serves Seattle, WA');
+  });
+
+  it('produces h2 heading hierarchy across all pages', () => {
+    const result = processSignal({
+      name: 'contractor_site_requested',
+      payload: {
+        sites: [
+          { businessName: 'H2 Check', trade: 'hvac', location: 'LA' },
+        ],
+      },
+    });
+
+    const content = JSON.parse(result.artifacts[0].content);
+    const index = content.sites[0].files['h2-check/index.html'];
+    const services = content.sites[0].files['h2-check/services.html'];
+    const contact = content.sites[0].files['h2-check/contact.html'];
+
+    // Index: testimonials + service area = 2 h2s
+    expect((index.match(/<h2/g) || []).length).toBe(2);
+    // Services: FAQ = 1 h2
+    expect((services.match(/<h2/g) || []).length).toBe(1);
+    // Contact: service area = 1 h2
+    expect((contact.match(/<h2/g) || []).length).toBe(1);
+  });
+
+  it('uses trade-specific FAQ for each known trade', () => {
+    const knownTrades = ['hvac', 'plumbing', 'electric', 'roofing', 'landscaping'];
+    for (const trade of knownTrades) {
+      const result = processSignal({
+        name: 'contractor_site_requested',
+        payload: {
+          sites: [
+            { businessName: 'Test Biz', trade, location: 'City' },
+          ],
+        },
+      });
+
+      const content = JSON.parse(result.artifacts[0].content);
+      const services = content.sites[0].files['test-biz/services.html'];
+
+      expect(services).toContain('Frequently Asked Questions');
+      // Each known trade should NOT contain the generic fallback phrasing
+      expect(services).not.toContain('How much do your services cost');
+    }
   });
 });
 
