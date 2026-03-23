@@ -62,7 +62,7 @@ describe('processSignal', () => {
       name: 'contractor_site_requested',
       payload: {
         sites: [
-          { businessName: 'Summit HVAC', trade: 'hvac', location: 'Denver, CO', phone: '303-555-1234' },
+          { businessName: 'Summit HVAC', trade: 'hvac', location: 'Denver, CO', phone: '303-555-1234', email: 'info@summithvac.com' },
         ],
       },
     });
@@ -76,10 +76,36 @@ describe('processSignal', () => {
     const content = JSON.parse(result.artifacts[0].content);
     expect(content.handoffReady).toBe(true);
     expect(content.siteCount).toBe(1);
-    expect(content.pages[0].slug).toBe('summit-hvac');
-    expect(content.pages[0].html).toContain('Summit HVAC');
-    expect(content.pages[0].schema['@type']).toBe('LocalBusiness');
-    expect(content.pages[0].schema.telephone).toBe('303-555-1234');
+
+    const site = content.sites[0];
+    expect(site.slug).toBe('summit-hvac');
+    expect(site.businessName).toBe('Summit HVAC');
+    expect(site.schema['@type']).toBe('LocalBusiness');
+    expect(site.schema.telephone).toBe('303-555-1234');
+
+    // 3 pages as keyed files
+    expect(Object.keys(site.files)).toEqual(['index.html', 'services.html', 'contact.html']);
+
+    // Shared nav present in all pages
+    expect(site.files['index.html']).toContain('<nav');
+    expect(site.files['services.html']).toContain('<nav');
+    expect(site.files['contact.html']).toContain('<nav');
+
+    // Shared footer present in all pages
+    expect(site.files['index.html']).toContain('<footer');
+    expect(site.files['services.html']).toContain('<footer');
+    expect(site.files['contact.html']).toContain('<footer');
+
+    // Page-specific content
+    expect(site.files['index.html']).toContain('Summit HVAC');
+    expect(site.files['services.html']).toContain('Hvac Services');
+    expect(site.files['contact.html']).toContain('303-555-1234');
+    expect(site.files['contact.html']).toContain('info@summithvac.com');
+
+    // Per-page meta
+    expect(site.meta.index.title).toContain('Summit HVAC');
+    expect(site.meta.services.title).toContain('Services');
+    expect(site.meta.contact.title).toContain('Contact');
   });
 
   it('throws for an unknown signal name', () => {

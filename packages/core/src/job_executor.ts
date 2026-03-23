@@ -25,19 +25,89 @@ const JOB_HANDLERS: Record<string, JobHandler> = {
     const sites = (Array.isArray(payload.sites) ? payload.sites : [payload]) as Array<
       Record<string, string>
     >;
-    const pages = sites.map((site) => {
+
+    const builtSites = sites.map((site) => {
       const name = site.businessName || 'Contractor';
       const trade = site.trade || 'General';
       const location = site.location || '';
       const phone = site.phone || '';
       const email = site.email || '';
+      const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, '-');
+
+      const nav = [
+        '<nav style="background:#1e293b;padding:12px 24px;display:flex;gap:24px">',
+        `<a href="index.html" style="color:#93c5fd;text-decoration:none;font-weight:bold">${name}</a>`,
+        '<a href="services.html" style="color:#cbd5e1;text-decoration:none">Services</a>',
+        '<a href="contact.html" style="color:#cbd5e1;text-decoration:none">Contact</a>',
+        '</nav>',
+      ].join('\n');
+
+      const footer = [
+        '<footer style="background:#1e293b;padding:24px;text-align:center;color:#94a3b8;margin-top:48px">',
+        `<p>&copy; ${new Date().getFullYear()} ${name}. ${trade} services in ${location}.</p>`,
+        '</footer>',
+      ].join('\n');
+
+      function page(title: string, desc: string, body: string): string {
+        return [
+          '<!doctype html>',
+          '<html lang="en">',
+          '<head>',
+          '<meta charset="UTF-8"/>',
+          '<meta name="viewport" content="width=device-width, initial-scale=1.0"/>',
+          `<title>${title}</title>`,
+          `<meta name="description" content="${desc}"/>`,
+          '<style>body{font-family:Arial,sans-serif;margin:0;color:#e2e8f0;background:#0f172a}',
+          'main{max-width:800px;margin:0 auto;padding:24px}h1{margin:0 0 16px}p{line-height:1.6}</style>',
+          '</head>',
+          '<body>',
+          nav,
+          '<main>',
+          body,
+          '</main>',
+          footer,
+          '</body>',
+          '</html>',
+        ].join('\n');
+      }
+
+      const indexTitle = `${name} \u2013 ${trade} in ${location}`;
+      const indexDesc = `${name} provides professional ${trade} services in ${location}.`;
+      const indexBody = [
+        `<h1>${name}</h1>`,
+        `<p>Professional ${trade} services in ${location}.</p>`,
+        `<p>${name} delivers reliable, high-quality ${trade} solutions for residential and commercial clients.</p>`,
+        '<p><a href="services.html" style="color:#60a5fa">View our services &rarr;</a></p>',
+        '<p><a href="contact.html" style="color:#60a5fa">Get in touch &rarr;</a></p>',
+      ].join('\n');
+
+      const servicesTitle = `Services \u2013 ${name}`;
+      const servicesDesc = `Professional ${trade} services offered by ${name} in ${location}.`;
+      const servicesBody = [
+        `<h1>${trade.charAt(0).toUpperCase() + trade.slice(1)} Services</h1>`,
+        `<p>${name} offers a full range of ${trade} services in the ${location} area:</p>`,
+        '<ul>',
+        `<li>Residential ${trade}</li>`,
+        `<li>Commercial ${trade}</li>`,
+        `<li>Emergency ${trade} repair</li>`,
+        `<li>${trade.charAt(0).toUpperCase() + trade.slice(1)} installation &amp; maintenance</li>`,
+        '</ul>',
+        '<p><a href="contact.html" style="color:#60a5fa">Request a quote &rarr;</a></p>',
+      ].join('\n');
+
+      const contactTitle = `Contact \u2013 ${name}`;
+      const contactDesc = `Contact ${name} for ${trade} services in ${location}.`;
+      const contactBody = [
+        '<h1>Contact Us</h1>',
+        `<p>Reach out to ${name} for ${trade} services in ${location}.</p>`,
+        phone ? `<p><strong>Phone:</strong> ${phone}</p>` : '',
+        email ? `<p><strong>Email:</strong> <a href="mailto:${email}" style="color:#60a5fa">${email}</a></p>` : '',
+        location ? `<p><strong>Location:</strong> ${location}</p>` : '',
+      ].filter(Boolean).join('\n');
+
       return {
-        slug: name.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
-        title: `${name} – ${trade} in ${location}`,
-        meta: {
-          description: `${name} provides professional ${trade} services in ${location}.`,
-          keywords: [trade, location, name].filter(Boolean),
-        },
+        slug,
+        businessName: name,
         schema: {
           '@context': 'https://schema.org',
           '@type': 'LocalBusiness',
@@ -47,24 +117,20 @@ const JOB_HANDLERS: Record<string, JobHandler> = {
           ...(phone && { telephone: phone }),
           ...(email && { email }),
         },
-        html: [
-          '<!doctype html>',
-          '<html lang="en"><head>',
-          '<meta charset="UTF-8"/>',
-          `<title>${name} \u2013 ${trade} in ${location}</title>`,
-          `<meta name="description" content="${name} provides professional ${trade} services in ${location}."/>`,
-          '</head><body>',
-          `<h1>${name}</h1>`,
-          `<p>${trade} services in ${location}</p>`,
-          phone ? `<p>Phone: ${phone}</p>` : '',
-          email ? `<p>Email: ${email}</p>` : '',
-          '</body></html>',
-        ]
-          .filter(Boolean)
-          .join('\n'),
+        files: {
+          'index.html': page(indexTitle, indexDesc, indexBody),
+          'services.html': page(servicesTitle, servicesDesc, servicesBody),
+          'contact.html': page(contactTitle, contactDesc, contactBody),
+        },
+        meta: {
+          index: { title: indexTitle, description: indexDesc },
+          services: { title: servicesTitle, description: servicesDesc },
+          contact: { title: contactTitle, description: contactDesc },
+        },
       };
     });
-    return { siteCount: pages.length, pages, handoffReady: true };
+
+    return { siteCount: builtSites.length, sites: builtSites, handoffReady: true };
   },
 };
 
