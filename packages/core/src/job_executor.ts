@@ -70,7 +70,10 @@ const JOB_HANDLERS: Record<string, JobHandler> = {
           `.cta-button{display:inline-block;background:${t.buttons.background};color:${t.buttons.text};padding:${t.buttons.padding};border-radius:${t.buttons['border-radius']};font-weight:${t.buttons['font-weight']};text-decoration:none}`,
           `.cta-button:hover{background:${t.buttons['hover-background']}}`,
           `.cta-button-secondary{display:inline-block;background:${t.buttons['secondary-background']};color:${t.buttons['secondary-text']};padding:${t.buttons.padding};border-radius:${t.buttons['border-radius']};font-weight:${t.buttons['font-weight']};text-decoration:none;border:1px solid ${t.buttons['secondary-border']}}`,
-          `.cta-button-secondary:hover{background:${t.buttons['secondary-background']};opacity:0.8}</style>`,
+          `.cta-button-secondary:hover{background:${t.buttons['secondary-background']};opacity:0.8}`,
+          `.card{background:${t.cards.background};border:1px solid ${t.cards.border};border-radius:${t.cards['border-radius']};padding:${t.cards.padding}}`,
+          `.form-group{margin-bottom:12px}.form-group label{display:block;margin-bottom:4px;color:${t.forms['label-color']};font-size:14px}`,
+          `.form-group input,.form-group textarea{width:100%;box-sizing:border-box;background:${t.forms['input-background']};border:1px solid ${t.forms['input-border']};color:${t.forms['input-text']};border-radius:${t.forms['input-radius']};padding:${t.forms['input-padding']};font-family:inherit}</style>`,
           '</head>',
           '<body>',
           nav,
@@ -98,15 +101,16 @@ const JOB_HANDLERS: Record<string, JobHandler> = {
 
       const servicesTitle = `Services \u2013 ${name}`;
       const servicesDesc = `Professional ${trade} services offered by ${name} in ${location}.`;
+      const capTrade = trade.charAt(0).toUpperCase() + trade.slice(1);
       const servicesBody = [
-        `<h1>${trade.charAt(0).toUpperCase() + trade.slice(1)} Services</h1>`,
+        `<h1>${capTrade} Services</h1>`,
         `<p>${name} offers a full range of ${trade} services in the ${location} area:</p>`,
-        '<ul>',
-        `<li>Residential ${trade}</li>`,
-        `<li>Commercial ${trade}</li>`,
-        `<li>Emergency ${trade} repair</li>`,
-        `<li>${trade.charAt(0).toUpperCase() + trade.slice(1)} installation &amp; maintenance</li>`,
-        '</ul>',
+        '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px;margin:24px 0">',
+        `<div class="card"><strong>Residential ${capTrade}</strong><p style="margin:8px 0 0;font-size:14px">Full-service residential ${trade} for homes of all sizes.</p></div>`,
+        `<div class="card"><strong>Commercial ${capTrade}</strong><p style="margin:8px 0 0;font-size:14px">Professional ${trade} solutions for businesses.</p></div>`,
+        `<div class="card"><strong>Emergency Repair</strong><p style="margin:8px 0 0;font-size:14px">24/7 emergency ${trade} repair services.</p></div>`,
+        `<div class="card"><strong>Installation &amp; Maintenance</strong><p style="margin:8px 0 0;font-size:14px">${capTrade} installation and ongoing maintenance.</p></div>`,
+        '</div>',
         `<p><a href="contact.html" class="cta-button">Request a quote &rarr;</a></p>`,
       ].join('\n');
 
@@ -118,6 +122,12 @@ const JOB_HANDLERS: Record<string, JobHandler> = {
         phone ? `<p><strong>Phone:</strong> ${phone}</p>` : '',
         email ? `<p><strong>Email:</strong> <a href="mailto:${email}" class="cta-button-secondary">${email}</a></p>` : '',
         location ? `<p><strong>Location:</strong> ${location}</p>` : '',
+        `<form action="mailto:${email || 'contact@example.com'}" method="POST" enctype="text/plain" style="margin-top:24px">`,
+        '<div class="form-group"><label for="name">Name</label><input type="text" id="name" name="name" required/></div>',
+        '<div class="form-group"><label for="email">Email</label><input type="email" id="email" name="email" required/></div>',
+        '<div class="form-group"><label for="message">Message</label><textarea id="message" name="message" rows="4" required></textarea></div>',
+        '<button type="submit" class="cta-button" style="border:none;cursor:pointer">Send Message</button>',
+        '</form>',
       ].filter(Boolean).join('\n');
 
       return {

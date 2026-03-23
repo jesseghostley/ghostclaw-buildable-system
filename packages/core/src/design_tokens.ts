@@ -34,6 +34,20 @@ export interface DesignTokens {
     'secondary-text': string;
     'secondary-border': string;
   };
+  forms: {
+    'input-background': string;
+    'input-border': string;
+    'input-text': string;
+    'input-radius': string;
+    'input-padding': string;
+    'label-color': string;
+  };
+  cards: {
+    background: string;
+    border: string;
+    'border-radius': string;
+    padding: string;
+  };
 }
 
 export const DEFAULT_TOKENS: DesignTokens = {
@@ -68,6 +82,20 @@ export const DEFAULT_TOKENS: DesignTokens = {
     'secondary-background': 'transparent',
     'secondary-text': '#60a5fa',
     'secondary-border': '#60a5fa',
+  },
+  forms: {
+    'input-background': '#1e293b',
+    'input-border': '#475569',
+    'input-text': '#e2e8f0',
+    'input-radius': '4px',
+    'input-padding': '8px 12px',
+    'label-color': '#94a3b8',
+  },
+  cards: {
+    background: '#1e293b',
+    border: '#475569',
+    'border-radius': '8px',
+    padding: '20px',
   },
 };
 

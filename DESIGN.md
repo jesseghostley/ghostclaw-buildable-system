@@ -35,3 +35,17 @@ Everything else (prose, blank lines, comments) is ignored.
 - secondary-background: transparent
 - secondary-text: #60a5fa
 - secondary-border: #60a5fa
+
+## forms
+- input-background: #1e293b
+- input-border: #475569
+- input-text: #e2e8f0
+- input-radius: 4px
+- input-padding: 8px 12px
+- label-color: #94a3b8
+
+## cards
+- background: #1e293b
+- border: #475569
+- border-radius: 8px
+- padding: 20px

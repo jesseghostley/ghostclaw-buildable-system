@@ -131,6 +131,13 @@ describe('processSignal', () => {
     expect(site.files['contact.html']).toContain('303-555-1234');
     expect(site.files['contact.html']).toContain('info@summithvac.com');
 
+    // Service cards present on services page
+    expect(site.files['services.html']).toContain('class="card"');
+
+    // Contact form present on contact page
+    expect(site.files['contact.html']).toContain('<form');
+    expect(site.files['contact.html']).toContain('class="form-group"');
+
     // Per-page meta
     expect(site.meta.index.title).toContain('Summit HVAC');
     expect(site.meta.services.title).toContain('Services');
@@ -318,6 +325,22 @@ describe('resolveTokens', () => {
     expect(tokens.buttons['border-radius']).toBe(DEFAULT_TOKENS.buttons['border-radius']);
     expect(tokens.buttons['secondary-text']).toBe(DEFAULT_TOKENS.buttons['secondary-text']);
   });
+
+  it('merges form token overrides over defaults', () => {
+    const md = '## forms\n- input-background: #ffffff\n- label-color: #333333';
+    const tokens = resolveTokens(md);
+    expect(tokens.forms['input-background']).toBe('#ffffff');
+    expect(tokens.forms['label-color']).toBe('#333333');
+    expect(tokens.forms['input-border']).toBe(DEFAULT_TOKENS.forms['input-border']);
+  });
+
+  it('merges card token overrides over defaults', () => {
+    const md = '## cards\n- background: #ffffff\n- padding: 32px';
+    const tokens = resolveTokens(md);
+    expect(tokens.cards.background).toBe('#ffffff');
+    expect(tokens.cards.padding).toBe('32px');
+    expect(tokens.cards.border).toBe(DEFAULT_TOKENS.cards.border);
+  });
 });
 
 describe('CTA button classes', () => {
@@ -387,5 +410,115 @@ describe('CTA button classes', () => {
     // Non-overridden button tokens keep defaults
     expect(html).toContain(`border-radius:${DEFAULT_TOKENS.buttons['border-radius']}`);
     expect(html).toContain(`font-weight:${DEFAULT_TOKENS.buttons['font-weight']}`);
+  });
+});
+
+describe('Form and card token integration', () => {
+  it('generates tokenized form on contact page', () => {
+    const result = processSignal({
+      name: 'contractor_site_requested',
+      payload: {
+        sites: [
+          { businessName: 'Form Co', trade: 'plumbing', location: 'NYC', email: 'hi@form.co' },
+        ],
+      },
+    });
+
+    const content = JSON.parse(result.artifacts[0].content);
+    const contact = content.sites[0].files['contact.html'];
+
+    // Form structure
+    expect(contact).toContain('<form');
+    expect(contact).toContain('class="form-group"');
+    expect(contact).toContain('id="name"');
+    expect(contact).toContain('id="email"');
+    expect(contact).toContain('id="message"');
+    expect(contact).toContain('type="submit"');
+
+    // Form CSS uses tokens
+    expect(contact).toContain(`.form-group label{`);
+    expect(contact).toContain(`color:${DEFAULT_TOKENS.forms['label-color']}`);
+    expect(contact).toContain(`background:${DEFAULT_TOKENS.forms['input-background']}`);
+    expect(contact).toContain(`border:1px solid ${DEFAULT_TOKENS.forms['input-border']}`);
+    expect(contact).toContain(`border-radius:${DEFAULT_TOKENS.forms['input-radius']}`);
+  });
+
+  it('generates tokenized cards on services page', () => {
+    const result = processSignal({
+      name: 'contractor_site_requested',
+      payload: {
+        sites: [
+          { businessName: 'Card Co', trade: 'roofing', location: 'LA' },
+        ],
+      },
+    });
+
+    const content = JSON.parse(result.artifacts[0].content);
+    const services = content.sites[0].files['services.html'];
+
+    // Card structure
+    expect(services).toContain('class="card"');
+    expect(services).toContain('Residential Roofing');
+    expect(services).toContain('Commercial Roofing');
+    expect(services).toContain('Emergency Repair');
+    expect(services).toContain('Installation &amp; Maintenance');
+
+    // Card CSS uses tokens
+    expect(services).toContain(`.card{background:${DEFAULT_TOKENS.cards.background}`);
+    expect(services).toContain(`border:1px solid ${DEFAULT_TOKENS.cards.border}`);
+    expect(services).toContain(`border-radius:${DEFAULT_TOKENS.cards['border-radius']}`);
+    expect(services).toContain(`padding:${DEFAULT_TOKENS.cards.padding}`);
+  });
+
+  it('applies form token overrides in generated HTML', () => {
+    const customDesign = [
+      '## forms',
+      '- input-background: #ffffff',
+      '- input-border: #d1d5db',
+      '- label-color: #374151',
+    ].join('\n');
+
+    const result = processSignal({
+      name: 'contractor_site_requested',
+      payload: {
+        designMarkdown: customDesign,
+        sites: [
+          { businessName: 'Custom Form', trade: 'electric', location: 'SF' },
+        ],
+      },
+    });
+
+    const content = JSON.parse(result.artifacts[0].content);
+    const contact = content.sites[0].files['contact.html'];
+
+    expect(contact).toContain('background:#ffffff');
+    expect(contact).toContain('border:1px solid #d1d5db');
+    expect(contact).toContain('color:#374151');
+  });
+
+  it('applies card token overrides in generated HTML', () => {
+    const customDesign = [
+      '## cards',
+      '- background: #f9fafb',
+      '- border: #e5e7eb',
+      '- padding: 32px',
+    ].join('\n');
+
+    const result = processSignal({
+      name: 'contractor_site_requested',
+      payload: {
+        designMarkdown: customDesign,
+        sites: [
+          { businessName: 'Custom Card', trade: 'hvac', location: 'Denver' },
+        ],
+      },
+    });
+
+    const content = JSON.parse(result.artifacts[0].content);
+    const services = content.sites[0].files['services.html'];
+
+    expect(services).toContain('background:#f9fafb');
+    expect(services).toContain('border:1px solid #e5e7eb');
+    expect(services).toContain('padding:32px');
   });
 });
