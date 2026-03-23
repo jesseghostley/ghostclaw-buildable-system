@@ -1,6 +1,8 @@
 import express from 'express';
+import path from 'path';
 import runtimeRouter from './routes/runtime';
 import signalsRouter from './routes/signals';
+import operatorRouter from './routes/operator';
 import skillInvocationsRouter from './routes/skill_invocations';
 import jobsRouter from './routes/jobs';
 import runtimeEventsRouter from './routes/runtime_events';
@@ -11,6 +13,7 @@ import { eventBus } from '../../../packages/core/src/event_bus';
 const app = express();
 
 app.use(express.json());
+app.use(express.static(path.join(__dirname, '..', 'public')));
 
 registerRuntimeEventLogSubscribers(eventBus);
 
@@ -19,6 +22,7 @@ app.get('/api/health', (_req, res) => {
 });
 
 app.use('/api/signals', signalsRouter);
+app.use('/api/operator', operatorRouter);
 app.use('/api/runtime', runtimeRouter);
 app.use('/api/skill-invocations', skillInvocationsRouter);
 app.use('/api/jobs', jobsRouter);
