@@ -521,4 +521,40 @@ describe('Form and card token integration', () => {
     expect(services).toContain('border:1px solid #e5e7eb');
     expect(services).toContain('padding:32px');
   });
+
+  it('does not double-prepend border when token is already a full shorthand', () => {
+    const customDesign = [
+      '## cards',
+      '- border: 2px dashed #e5e7eb',
+      '## forms',
+      '- input-border: 1px solid #d1d5db',
+      '## buttons',
+      '- secondary-border: 2px solid #dc2626',
+    ].join('\n');
+
+    const result = processSignal({
+      name: 'contractor_site_requested',
+      payload: {
+        designMarkdown: customDesign,
+        sites: [
+          { businessName: 'Border Test', trade: 'plumbing', location: 'NYC', email: 'a@b.co' },
+        ],
+      },
+    });
+
+    const content = JSON.parse(result.artifacts[0].content);
+    const services = content.sites[0].files['services.html'];
+    const contact = content.sites[0].files['contact.html'];
+    const index = content.sites[0].files['index.html'];
+
+    // Full shorthand passed through without duplication
+    expect(services).toContain('border:2px dashed #e5e7eb');
+    expect(services).not.toContain('border:1px solid 2px dashed');
+
+    expect(contact).toContain('border:1px solid #d1d5db');
+    expect(contact).not.toContain('border:1px solid 1px solid');
+
+    expect(index).toContain('border:2px solid #dc2626');
+    expect(index).not.toContain('border:1px solid 2px solid');
+  });
 });

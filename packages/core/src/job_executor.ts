@@ -6,6 +6,11 @@ import { eventBus } from './event_bus';
 import type { Artifact } from './runtime_loop';
 import { resolveTokens } from './design_tokens';
 
+/** If token is just a color, prepend '1px solid'; if already a full shorthand, use as-is. */
+function borderVal(v: string): string {
+  return v.includes(' ') ? v : `1px solid ${v}`;
+}
+
 export type JobHandler = (inputPayload: Record<string, unknown>) => Record<string, unknown>;
 
 const JOB_HANDLERS: Record<string, JobHandler> = {
@@ -69,11 +74,11 @@ const JOB_HANDLERS: Record<string, JobHandler> = {
           `justify-content:center;color:${t.colors['placeholder-text']};font-size:14px;background:${t.colors.surface}}`,
           `.cta-button{display:inline-block;background:${t.buttons.background};color:${t.buttons.text};padding:${t.buttons.padding};border-radius:${t.buttons['border-radius']};font-weight:${t.buttons['font-weight']};text-decoration:none}`,
           `.cta-button:hover{background:${t.buttons['hover-background']}}`,
-          `.cta-button-secondary{display:inline-block;background:${t.buttons['secondary-background']};color:${t.buttons['secondary-text']};padding:${t.buttons.padding};border-radius:${t.buttons['border-radius']};font-weight:${t.buttons['font-weight']};text-decoration:none;border:1px solid ${t.buttons['secondary-border']}}`,
+          `.cta-button-secondary{display:inline-block;background:${t.buttons['secondary-background']};color:${t.buttons['secondary-text']};padding:${t.buttons.padding};border-radius:${t.buttons['border-radius']};font-weight:${t.buttons['font-weight']};text-decoration:none;border:${borderVal(t.buttons['secondary-border'])}}`,
           `.cta-button-secondary:hover{background:${t.buttons['secondary-background']};opacity:0.8}`,
-          `.card{background:${t.cards.background};border:1px solid ${t.cards.border};border-radius:${t.cards['border-radius']};padding:${t.cards.padding}}`,
+          `.card{background:${t.cards.background};border:${borderVal(t.cards.border)};border-radius:${t.cards['border-radius']};padding:${t.cards.padding}}`,
           `.form-group{margin-bottom:12px}.form-group label{display:block;margin-bottom:4px;color:${t.forms['label-color']};font-size:14px}`,
-          `.form-group input,.form-group textarea{width:100%;box-sizing:border-box;background:${t.forms['input-background']};border:1px solid ${t.forms['input-border']};color:${t.forms['input-text']};border-radius:${t.forms['input-radius']};padding:${t.forms['input-padding']};font-family:inherit}</style>`,
+          `.form-group input,.form-group textarea{width:100%;box-sizing:border-box;background:${t.forms['input-background']};border:${borderVal(t.forms['input-border'])};color:${t.forms['input-text']};border-radius:${t.forms['input-radius']};padding:${t.forms['input-padding']};font-family:inherit}</style>`,
           '</head>',
           '<body>',
           nav,
