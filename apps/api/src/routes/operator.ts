@@ -4,6 +4,13 @@ import { skillInvocationStore } from '../../../../packages/core/src/skill_invoca
 
 const router = Router();
 
+const COMMAND_ALIASES: Record<string, string> = {
+  'check-runtime': 'runtime_error_detected',
+  'test-variation': 'ranking_loss_detected',
+  'contractor-sites': 'keyword_opportunity_detected',
+  'export-batch': 'runtime_error_detected',
+};
+
 router.post('/run', (req, res) => {
   const command = req.body?.command;
 
@@ -14,7 +21,7 @@ router.post('/run', (req, res) => {
 
   try {
     const result = processSignal({
-      name: command,
+      name: COMMAND_ALIASES[command] ?? command,
       payload: req.body?.payload,
     });
 
