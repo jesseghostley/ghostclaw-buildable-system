@@ -131,6 +131,7 @@ function createJobs(plan: Plan, signal: Signal): Job[] {
     optimize_existing_page: ['refresh_page_sections'],
     create_new_skill: ['scaffold_skill_package'],
     handle_runtime_error: ['run_diagnostics'],
+    build_contractor_site: ['build_site_page'],
   };
 
   return jobTypeByAction[plan.action].map((jobType, index) => ({

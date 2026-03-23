@@ -57,6 +57,31 @@ describe('processSignal', () => {
     expect(result.jobs[0].status).toBe('completed');
   });
 
+  it('handles contractor_site_requested end-to-end with real site output', () => {
+    const result = processSignal({
+      name: 'contractor_site_requested',
+      payload: {
+        sites: [
+          { businessName: 'Summit HVAC', trade: 'hvac', location: 'Denver, CO', phone: '303-555-1234' },
+        ],
+      },
+    });
+
+    expect(result.plan.action).toBe('build_contractor_site');
+    expect(result.jobs[0].jobType).toBe('build_site_page');
+    expect(result.jobs[0].assignedAgent).toBe('WebsiteBuilderAgent');
+    expect(result.jobs[0].status).toBe('completed');
+    expect(result.artifacts).toHaveLength(1);
+
+    const content = JSON.parse(result.artifacts[0].content);
+    expect(content.handoffReady).toBe(true);
+    expect(content.siteCount).toBe(1);
+    expect(content.pages[0].slug).toBe('summit-hvac');
+    expect(content.pages[0].html).toContain('Summit HVAC');
+    expect(content.pages[0].schema['@type']).toBe('LocalBusiness');
+    expect(content.pages[0].schema.telephone).toBe('303-555-1234');
+  });
+
   it('throws for an unknown signal name', () => {
     expect(() => processSignal({ name: 'not_a_real_signal' })).toThrow(
       'Unsupported signal name: not_a_real_signal',

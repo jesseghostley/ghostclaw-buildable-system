@@ -20,6 +20,52 @@ const JOB_HANDLERS: Record<string, JobHandler> = {
   run_diagnostics: (inputPayload) => ({
     result: `Diagnostics run for ${String(inputPayload.signalName ?? 'unknown_signal')}`,
   }),
+  build_site_page: (inputPayload) => {
+    const payload = (inputPayload.signalPayload ?? {}) as Record<string, unknown>;
+    const sites = (Array.isArray(payload.sites) ? payload.sites : [payload]) as Array<
+      Record<string, string>
+    >;
+    const pages = sites.map((site) => {
+      const name = site.businessName || 'Contractor';
+      const trade = site.trade || 'General';
+      const location = site.location || '';
+      const phone = site.phone || '';
+      const email = site.email || '';
+      return {
+        slug: name.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
+        title: `${name} – ${trade} in ${location}`,
+        meta: {
+          description: `${name} provides professional ${trade} services in ${location}.`,
+          keywords: [trade, location, name].filter(Boolean),
+        },
+        schema: {
+          '@context': 'https://schema.org',
+          '@type': 'LocalBusiness',
+          name,
+          description: `Professional ${trade} services`,
+          address: { '@type': 'PostalAddress', addressLocality: location },
+          ...(phone && { telephone: phone }),
+          ...(email && { email }),
+        },
+        html: [
+          '<!doctype html>',
+          '<html lang="en"><head>',
+          '<meta charset="UTF-8"/>',
+          `<title>${name} \u2013 ${trade} in ${location}</title>`,
+          `<meta name="description" content="${name} provides professional ${trade} services in ${location}."/>`,
+          '</head><body>',
+          `<h1>${name}</h1>`,
+          `<p>${trade} services in ${location}</p>`,
+          phone ? `<p>Phone: ${phone}</p>` : '',
+          email ? `<p>Email: ${email}</p>` : '',
+          '</body></html>',
+        ]
+          .filter(Boolean)
+          .join('\n'),
+      };
+    });
+    return { siteCount: pages.length, pages, handoffReady: true };
+  },
 };
 
 export function executeJobs(): Artifact[] {
@@ -104,7 +150,7 @@ export function executeJobs(): Artifact[] {
         jobId: job.id,
         skillInvocationId: invocationId,
         type: job.jobType,
-        content: `${assignedAgent.agentName} executed ${job.jobType}`,
+        content: JSON.stringify(outputPayload),
         createdAt: completedAt,
       });
     } catch (err) {

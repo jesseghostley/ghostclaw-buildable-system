@@ -7,7 +7,8 @@ const router = Router();
 const COMMAND_ALIASES: Record<string, string> = {
   'check-runtime': 'runtime_error_detected',
   'test-variation': 'ranking_loss_detected',
-  'contractor-sites': 'keyword_opportunity_detected',
+  'contractor-sites': 'contractor_site_requested',
+  'build-contractor-site': 'contractor_site_requested',
   'export-batch': 'runtime_error_detected',
 };
 
