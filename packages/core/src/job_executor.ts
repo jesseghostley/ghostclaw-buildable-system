@@ -108,6 +108,28 @@ const JOB_HANDLERS: Record<string, JobHandler> = {
       return {
         slug,
         businessName: name,
+        manifest: {
+          version: '1.0',
+          generatedAt: new Date().toISOString(),
+          slug,
+          businessName: name,
+          trade,
+          location,
+          pages: ['index.html', 'services.html', 'contact.html'],
+          assets: {
+            'logo.png': { status: 'placeholder', note: 'Replace with business logo (recommended 300x100)' },
+            'hero.jpg': { status: 'placeholder', note: 'Replace with hero/banner image (recommended 1200x600)' },
+            'og-image.jpg': { status: 'placeholder', note: 'Social sharing image (recommended 1200x630)' },
+          },
+          content: {
+            tagline: { status: 'placeholder', value: `Professional ${trade} services`, note: 'Replace with business tagline' },
+            aboutText: { status: 'placeholder', value: '', note: 'Add 2-3 sentences about the business' },
+            serviceList: { status: 'auto-generated', note: 'Review and customize service descriptions' },
+            testimonials: { status: 'placeholder', value: [], note: 'Add customer testimonials (name, quote, rating)' },
+          },
+          schema: 'schema.json',
+          status: 'draft',
+        },
         schema: {
           '@context': 'https://schema.org',
           '@type': 'LocalBusiness',
@@ -118,6 +140,8 @@ const JOB_HANDLERS: Record<string, JobHandler> = {
           ...(email && { email }),
         },
         files: {
+          'manifest.json': '', // populated below
+          'schema.json': '', // populated below
           'index.html': page(indexTitle, indexDesc, indexBody),
           'services.html': page(servicesTitle, servicesDesc, servicesBody),
           'contact.html': page(contactTitle, contactDesc, contactBody),
@@ -128,6 +152,12 @@ const JOB_HANDLERS: Record<string, JobHandler> = {
           contact: { title: contactTitle, description: contactDesc },
         },
       };
+    });
+
+    // Populate self-referencing JSON files after structure is built
+    builtSites.forEach((s) => {
+      s.files['manifest.json'] = JSON.stringify(s.manifest, null, 2);
+      s.files['schema.json'] = JSON.stringify(s.schema, null, 2);
     });
 
     return { siteCount: builtSites.length, sites: builtSites, handoffReady: true };

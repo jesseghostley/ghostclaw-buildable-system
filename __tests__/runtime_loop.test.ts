@@ -83,15 +83,33 @@ describe('processSignal', () => {
     expect(site.schema['@type']).toBe('LocalBusiness');
     expect(site.schema.telephone).toBe('303-555-1234');
 
-    // 3 pages as keyed files
-    expect(Object.keys(site.files)).toEqual(['index.html', 'services.html', 'contact.html']);
+    // 5 files: 3 HTML + manifest.json + schema.json
+    expect(Object.keys(site.files)).toEqual([
+      'manifest.json', 'schema.json', 'index.html', 'services.html', 'contact.html',
+    ]);
 
-    // Shared nav present in all pages
+    // Manifest structure
+    expect(site.manifest.version).toBe('1.0');
+    expect(site.manifest.slug).toBe('summit-hvac');
+    expect(site.manifest.trade).toBe('hvac');
+    expect(site.manifest.pages).toEqual(['index.html', 'services.html', 'contact.html']);
+    expect(site.manifest.status).toBe('draft');
+    expect(site.manifest.assets['logo.png'].status).toBe('placeholder');
+    expect(site.manifest.assets['hero.jpg'].status).toBe('placeholder');
+    expect(site.manifest.content.tagline.status).toBe('placeholder');
+    expect(site.manifest.content.testimonials.status).toBe('placeholder');
+    expect(site.manifest.generatedAt).toBeDefined();
+
+    // manifest.json and schema.json are valid JSON strings in files
+    expect(JSON.parse(site.files['manifest.json']).slug).toBe('summit-hvac');
+    expect(JSON.parse(site.files['schema.json'])['@type']).toBe('LocalBusiness');
+
+    // Shared nav present in all HTML pages
     expect(site.files['index.html']).toContain('<nav');
     expect(site.files['services.html']).toContain('<nav');
     expect(site.files['contact.html']).toContain('<nav');
 
-    // Shared footer present in all pages
+    // Shared footer present in all HTML pages
     expect(site.files['index.html']).toContain('<footer');
     expect(site.files['services.html']).toContain('<footer');
     expect(site.files['contact.html']).toContain('<footer');
