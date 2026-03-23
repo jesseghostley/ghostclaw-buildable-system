@@ -24,3 +24,14 @@ Everything else (prose, blank lines, comments) is ignored.
 - padding: 24px
 - nav-padding: 12px 24px
 - footer-margin-top: 48px
+
+## buttons
+- background: #2563eb
+- text: #ffffff
+- border-radius: 6px
+- padding: 10px 20px
+- font-weight: bold
+- hover-background: #1d4ed8
+- secondary-background: transparent
+- secondary-text: #60a5fa
+- secondary-border: #60a5fa

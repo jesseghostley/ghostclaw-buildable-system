@@ -23,6 +23,17 @@ export interface DesignTokens {
     'nav-padding': string;
     'footer-margin-top': string;
   };
+  buttons: {
+    background: string;
+    text: string;
+    'border-radius': string;
+    padding: string;
+    'font-weight': string;
+    'hover-background': string;
+    'secondary-background': string;
+    'secondary-text': string;
+    'secondary-border': string;
+  };
 }
 
 export const DEFAULT_TOKENS: DesignTokens = {
@@ -46,6 +57,17 @@ export const DEFAULT_TOKENS: DesignTokens = {
     padding: '24px',
     'nav-padding': '12px 24px',
     'footer-margin-top': '48px',
+  },
+  buttons: {
+    background: '#2563eb',
+    text: '#ffffff',
+    'border-radius': '6px',
+    padding: '10px 20px',
+    'font-weight': 'bold',
+    'hover-background': '#1d4ed8',
+    'secondary-background': 'transparent',
+    'secondary-text': '#60a5fa',
+    'secondary-border': '#60a5fa',
   },
 };
 

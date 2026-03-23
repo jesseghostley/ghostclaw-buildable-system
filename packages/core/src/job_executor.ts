@@ -66,7 +66,11 @@ const JOB_HANDLERS: Record<string, JobHandler> = {
           `<style>body{font-family:${t.typography['font-family']};margin:0;color:${t.colors.text};background:${t.colors.background}}`,
           `main{max-width:${t.layout['max-width']};margin:0 auto;padding:${t.layout.padding}}h1{margin:0 0 16px}p{line-height:${t.typography['line-height']}}`,
           `.img-placeholder{border:2px dashed ${t.colors.border};border-radius:8px;display:flex;align-items:center;`,
-          `justify-content:center;color:${t.colors['placeholder-text']};font-size:14px;background:${t.colors.surface}}</style>`,
+          `justify-content:center;color:${t.colors['placeholder-text']};font-size:14px;background:${t.colors.surface}}`,
+          `.cta-button{display:inline-block;background:${t.buttons.background};color:${t.buttons.text};padding:${t.buttons.padding};border-radius:${t.buttons['border-radius']};font-weight:${t.buttons['font-weight']};text-decoration:none}`,
+          `.cta-button:hover{background:${t.buttons['hover-background']}}`,
+          `.cta-button-secondary{display:inline-block;background:${t.buttons['secondary-background']};color:${t.buttons['secondary-text']};padding:${t.buttons.padding};border-radius:${t.buttons['border-radius']};font-weight:${t.buttons['font-weight']};text-decoration:none;border:1px solid ${t.buttons['secondary-border']}}`,
+          `.cta-button-secondary:hover{background:${t.buttons['secondary-background']};opacity:0.8}</style>`,
           '</head>',
           '<body>',
           nav,
@@ -88,8 +92,8 @@ const JOB_HANDLERS: Record<string, JobHandler> = {
         `<h1>${name}</h1>`,
         `<p>Professional ${trade} services in ${location}.</p>`,
         `<p>${name} delivers reliable, high-quality ${trade} solutions for residential and commercial clients.</p>`,
-        `<p><a href="services.html" style="color:${t.colors.link}">View our services &rarr;</a></p>`,
-        `<p><a href="contact.html" style="color:${t.colors.link}">Get in touch &rarr;</a></p>`,
+        `<p><a href="services.html" class="cta-button">View our services &rarr;</a></p>`,
+        `<p><a href="contact.html" class="cta-button-secondary">Get in touch &rarr;</a></p>`,
       ].join('\n');
 
       const servicesTitle = `Services \u2013 ${name}`;
@@ -103,7 +107,7 @@ const JOB_HANDLERS: Record<string, JobHandler> = {
         `<li>Emergency ${trade} repair</li>`,
         `<li>${trade.charAt(0).toUpperCase() + trade.slice(1)} installation &amp; maintenance</li>`,
         '</ul>',
-        `<p><a href="contact.html" style="color:${t.colors.link}">Request a quote &rarr;</a></p>`,
+        `<p><a href="contact.html" class="cta-button">Request a quote &rarr;</a></p>`,
       ].join('\n');
 
       const contactTitle = `Contact \u2013 ${name}`;
@@ -112,7 +116,7 @@ const JOB_HANDLERS: Record<string, JobHandler> = {
         '<h1>Contact Us</h1>',
         `<p>Reach out to ${name} for ${trade} services in ${location}.</p>`,
         phone ? `<p><strong>Phone:</strong> ${phone}</p>` : '',
-        email ? `<p><strong>Email:</strong> <a href="mailto:${email}" style="color:${t.colors.link}">${email}</a></p>` : '',
+        email ? `<p><strong>Email:</strong> <a href="mailto:${email}" class="cta-button-secondary">${email}</a></p>` : '',
         location ? `<p><strong>Location:</strong> ${location}</p>` : '',
       ].filter(Boolean).join('\n');
 

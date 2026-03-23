@@ -204,7 +204,9 @@ describe('processSignal', () => {
       '## colors',
       '- background: #ffffff',
       '- text: #111827',
-      '- link: #2563eb',
+      '## buttons',
+      '- background: #dc2626',
+      '- text: #fff000',
     ].join('\n');
 
     const result = processSignal({
@@ -220,10 +222,13 @@ describe('processSignal', () => {
     const content = JSON.parse(result.artifacts[0].content);
     const html = content.sites[0].files['index.html'];
 
-    // Overridden tokens appear in the generated HTML
+    // Overridden color tokens appear in the generated HTML
     expect(html).toContain('background:#ffffff');
     expect(html).toContain('color:#111827');
-    expect(html).toContain('color:#2563eb');
+
+    // Overridden button tokens appear in the CTA styles
+    expect(html).toContain('background:#dc2626');
+    expect(html).toContain('color:#fff000');
 
     // Non-overridden tokens keep defaults
     expect(html).toContain(DEFAULT_TOKENS.colors.surface);
@@ -245,7 +250,8 @@ describe('processSignal', () => {
 
     expect(html).toContain(`background:${DEFAULT_TOKENS.colors.background}`);
     expect(html).toContain(`color:${DEFAULT_TOKENS.colors.text}`);
-    expect(html).toContain(`color:${DEFAULT_TOKENS.colors.link}`);
+    expect(html).toContain(`background:${DEFAULT_TOKENS.buttons.background}`);
+    expect(html).toContain(`color:${DEFAULT_TOKENS.buttons.text}`);
   });
 });
 
@@ -300,5 +306,86 @@ describe('resolveTokens', () => {
     expect(tokens.colors.text).toBe(DEFAULT_TOKENS.colors.text);
     expect(tokens.typography).toEqual(DEFAULT_TOKENS.typography);
     expect(tokens.layout).toEqual(DEFAULT_TOKENS.layout);
+    expect(tokens.buttons).toEqual(DEFAULT_TOKENS.buttons);
+  });
+
+  it('merges button overrides over defaults', () => {
+    const md = '## buttons\n- background: #16a34a\n- text: #000000';
+    const tokens = resolveTokens(md);
+    expect(tokens.buttons.background).toBe('#16a34a');
+    expect(tokens.buttons.text).toBe('#000000');
+    // Non-overridden button tokens stay default
+    expect(tokens.buttons['border-radius']).toBe(DEFAULT_TOKENS.buttons['border-radius']);
+    expect(tokens.buttons['secondary-text']).toBe(DEFAULT_TOKENS.buttons['secondary-text']);
+  });
+});
+
+describe('CTA button classes', () => {
+  it('generates cta-button and cta-button-secondary classes in HTML', () => {
+    const result = processSignal({
+      name: 'contractor_site_requested',
+      payload: {
+        sites: [
+          { businessName: 'Button Co', trade: 'plumbing', location: 'NYC', email: 'info@btn.co' },
+        ],
+      },
+    });
+
+    const content = JSON.parse(result.artifacts[0].content);
+    const index = content.sites[0].files['index.html'];
+    const services = content.sites[0].files['services.html'];
+    const contact = content.sites[0].files['contact.html'];
+
+    // Primary CTA buttons on index and services pages
+    expect(index).toContain('class="cta-button"');
+    expect(services).toContain('class="cta-button"');
+
+    // Secondary CTA button on index page
+    expect(index).toContain('class="cta-button-secondary"');
+
+    // Email link uses secondary style
+    expect(contact).toContain('class="cta-button-secondary"');
+
+    // CSS class definitions present in all pages
+    for (const page of [index, services, contact]) {
+      expect(page).toContain('.cta-button{');
+      expect(page).toContain('.cta-button-secondary{');
+      expect(page).toContain('.cta-button:hover{');
+    }
+  });
+
+  it('applies button token overrides to CTA styles', () => {
+    const customDesign = [
+      '## buttons',
+      '- background: #16a34a',
+      '- text: #f0fdf4',
+      '- secondary-text: #22c55e',
+      '- secondary-border: #22c55e',
+    ].join('\n');
+
+    const result = processSignal({
+      name: 'contractor_site_requested',
+      payload: {
+        designMarkdown: customDesign,
+        sites: [
+          { businessName: 'Green CTA', trade: 'landscaping', location: 'Portland, OR' },
+        ],
+      },
+    });
+
+    const content = JSON.parse(result.artifacts[0].content);
+    const html = content.sites[0].files['index.html'];
+
+    // Overridden primary button tokens
+    expect(html).toContain('background:#16a34a');
+    expect(html).toContain('color:#f0fdf4');
+
+    // Overridden secondary button tokens
+    expect(html).toContain('color:#22c55e');
+    expect(html).toContain('border:1px solid #22c55e');
+
+    // Non-overridden button tokens keep defaults
+    expect(html).toContain(`border-radius:${DEFAULT_TOKENS.buttons['border-radius']}`);
+    expect(html).toContain(`font-weight:${DEFAULT_TOKENS.buttons['font-weight']}`);
   });
 });
