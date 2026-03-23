@@ -32,7 +32,7 @@ export const agentRegistry = new InMemoryAgentRegistry();
 agentRegistry.registerAgent('KeywordResearchAgent', ['research_keyword_cluster']);
 agentRegistry.registerAgent('ContentStrategistAgent', ['draft_cluster_outline']);
 agentRegistry.registerAgent('ContentWriterAgent', ['write_article']);
-agentRegistry.registerAgent('WebsiteBuilderAgent', ['generate_metadata', 'generate_schema']);
+agentRegistry.registerAgent('WebsiteBuilderAgent', ['generate_metadata', 'generate_schema', 'build_site_page']);
 agentRegistry.registerAgent('RuntimeMonitorAgent', ['monitor_runtime_health']);
 agentRegistry.registerAgent('SkillBuilderAgent', ['scaffold_skill_package', 'refresh_page_sections']);
 agentRegistry.registerAgent('DiagnosticsAgent', ['run_diagnostics']);

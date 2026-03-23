@@ -5,7 +5,8 @@ export type PlannerAction =
   | 'generate_content_cluster'
   | 'optimize_existing_page'
   | 'create_new_skill'
-  | 'handle_runtime_error';
+  | 'handle_runtime_error'
+  | 'build_contractor_site';
 
 export type PlannerDecision = {
   strategyId: string;
@@ -20,6 +21,7 @@ const SIGNAL_TO_ACTION_MAP: Record<string, PlannerAction> = {
   ranking_loss_detected: 'optimize_existing_page',
   marketplace_gap_detected: 'create_new_skill',
   runtime_error_detected: 'handle_runtime_error',
+  contractor_site_requested: 'build_contractor_site',
 };
 
 const ACTION_METADATA: Record<
@@ -45,6 +47,11 @@ const ACTION_METADATA: Record<
     priority: 0,
     requiredAgents: ['diagnostic_agent'],
     expectedOutputs: ['error_report'],
+  },
+  build_contractor_site: {
+    priority: 2,
+    requiredAgents: ['website_builder_agent'],
+    expectedOutputs: ['contractor_site_page'],
   },
 };
 

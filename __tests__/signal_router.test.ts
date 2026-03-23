@@ -30,6 +30,12 @@ describe('routeSignal', () => {
     expect(decision.strategyId).toBe('rule_runtime_error_strategy');
   });
 
+  it('routes contractor_site_requested to build_contractor_site', () => {
+    const decision = routeSignal(makeSignal('contractor_site_requested'));
+    expect(decision.plannerAction).toBe('build_contractor_site');
+    expect(decision.strategyId).toBe('rule_contractor_site_strategy');
+  });
+
   it('throws for an unknown signal name', () => {
     expect(() => routeSignal(makeSignal('unknown_signal'))).toThrow(
       'Unsupported signal name: unknown_signal',

@@ -1,0 +1,166 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>GhostClaw Operator Console</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        font-family: Arial, sans-serif;
+      }
+      body {
+        margin: 0;
+        padding: 16px;
+        background: #0f172a;
+        color: #e2e8f0;
+      }
+      h1 {
+        margin: 0 0 8px;
+      }
+      .status {
+        margin: 0 0 16px;
+        color: #93c5fd;
+        font-size: 0.9rem;
+      }
+      .status.error {
+        color: #fca5a5;
+      }
+      .panel {
+        border: 1px solid #334155;
+        border-radius: 8px;
+        padding: 12px;
+        background: #111827;
+        margin-bottom: 12px;
+      }
+      .panel h2 {
+        margin: 0 0 8px;
+        font-size: 1.05rem;
+      }
+      label {
+        display: block;
+        margin-bottom: 4px;
+        font-size: 0.9rem;
+        color: #93c5fd;
+      }
+      input[type="text"],
+      textarea {
+        width: 100%;
+        box-sizing: border-box;
+        padding: 8px;
+        border: 1px solid #334155;
+        border-radius: 4px;
+        background: #1e293b;
+        color: #e2e8f0;
+        font-family: monospace;
+        font-size: 14px;
+        margin-bottom: 8px;
+      }
+      textarea {
+        min-height: 80px;
+        resize: vertical;
+      }
+      button {
+        padding: 8px 20px;
+        border: none;
+        border-radius: 4px;
+        background: #2563eb;
+        color: #fff;
+        font-size: 14px;
+        cursor: pointer;
+      }
+      button:hover {
+        background: #1d4ed8;
+      }
+      button:disabled {
+        background: #334155;
+        cursor: not-allowed;
+      }
+      pre {
+        margin: 0;
+        white-space: pre-wrap;
+        word-break: break-word;
+        font-size: 12px;
+      }
+      .result-error {
+        color: #fca5a5;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>GhostClaw Operator Console</h1>
+    <div id="health" class="status">Checking server...</div>
+
+    <div class="panel">
+      <h2>Run Command</h2>
+      <form id="runForm">
+        <label for="command">Command (signal name)</label>
+        <input type="text" id="command" name="command" placeholder="e.g. test.ping" required />
+        <label for="payload">Payload (JSON)</label>
+        <textarea id="payload" name="payload">{}</textarea>
+        <button type="submit" id="runBtn">Run</button>
+      </form>
+    </div>
+
+    <div class="panel">
+      <h2>Result</h2>
+      <pre id="result">No commands run yet.</pre>
+    </div>
+
+    <script>
+      const healthEl = document.getElementById('health');
+      const form = document.getElementById('runForm');
+      const resultEl = document.getElementById('result');
+      const runBtn = document.getElementById('runBtn');
+
+      // Health check on load
+      fetch('/api/health')
+        .then(r => r.json())
+        .then(d => {
+          healthEl.textContent = 'Server: OK (' + d.service + ')';
+          healthEl.classList.remove('error');
+        })
+        .catch(() => {
+          healthEl.textContent = 'Server: unreachable';
+          healthEl.classList.add('error');
+        });
+
+      form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const command = document.getElementById('command').value.trim();
+        const payloadRaw = document.getElementById('payload').value.trim();
+
+        let payload;
+        try {
+          payload = JSON.parse(payloadRaw);
+        } catch {
+          resultEl.textContent = 'Invalid JSON in payload field.';
+          resultEl.className = 'result-error';
+          return;
+        }
+
+        runBtn.disabled = true;
+        runBtn.textContent = 'Running...';
+        resultEl.textContent = '';
+        resultEl.className = '';
+
+        try {
+          const res = await fetch('/api/operator/run', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ command, payload }),
+          });
+          const data = await res.json();
+          resultEl.textContent = JSON.stringify(data, null, 2);
+          if (!res.ok) resultEl.className = 'result-error';
+        } catch (err) {
+          resultEl.textContent = 'Network error: ' + err.message;
+          resultEl.className = 'result-error';
+        } finally {
+          runBtn.disabled = false;
+          runBtn.textContent = 'Run';
+        }
+      });
+    </script>
+  </body>
+</html>

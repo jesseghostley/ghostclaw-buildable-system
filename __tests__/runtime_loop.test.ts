@@ -57,6 +57,75 @@ describe('processSignal', () => {
     expect(result.jobs[0].status).toBe('completed');
   });
 
+  it('handles contractor_site_requested end-to-end with real site output', () => {
+    const result = processSignal({
+      name: 'contractor_site_requested',
+      payload: {
+        sites: [
+          { businessName: 'Summit HVAC', trade: 'hvac', location: 'Denver, CO', phone: '303-555-1234', email: 'info@summithvac.com' },
+        ],
+      },
+    });
+
+    expect(result.plan.action).toBe('build_contractor_site');
+    expect(result.jobs[0].jobType).toBe('build_site_page');
+    expect(result.jobs[0].assignedAgent).toBe('WebsiteBuilderAgent');
+    expect(result.jobs[0].status).toBe('completed');
+    expect(result.artifacts).toHaveLength(1);
+
+    const content = JSON.parse(result.artifacts[0].content);
+    expect(content.handoffReady).toBe(true);
+    expect(content.siteCount).toBe(1);
+
+    const site = content.sites[0];
+    expect(site.slug).toBe('summit-hvac');
+    expect(site.businessName).toBe('Summit HVAC');
+    expect(site.schema['@type']).toBe('LocalBusiness');
+    expect(site.schema.telephone).toBe('303-555-1234');
+
+    // 5 files: 3 HTML + manifest.json + schema.json
+    expect(Object.keys(site.files)).toEqual([
+      'manifest.json', 'schema.json', 'index.html', 'services.html', 'contact.html',
+    ]);
+
+    // Manifest structure
+    expect(site.manifest.version).toBe('1.0');
+    expect(site.manifest.slug).toBe('summit-hvac');
+    expect(site.manifest.trade).toBe('hvac');
+    expect(site.manifest.pages).toEqual(['index.html', 'services.html', 'contact.html']);
+    expect(site.manifest.status).toBe('draft');
+    expect(site.manifest.assets['logo.png'].status).toBe('placeholder');
+    expect(site.manifest.assets['hero.jpg'].status).toBe('placeholder');
+    expect(site.manifest.content.tagline.status).toBe('placeholder');
+    expect(site.manifest.content.testimonials.status).toBe('placeholder');
+    expect(site.manifest.generatedAt).toBeDefined();
+
+    // manifest.json and schema.json are valid JSON strings in files
+    expect(JSON.parse(site.files['manifest.json']).slug).toBe('summit-hvac');
+    expect(JSON.parse(site.files['schema.json'])['@type']).toBe('LocalBusiness');
+
+    // Shared nav present in all HTML pages
+    expect(site.files['index.html']).toContain('<nav');
+    expect(site.files['services.html']).toContain('<nav');
+    expect(site.files['contact.html']).toContain('<nav');
+
+    // Shared footer present in all HTML pages
+    expect(site.files['index.html']).toContain('<footer');
+    expect(site.files['services.html']).toContain('<footer');
+    expect(site.files['contact.html']).toContain('<footer');
+
+    // Page-specific content
+    expect(site.files['index.html']).toContain('Summit HVAC');
+    expect(site.files['services.html']).toContain('Hvac Services');
+    expect(site.files['contact.html']).toContain('303-555-1234');
+    expect(site.files['contact.html']).toContain('info@summithvac.com');
+
+    // Per-page meta
+    expect(site.meta.index.title).toContain('Summit HVAC');
+    expect(site.meta.services.title).toContain('Services');
+    expect(site.meta.contact.title).toContain('Contact');
+  });
+
   it('throws for an unknown signal name', () => {
     expect(() => processSignal({ name: 'not_a_real_signal' })).toThrow(
       'Unsupported signal name: not_a_real_signal',
