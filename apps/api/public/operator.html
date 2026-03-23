@@ -30,13 +30,13 @@
     </div>
 
     <div class="panel">
-      <h2>Pending Approvals</h2>
+      <h2>Pending Invocations</h2>
       <button class="secondary" onclick="loadApprovals()">Refresh</button>
       <div id="approvals"></div>
     </div>
 
     <div class="panel">
-      <h2>Recent Batches</h2>
+      <h2>Recent Events</h2>
       <button class="secondary" onclick="loadBatches()">Refresh</button>
       <div id="batches"></div>
     </div>
@@ -88,7 +88,7 @@ async function runScript(script) {
     const data = await api('/api/operator/run', {
       method: 'POST',
       headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({ script })
+      body: JSON.stringify({ command: script })
     });
     log(data);
     loadApprovals();
@@ -100,7 +100,11 @@ async function runExportPrompt() {
   const id = prompt('Enter batch id for export check');
   if (!id) return;
   try {
-    const data = await api('/api/batches/' + encodeURIComponent(id) + '/export');
+    const data = await api('/api/operator/run', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ command: 'export-batch', payload: { batchId: id } })
+    });
     log(data);
     loadBatches();
   } catch (e) { log(String(e)); }
@@ -108,42 +112,17 @@ async function runExportPrompt() {
 
 async function loadApprovals() {
   try {
-    const pending = await api('/api/approvals/pending');
-    const history = await api('/api/approvals/history');
-    const items = [...(pending.pending || []), ...((history.items || []).filter(x => x.status === 'approved'))];
-    approvalsBox.innerHTML = items.length ? '' : '<div class="muted">No pending/approved approvals</div>';
+    const pending = await api('/api/skill-invocations?status=pending');
+    const running = await api('/api/skill-invocations?status=running');
+    const items = [...(Array.isArray(pending) ? pending : []), ...(Array.isArray(running) ? running : [])];
+    approvalsBox.innerHTML = items.length ? '' : '<div class="muted">No pending invocations</div>';
     items.forEach(item => {
       const div = document.createElement('div');
       div.className = 'item';
       div.innerHTML = `
         <div><strong>${item.id || 'unknown'}</strong></div>
-        <div class="muted">${item.status || ''} ${item.destination ? '• ' + item.destination : ''}</div>
+        <div class="muted">${item.status || ''} • ${item.skill || ''} • ${item.agent || ''}</div>
       `;
-      const approveBtn = document.createElement('button');
-      approveBtn.textContent = 'Approve';
-      approveBtn.onclick = async () => {
-        try {
-          const data = await api('/api/approvals/' + encodeURIComponent(item.id) + '/approve', {
-            method: 'POST',
-            headers: {'Content-Type':'application/json'},
-            body: JSON.stringify({ approvedBy: 'operator:browser' })
-          });
-          log(data); loadApprovals(); loadBatches();
-        } catch (e) { log(String(e)); }
-      };
-      const publishBtn = document.createElement('button');
-      publishBtn.textContent = 'Publish';
-      publishBtn.onclick = async () => {
-        try {
-          const data = await api('/api/approvals/' + encodeURIComponent(item.id) + '/publish', {
-            method: 'POST',
-            headers: {'Content-Type':'application/json'}
-          });
-          log(data); loadApprovals(); loadBatches();
-        } catch (e) { log(String(e)); }
-      };
-      if (item.status === 'pending') div.appendChild(approveBtn);
-      if (item.status === 'approved') div.appendChild(publishBtn);
       approvalsBox.appendChild(div);
     });
   } catch (e) { log(String(e)); }
@@ -151,26 +130,17 @@ async function loadApprovals() {
 
 async function loadBatches() {
   try {
-    const data = await api('/api/batches');
-    const batches = data.batches || [];
-    batchesBox.innerHTML = batches.length ? '' : '<div class="muted">No batches found</div>';
-    batches.forEach(batch => {
+    const events = await api('/api/runtime-events?limit=20');
+    const items = Array.isArray(events) ? events : [];
+    batchesBox.innerHTML = items.length ? '' : '<div class="muted">No recent activity</div>';
+    items.forEach(ev => {
       const div = document.createElement('div');
       div.className = 'item';
       div.innerHTML = `
-        <div><strong>${batch.id}</strong></div>
-        <div class="muted">${new Date(batch.createdAt).toLocaleString()}</div>
-        <div class="muted">sites: ${batch.totalSites} • processed: ${batch.processed}</div>
+        <div><strong>${ev.event_type || ev.id}</strong></div>
+        <div class="muted">${ev.created_at ? new Date(ev.created_at).toLocaleString() : ''}</div>
+        <div class="muted">${ev.workspace || ''} ${ev.job_id ? '• job: ' + ev.job_id : ''}</div>
       `;
-      const exportBtn = document.createElement('button');
-      exportBtn.textContent = 'Export';
-      exportBtn.onclick = async () => {
-        try {
-          const out = await api('/api/batches/' + encodeURIComponent(batch.id) + '/export');
-          log(out);
-        } catch (e) { log(String(e)); }
-      };
-      div.appendChild(exportBtn);
       batchesBox.appendChild(div);
     });
   } catch (e) { log(String(e)); }
@@ -195,10 +165,10 @@ function addSite() {
 async function submitBatch() {
   if (!draftSites.length) return log('No sites added');
   try {
-    const data = await api('/api/batches/contractor-sites', {
+    const data = await api('/api/operator/run', {
       method:'POST',
       headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({ sites: draftSites })
+      body: JSON.stringify({ command: 'contractor-sites', payload: { sites: draftSites } })
     });
     log(data);
     draftSites = [];
@@ -211,10 +181,10 @@ async function submitBatch() {
 async function submitJson() {
   try {
     const payload = JSON.parse(document.getElementById('rawJson').value);
-    const data = await api('/api/batches/contractor-sites', {
+    const data = await api('/api/operator/run', {
       method:'POST',
       headers:{'Content-Type':'application/json'},
-      body: JSON.stringify(payload)
+      body: JSON.stringify({ command: 'contractor-sites', payload })
     });
     log(data);
     loadBatches();
