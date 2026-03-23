@@ -175,7 +175,7 @@ const JOB_HANDLERS: Record<string, JobHandler> = {
           'index.html': page(indexTitle, indexDesc, indexBody),
           'services.html': page(servicesTitle, servicesDesc, servicesBody),
           'contact.html': page(contactTitle, contactDesc, contactBody),
-        },
+        } as Record<string, string>,
         meta: {
           index: { title: indexTitle, description: indexDesc },
           services: { title: servicesTitle, description: servicesDesc },
@@ -188,6 +188,48 @@ const JOB_HANDLERS: Record<string, JobHandler> = {
     builtSites.forEach((s) => {
       s.files['manifest.json'] = JSON.stringify(s.manifest, null, 2);
       s.files['schema.json'] = JSON.stringify(s.schema, null, 2);
+
+      // Generate HANDOFF.md for finishing agents
+      const handoff = [
+        `# ${s.businessName} — Handoff`,
+        '',
+        `**Slug:** ${s.slug}`,
+        `**Trade:** ${s.manifest.trade}`,
+        `**Location:** ${s.manifest.location}`,
+        `**Status:** ${s.manifest.status}`,
+        `**Generated:** ${s.manifest.generatedAt}`,
+        '',
+        '## Files',
+        ...s.manifest.pages.map((p: string) => `- ${p}`),
+        '- manifest.json',
+        '- schema.json',
+        '',
+        '## Placeholder Assets (replace before publish)',
+        ...Object.entries(s.manifest.assets).map(
+          ([file, info]: [string, unknown]) => `- **${file}** — ${(info as Record<string, string>).note}`,
+        ),
+        '',
+        '## Placeholder Content (review before publish)',
+        ...Object.entries(s.manifest.content).map(
+          ([key, info]: [string, unknown]) => `- **${key}** (${(info as Record<string, string>).status}) — ${(info as Record<string, string>).note}`,
+        ),
+        '',
+        '## Deploy to cPanel',
+        `1. Upload the \`${s.slug}/\` folder contents to \`public_html/\``,
+        '2. Replace placeholder assets listed above',
+        '3. Review and customize placeholder content',
+        '4. Verify schema.json with Google Rich Results Test',
+        '5. Set status to "live" in manifest.json',
+        '',
+      ].join('\n');
+      s.files['HANDOFF.md'] = handoff;
+
+      // Re-key files under slug/ prefix for clean package structure
+      const prefixed: Record<string, string> = {};
+      for (const [filename, content] of Object.entries(s.files)) {
+        prefixed[`${s.slug}/${filename}`] = content as string;
+      }
+      s.files = prefixed;
     });
 
     return { siteCount: builtSites.length, sites: builtSites, handoffReady: true };

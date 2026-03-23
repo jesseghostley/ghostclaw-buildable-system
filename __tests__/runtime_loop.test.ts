@@ -84,9 +84,10 @@ describe('processSignal', () => {
     expect(site.schema['@type']).toBe('LocalBusiness');
     expect(site.schema.telephone).toBe('303-555-1234');
 
-    // 5 files: 3 HTML + manifest.json + schema.json
+    // 6 files: 3 HTML + manifest.json + schema.json + HANDOFF.md, all under slug/
+    const s = 'summit-hvac';
     expect(Object.keys(site.files)).toEqual([
-      'manifest.json', 'schema.json', 'index.html', 'services.html', 'contact.html',
+      `${s}/manifest.json`, `${s}/schema.json`, `${s}/index.html`, `${s}/services.html`, `${s}/contact.html`, `${s}/HANDOFF.md`,
     ]);
 
     // Manifest structure
@@ -102,41 +103,48 @@ describe('processSignal', () => {
     expect(site.manifest.generatedAt).toBeDefined();
 
     // manifest.json and schema.json are valid JSON strings in files
-    expect(JSON.parse(site.files['manifest.json']).slug).toBe('summit-hvac');
-    expect(JSON.parse(site.files['schema.json'])['@type']).toBe('LocalBusiness');
+    expect(JSON.parse(site.files[`${s}/manifest.json`]).slug).toBe('summit-hvac');
+    expect(JSON.parse(site.files[`${s}/schema.json`])['@type']).toBe('LocalBusiness');
 
     // Shared nav present in all HTML pages
-    expect(site.files['index.html']).toContain('<nav');
-    expect(site.files['services.html']).toContain('<nav');
-    expect(site.files['contact.html']).toContain('<nav');
+    expect(site.files[`${s}/index.html`]).toContain('<nav');
+    expect(site.files[`${s}/services.html`]).toContain('<nav');
+    expect(site.files[`${s}/contact.html`]).toContain('<nav');
 
     // Shared footer present in all HTML pages
-    expect(site.files['index.html']).toContain('<footer');
-    expect(site.files['services.html']).toContain('<footer');
-    expect(site.files['contact.html']).toContain('<footer');
+    expect(site.files[`${s}/index.html`]).toContain('<footer');
+    expect(site.files[`${s}/services.html`]).toContain('<footer');
+    expect(site.files[`${s}/contact.html`]).toContain('<footer');
 
     // Image placeholders
-    expect(site.files['index.html']).toContain('src="logo.png"');
-    expect(site.files['services.html']).toContain('src="logo.png"');
-    expect(site.files['contact.html']).toContain('src="logo.png"');
-    expect(site.files['index.html']).toContain('src="hero.jpg"');
-    expect(site.files['index.html']).toContain('og:image');
-    expect(site.files['services.html']).toContain('og:image');
-    expect(site.files['contact.html']).toContain('og:image');
-    expect(site.files['index.html']).toContain('img-placeholder');
+    expect(site.files[`${s}/index.html`]).toContain('src="logo.png"');
+    expect(site.files[`${s}/services.html`]).toContain('src="logo.png"');
+    expect(site.files[`${s}/contact.html`]).toContain('src="logo.png"');
+    expect(site.files[`${s}/index.html`]).toContain('src="hero.jpg"');
+    expect(site.files[`${s}/index.html`]).toContain('og:image');
+    expect(site.files[`${s}/services.html`]).toContain('og:image');
+    expect(site.files[`${s}/contact.html`]).toContain('og:image');
+    expect(site.files[`${s}/index.html`]).toContain('img-placeholder');
 
     // Page-specific content
-    expect(site.files['index.html']).toContain('Summit HVAC');
-    expect(site.files['services.html']).toContain('Hvac Services');
-    expect(site.files['contact.html']).toContain('303-555-1234');
-    expect(site.files['contact.html']).toContain('info@summithvac.com');
+    expect(site.files[`${s}/index.html`]).toContain('Summit HVAC');
+    expect(site.files[`${s}/services.html`]).toContain('Hvac Services');
+    expect(site.files[`${s}/contact.html`]).toContain('303-555-1234');
+    expect(site.files[`${s}/contact.html`]).toContain('info@summithvac.com');
 
     // Service cards present on services page
-    expect(site.files['services.html']).toContain('class="card"');
+    expect(site.files[`${s}/services.html`]).toContain('class="card"');
 
     // Contact form present on contact page
-    expect(site.files['contact.html']).toContain('<form');
-    expect(site.files['contact.html']).toContain('class="form-group"');
+    expect(site.files[`${s}/contact.html`]).toContain('<form');
+    expect(site.files[`${s}/contact.html`]).toContain('class="form-group"');
+
+    // HANDOFF.md present and contains key info
+    expect(site.files[`${s}/HANDOFF.md`]).toContain('# Summit HVAC');
+    expect(site.files[`${s}/HANDOFF.md`]).toContain('**Slug:** summit-hvac');
+    expect(site.files[`${s}/HANDOFF.md`]).toContain('## Placeholder Assets');
+    expect(site.files[`${s}/HANDOFF.md`]).toContain('## Deploy to cPanel');
+    expect(site.files[`${s}/HANDOFF.md`]).toContain('public_html/');
 
     // Per-page meta
     expect(site.meta.index.title).toContain('Summit HVAC');
@@ -227,7 +235,7 @@ describe('processSignal', () => {
     });
 
     const content = JSON.parse(result.artifacts[0].content);
-    const html = content.sites[0].files['index.html'];
+    const html = content.sites[0].files['bright-plumbing/index.html'];
 
     // Overridden color tokens appear in the generated HTML
     expect(html).toContain('background:#ffffff');
@@ -253,7 +261,7 @@ describe('processSignal', () => {
     });
 
     const content = JSON.parse(result.artifacts[0].content);
-    const html = content.sites[0].files['index.html'];
+    const html = content.sites[0].files['default-co/index.html'];
 
     expect(html).toContain(`background:${DEFAULT_TOKENS.colors.background}`);
     expect(html).toContain(`color:${DEFAULT_TOKENS.colors.text}`);
@@ -355,9 +363,9 @@ describe('CTA button classes', () => {
     });
 
     const content = JSON.parse(result.artifacts[0].content);
-    const index = content.sites[0].files['index.html'];
-    const services = content.sites[0].files['services.html'];
-    const contact = content.sites[0].files['contact.html'];
+    const index = content.sites[0].files['button-co/index.html'];
+    const services = content.sites[0].files['button-co/services.html'];
+    const contact = content.sites[0].files['button-co/contact.html'];
 
     // Primary CTA buttons on index and services pages
     expect(index).toContain('class="cta-button"');
@@ -397,7 +405,7 @@ describe('CTA button classes', () => {
     });
 
     const content = JSON.parse(result.artifacts[0].content);
-    const html = content.sites[0].files['index.html'];
+    const html = content.sites[0].files['green-cta/index.html'];
 
     // Overridden primary button tokens
     expect(html).toContain('background:#16a34a');
@@ -425,7 +433,7 @@ describe('Form and card token integration', () => {
     });
 
     const content = JSON.parse(result.artifacts[0].content);
-    const contact = content.sites[0].files['contact.html'];
+    const contact = content.sites[0].files['form-co/contact.html'];
 
     // Form structure
     expect(contact).toContain('<form');
@@ -454,7 +462,7 @@ describe('Form and card token integration', () => {
     });
 
     const content = JSON.parse(result.artifacts[0].content);
-    const services = content.sites[0].files['services.html'];
+    const services = content.sites[0].files['card-co/services.html'];
 
     // Card structure
     expect(services).toContain('class="card"');
@@ -489,7 +497,7 @@ describe('Form and card token integration', () => {
     });
 
     const content = JSON.parse(result.artifacts[0].content);
-    const contact = content.sites[0].files['contact.html'];
+    const contact = content.sites[0].files['custom-form/contact.html'];
 
     expect(contact).toContain('background:#ffffff');
     expect(contact).toContain('border:1px solid #d1d5db');
@@ -515,7 +523,7 @@ describe('Form and card token integration', () => {
     });
 
     const content = JSON.parse(result.artifacts[0].content);
-    const services = content.sites[0].files['services.html'];
+    const services = content.sites[0].files['custom-card/services.html'];
 
     expect(services).toContain('background:#f9fafb');
     expect(services).toContain('border:1px solid #e5e7eb');
@@ -543,9 +551,9 @@ describe('Form and card token integration', () => {
     });
 
     const content = JSON.parse(result.artifacts[0].content);
-    const services = content.sites[0].files['services.html'];
-    const contact = content.sites[0].files['contact.html'];
-    const index = content.sites[0].files['index.html'];
+    const services = content.sites[0].files['border-test/services.html'];
+    const contact = content.sites[0].files['border-test/contact.html'];
+    const index = content.sites[0].files['border-test/index.html'];
 
     // Full shorthand passed through without duplication
     expect(services).toContain('border:2px dashed #e5e7eb');
