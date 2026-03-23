@@ -114,6 +114,16 @@ describe('processSignal', () => {
     expect(site.files['services.html']).toContain('<footer');
     expect(site.files['contact.html']).toContain('<footer');
 
+    // Image placeholders
+    expect(site.files['index.html']).toContain('src="logo.png"');
+    expect(site.files['services.html']).toContain('src="logo.png"');
+    expect(site.files['contact.html']).toContain('src="logo.png"');
+    expect(site.files['index.html']).toContain('src="hero.jpg"');
+    expect(site.files['index.html']).toContain('og:image');
+    expect(site.files['services.html']).toContain('og:image');
+    expect(site.files['contact.html']).toContain('og:image');
+    expect(site.files['index.html']).toContain('img-placeholder');
+
     // Page-specific content
     expect(site.files['index.html']).toContain('Summit HVAC');
     expect(site.files['services.html']).toContain('Hvac Services');

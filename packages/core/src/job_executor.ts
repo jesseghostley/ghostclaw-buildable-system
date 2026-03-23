@@ -35,7 +35,8 @@ const JOB_HANDLERS: Record<string, JobHandler> = {
       const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, '-');
 
       const nav = [
-        '<nav style="background:#1e293b;padding:12px 24px;display:flex;gap:24px">',
+        '<nav style="background:#1e293b;padding:12px 24px;display:flex;gap:24px;align-items:center">',
+        '<img src="logo.png" alt="' + name + ' logo" style="height:40px;width:auto;border:2px dashed #475569;border-radius:4px;padding:2px"/>',
         `<a href="index.html" style="color:#93c5fd;text-decoration:none;font-weight:bold">${name}</a>`,
         '<a href="services.html" style="color:#cbd5e1;text-decoration:none">Services</a>',
         '<a href="contact.html" style="color:#cbd5e1;text-decoration:none">Contact</a>',
@@ -57,8 +58,11 @@ const JOB_HANDLERS: Record<string, JobHandler> = {
           '<meta name="viewport" content="width=device-width, initial-scale=1.0"/>',
           `<title>${title}</title>`,
           `<meta name="description" content="${desc}"/>`,
+          '<meta property="og:image" content="og-image.jpg"/>',
           '<style>body{font-family:Arial,sans-serif;margin:0;color:#e2e8f0;background:#0f172a}',
-          'main{max-width:800px;margin:0 auto;padding:24px}h1{margin:0 0 16px}p{line-height:1.6}</style>',
+          'main{max-width:800px;margin:0 auto;padding:24px}h1{margin:0 0 16px}p{line-height:1.6}',
+          '.img-placeholder{border:2px dashed #475569;border-radius:8px;display:flex;align-items:center;',
+          'justify-content:center;color:#64748b;font-size:14px;background:#1e293b}</style>',
           '</head>',
           '<body>',
           nav,
@@ -74,6 +78,9 @@ const JOB_HANDLERS: Record<string, JobHandler> = {
       const indexTitle = `${name} \u2013 ${trade} in ${location}`;
       const indexDesc = `${name} provides professional ${trade} services in ${location}.`;
       const indexBody = [
+        '<div class="img-placeholder" style="width:100%;height:300px;margin-bottom:24px">',
+        `<img src="hero.jpg" alt="${name} hero" style="width:100%;height:100%;object-fit:cover;border-radius:8px" onerror="this.style.display=&apos;none&apos;;this.parentNode.textContent=&apos;[ hero.jpg — 1200x600 recommended ]&apos;"/>`,
+        '</div>',
         `<h1>${name}</h1>`,
         `<p>Professional ${trade} services in ${location}.</p>`,
         `<p>${name} delivers reliable, high-quality ${trade} solutions for residential and commercial clients.</p>`,
