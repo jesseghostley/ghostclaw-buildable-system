@@ -2,6 +2,7 @@ import { processSignal, runtimeStore } from '../packages/core/src/runtime_loop';
 import { jobQueue } from '../packages/core/src/job_queue';
 import { skillInvocationStore } from '../packages/core/src/skill_invocation';
 import { assignmentStore } from '../packages/core/src/assignment';
+import { parseDesignMarkdown, resolveTokens, DEFAULT_TOKENS } from '../packages/core/src/design_tokens';
 
 // Reset all module-level singletons before each test to avoid cross-test contamination.
 beforeEach(() => {
@@ -196,5 +197,108 @@ describe('processSignal', () => {
     processSignal({ name: 'runtime_error_detected' });
     expect(runtimeStore.assignments).toHaveLength(1);
     expect(runtimeStore.assignments[0].agentName).toBe('DiagnosticsAgent');
+  });
+
+  it('applies design token overrides from payload.designMarkdown', () => {
+    const customDesign = [
+      '## colors',
+      '- background: #ffffff',
+      '- text: #111827',
+      '- link: #2563eb',
+    ].join('\n');
+
+    const result = processSignal({
+      name: 'contractor_site_requested',
+      payload: {
+        designMarkdown: customDesign,
+        sites: [
+          { businessName: 'Bright Plumbing', trade: 'plumbing', location: 'Austin, TX' },
+        ],
+      },
+    });
+
+    const content = JSON.parse(result.artifacts[0].content);
+    const html = content.sites[0].files['index.html'];
+
+    // Overridden tokens appear in the generated HTML
+    expect(html).toContain('background:#ffffff');
+    expect(html).toContain('color:#111827');
+    expect(html).toContain('color:#2563eb');
+
+    // Non-overridden tokens keep defaults
+    expect(html).toContain(DEFAULT_TOKENS.colors.surface);
+    expect(html).toContain(DEFAULT_TOKENS.colors.border);
+  });
+
+  it('uses default tokens when no designMarkdown is provided', () => {
+    const result = processSignal({
+      name: 'contractor_site_requested',
+      payload: {
+        sites: [
+          { businessName: 'Default Co', trade: 'roofing', location: 'Portland, OR' },
+        ],
+      },
+    });
+
+    const content = JSON.parse(result.artifacts[0].content);
+    const html = content.sites[0].files['index.html'];
+
+    expect(html).toContain(`background:${DEFAULT_TOKENS.colors.background}`);
+    expect(html).toContain(`color:${DEFAULT_TOKENS.colors.text}`);
+    expect(html).toContain(`color:${DEFAULT_TOKENS.colors.link}`);
+  });
+});
+
+describe('parseDesignMarkdown', () => {
+  it('parses section headers and key-value pairs', () => {
+    const md = [
+      '# Design Tokens',
+      'Some prose to ignore.',
+      '',
+      '## colors',
+      '- background: #fff',
+      '- text: #000',
+      '',
+      '## typography',
+      '- font-family: Georgia, serif',
+    ].join('\n');
+
+    const result = parseDesignMarkdown(md);
+    expect(result.colors.background).toBe('#fff');
+    expect(result.colors.text).toBe('#000');
+    expect(result.typography['font-family']).toBe('Georgia, serif');
+  });
+
+  it('returns empty object for empty input', () => {
+    expect(parseDesignMarkdown('')).toEqual({});
+  });
+
+  it('ignores lines without proper format', () => {
+    const md = [
+      '## colors',
+      'not a token line',
+      '- valid: #aaa',
+      '  - indented: #bbb',
+    ].join('\n');
+
+    const result = parseDesignMarkdown(md);
+    expect(result.colors).toEqual({ valid: '#aaa' });
+  });
+});
+
+describe('resolveTokens', () => {
+  it('returns defaults when called with no argument', () => {
+    const tokens = resolveTokens();
+    expect(tokens).toEqual(DEFAULT_TOKENS);
+  });
+
+  it('merges overrides over defaults', () => {
+    const md = '## colors\n- background: #ff0000';
+    const tokens = resolveTokens(md);
+    expect(tokens.colors.background).toBe('#ff0000');
+    // Everything else stays default
+    expect(tokens.colors.text).toBe(DEFAULT_TOKENS.colors.text);
+    expect(tokens.typography).toEqual(DEFAULT_TOKENS.typography);
+    expect(tokens.layout).toEqual(DEFAULT_TOKENS.layout);
   });
 });

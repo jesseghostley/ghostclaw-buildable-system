@@ -4,6 +4,7 @@ import { skillInvocationStore } from './skill_invocation';
 import { assignmentStore } from './assignment';
 import { eventBus } from './event_bus';
 import type { Artifact } from './runtime_loop';
+import { resolveTokens } from './design_tokens';
 
 export type JobHandler = (inputPayload: Record<string, unknown>) => Record<string, unknown>;
 
@@ -26,6 +27,9 @@ const JOB_HANDLERS: Record<string, JobHandler> = {
       Record<string, string>
     >;
 
+    // Resolve design tokens: payload override → DESIGN.md → defaults
+    const t = resolveTokens(payload.designMarkdown as string | undefined);
+
     const builtSites = sites.map((site) => {
       const name = site.businessName || 'Contractor';
       const trade = site.trade || 'General';
@@ -35,16 +39,16 @@ const JOB_HANDLERS: Record<string, JobHandler> = {
       const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, '-');
 
       const nav = [
-        '<nav style="background:#1e293b;padding:12px 24px;display:flex;gap:24px;align-items:center">',
-        '<img src="logo.png" alt="' + name + ' logo" style="height:40px;width:auto;border:2px dashed #475569;border-radius:4px;padding:2px"/>',
-        `<a href="index.html" style="color:#93c5fd;text-decoration:none;font-weight:bold">${name}</a>`,
-        '<a href="services.html" style="color:#cbd5e1;text-decoration:none">Services</a>',
-        '<a href="contact.html" style="color:#cbd5e1;text-decoration:none">Contact</a>',
+        `<nav style="background:${t.colors.surface};padding:${t.layout['nav-padding']};display:flex;gap:24px;align-items:center">`,
+        '<img src="logo.png" alt="' + name + ` logo" style="height:40px;width:auto;border:2px dashed ${t.colors.border};border-radius:4px;padding:2px"/>`,
+        `<a href="index.html" style="color:${t.colors['nav-link']};text-decoration:none;font-weight:bold">${name}</a>`,
+        `<a href="services.html" style="color:${t.colors['nav-link-secondary']};text-decoration:none">Services</a>`,
+        `<a href="contact.html" style="color:${t.colors['nav-link-secondary']};text-decoration:none">Contact</a>`,
         '</nav>',
       ].join('\n');
 
       const footer = [
-        '<footer style="background:#1e293b;padding:24px;text-align:center;color:#94a3b8;margin-top:48px">',
+        `<footer style="background:${t.colors.surface};padding:${t.layout.padding};text-align:center;color:${t.colors['text-muted']};margin-top:${t.layout['footer-margin-top']}">`,
         `<p>&copy; ${new Date().getFullYear()} ${name}. ${trade} services in ${location}.</p>`,
         '</footer>',
       ].join('\n');
@@ -59,10 +63,10 @@ const JOB_HANDLERS: Record<string, JobHandler> = {
           `<title>${title}</title>`,
           `<meta name="description" content="${desc}"/>`,
           '<meta property="og:image" content="og-image.jpg"/>',
-          '<style>body{font-family:Arial,sans-serif;margin:0;color:#e2e8f0;background:#0f172a}',
-          'main{max-width:800px;margin:0 auto;padding:24px}h1{margin:0 0 16px}p{line-height:1.6}',
-          '.img-placeholder{border:2px dashed #475569;border-radius:8px;display:flex;align-items:center;',
-          'justify-content:center;color:#64748b;font-size:14px;background:#1e293b}</style>',
+          `<style>body{font-family:${t.typography['font-family']};margin:0;color:${t.colors.text};background:${t.colors.background}}`,
+          `main{max-width:${t.layout['max-width']};margin:0 auto;padding:${t.layout.padding}}h1{margin:0 0 16px}p{line-height:${t.typography['line-height']}}`,
+          `.img-placeholder{border:2px dashed ${t.colors.border};border-radius:8px;display:flex;align-items:center;`,
+          `justify-content:center;color:${t.colors['placeholder-text']};font-size:14px;background:${t.colors.surface}}</style>`,
           '</head>',
           '<body>',
           nav,
@@ -84,8 +88,8 @@ const JOB_HANDLERS: Record<string, JobHandler> = {
         `<h1>${name}</h1>`,
         `<p>Professional ${trade} services in ${location}.</p>`,
         `<p>${name} delivers reliable, high-quality ${trade} solutions for residential and commercial clients.</p>`,
-        '<p><a href="services.html" style="color:#60a5fa">View our services &rarr;</a></p>',
-        '<p><a href="contact.html" style="color:#60a5fa">Get in touch &rarr;</a></p>',
+        `<p><a href="services.html" style="color:${t.colors.link}">View our services &rarr;</a></p>`,
+        `<p><a href="contact.html" style="color:${t.colors.link}">Get in touch &rarr;</a></p>`,
       ].join('\n');
 
       const servicesTitle = `Services \u2013 ${name}`;
@@ -99,7 +103,7 @@ const JOB_HANDLERS: Record<string, JobHandler> = {
         `<li>Emergency ${trade} repair</li>`,
         `<li>${trade.charAt(0).toUpperCase() + trade.slice(1)} installation &amp; maintenance</li>`,
         '</ul>',
-        '<p><a href="contact.html" style="color:#60a5fa">Request a quote &rarr;</a></p>',
+        `<p><a href="contact.html" style="color:${t.colors.link}">Request a quote &rarr;</a></p>`,
       ].join('\n');
 
       const contactTitle = `Contact \u2013 ${name}`;
@@ -108,7 +112,7 @@ const JOB_HANDLERS: Record<string, JobHandler> = {
         '<h1>Contact Us</h1>',
         `<p>Reach out to ${name} for ${trade} services in ${location}.</p>`,
         phone ? `<p><strong>Phone:</strong> ${phone}</p>` : '',
-        email ? `<p><strong>Email:</strong> <a href="mailto:${email}" style="color:#60a5fa">${email}</a></p>` : '',
+        email ? `<p><strong>Email:</strong> <a href="mailto:${email}" style="color:${t.colors.link}">${email}</a></p>` : '',
         location ? `<p><strong>Location:</strong> ${location}</p>` : '',
       ].filter(Boolean).join('\n');
 
