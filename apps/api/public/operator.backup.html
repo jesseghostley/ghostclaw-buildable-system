@@ -1,0 +1,229 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>GhostClaw Operator Console</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 0; padding: 16px; background:#0f172a; color:#e2e8f0; }
+    h1,h2 { margin: 0 0 12px; }
+    .grid { display:grid; grid-template-columns: repeat(auto-fit,minmax(320px,1fr)); gap:16px; }
+    .panel { background:#111827; border:1px solid #334155; border-radius:8px; padding:16px; }
+    button { margin:4px 6px 4px 0; padding:8px 12px; border:0; border-radius:6px; cursor:pointer; background:#2563eb; color:white; }
+    button.secondary { background:#475569; }
+    input, textarea { width:100%; box-sizing:border-box; margin:6px 0 10px; padding:8px; border-radius:6px; border:1px solid #475569; background:#0b1220; color:#e2e8f0; }
+    pre { white-space:pre-wrap; word-break:break-word; background:#020617; padding:12px; border-radius:6px; min-height:160px; }
+    .item { border-top:1px solid #334155; padding:10px 0; }
+    .muted { color:#94a3b8; font-size:12px; }
+  </style>
+</head>
+<body>
+  <h1>GhostClaw Operator Console</h1>
+  <p class="muted">Use existing APIs only. Results stream into the log box.</p>
+
+  <div class="grid">
+    <div class="panel">
+      <h2>Checks</h2>
+      <button onclick="runScript('check-runtime')">Runtime Check</button>
+      <button onclick="runScript('test-variation')">Variation Test</button>
+      <button onclick="runExportPrompt()">Export Check</button>
+    </div>
+
+    <div class="panel">
+      <h2>Pending Approvals</h2>
+      <button class="secondary" onclick="loadApprovals()">Refresh</button>
+      <div id="approvals"></div>
+    </div>
+
+    <div class="panel">
+      <h2>Recent Batches</h2>
+      <button class="secondary" onclick="loadBatches()">Refresh</button>
+      <div id="batches"></div>
+    </div>
+
+    <div class="panel">
+      <h2>Batch Submit</h2>
+      <input id="businessName" placeholder="businessName" />
+      <input id="trade" placeholder="trade" />
+      <input id="location" placeholder="location" />
+      <input id="phone" placeholder="phone (optional)" />
+      <input id="email" placeholder="email (optional)" />
+      <button onclick="addSite()">Add Site</button>
+      <button onclick="submitBatch()">Submit Batch</button>
+      <div id="siteList" class="muted"></div>
+      <hr />
+      <textarea id="rawJson" rows="10" placeholder='{"sites":[{"businessName":"Summit HVAC","trade":"hvac","location":"Denver, CO"}]}'></textarea>
+      <button onclick="submitJson()">Submit JSON</button>
+    </div>
+
+    <div class="panel" style="grid-column:1 / -1;">
+      <h2>Log Output</h2>
+      <pre id="log"></pre>
+    </div>
+  </div>
+
+<script>
+const logBox = document.getElementById('log');
+const approvalsBox = document.getElementById('approvals');
+const batchesBox = document.getElementById('batches');
+const siteListBox = document.getElementById('siteList');
+let draftSites = [];
+
+function log(msg) {
+  if (typeof msg !== 'string') msg = JSON.stringify(msg, null, 2);
+  logBox.textContent = `[${new Date().toLocaleTimeString()}]\n` + msg + "\n\n" + logBox.textContent;
+}
+
+async function api(url, options={}) {
+  const res = await fetch(url, options);
+  const text = await res.text();
+  let data;
+  try { data = JSON.parse(text); } catch { data = text; }
+  if (!res.ok) throw new Error(typeof data === 'string' ? data : JSON.stringify(data));
+  return data;
+}
+
+async function runScript(script) {
+  try {
+    const data = await api('/api/operator/run', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ script })
+    });
+    log(data);
+    loadApprovals();
+    loadBatches();
+  } catch (e) { log(String(e)); }
+}
+
+async function runExportPrompt() {
+  const id = prompt('Enter batch id for export check');
+  if (!id) return;
+  try {
+    const data = await api('/api/batches/' + encodeURIComponent(id) + '/export');
+    log(data);
+    loadBatches();
+  } catch (e) { log(String(e)); }
+}
+
+async function loadApprovals() {
+  try {
+    const pending = await api('/api/approvals/pending');
+    const history = await api('/api/approvals/history');
+    const items = [...(pending.pending || []), ...((history.items || []).filter(x => x.status === 'approved'))];
+    approvalsBox.innerHTML = items.length ? '' : '<div class="muted">No pending/approved approvals</div>';
+    items.forEach(item => {
+      const div = document.createElement('div');
+      div.className = 'item';
+      div.innerHTML = `
+        <div><strong>${item.id || 'unknown'}</strong></div>
+        <div class="muted">${item.status || ''} ${item.destination ? '• ' + item.destination : ''}</div>
+      `;
+      const approveBtn = document.createElement('button');
+      approveBtn.textContent = 'Approve';
+      approveBtn.onclick = async () => {
+        try {
+          const data = await api('/api/approvals/' + encodeURIComponent(item.id) + '/approve', {
+            method: 'POST',
+            headers: {'Content-Type':'application/json'},
+            body: JSON.stringify({ approvedBy: 'operator:browser' })
+          });
+          log(data); loadApprovals(); loadBatches();
+        } catch (e) { log(String(e)); }
+      };
+      const publishBtn = document.createElement('button');
+      publishBtn.textContent = 'Publish';
+      publishBtn.onclick = async () => {
+        try {
+          const data = await api('/api/approvals/' + encodeURIComponent(item.id) + '/publish', {
+            method: 'POST',
+            headers: {'Content-Type':'application/json'}
+          });
+          log(data); loadApprovals(); loadBatches();
+        } catch (e) { log(String(e)); }
+      };
+      if (item.status === 'pending') div.appendChild(approveBtn);
+      if (item.status === 'approved') div.appendChild(publishBtn);
+      approvalsBox.appendChild(div);
+    });
+  } catch (e) { log(String(e)); }
+}
+
+async function loadBatches() {
+  try {
+    const data = await api('/api/batches');
+    const batches = data.batches || [];
+    batchesBox.innerHTML = batches.length ? '' : '<div class="muted">No batches found</div>';
+    batches.forEach(batch => {
+      const div = document.createElement('div');
+      div.className = 'item';
+      div.innerHTML = `
+        <div><strong>${batch.id}</strong></div>
+        <div class="muted">${new Date(batch.createdAt).toLocaleString()}</div>
+        <div class="muted">sites: ${batch.totalSites} • processed: ${batch.processed}</div>
+      `;
+      const exportBtn = document.createElement('button');
+      exportBtn.textContent = 'Export';
+      exportBtn.onclick = async () => {
+        try {
+          const out = await api('/api/batches/' + encodeURIComponent(batch.id) + '/export');
+          log(out);
+        } catch (e) { log(String(e)); }
+      };
+      div.appendChild(exportBtn);
+      batchesBox.appendChild(div);
+    });
+  } catch (e) { log(String(e)); }
+}
+
+function addSite() {
+  const site = {
+    businessName: document.getElementById('businessName').value.trim(),
+    trade: document.getElementById('trade').value.trim(),
+    location: document.getElementById('location').value.trim(),
+  };
+  const phone = document.getElementById('phone').value.trim();
+  const email = document.getElementById('email').value.trim();
+  if (!site.businessName || !site.trade || !site.location) return log('businessName, trade, location are required');
+  if (phone) site.phone = phone;
+  if (email) site.email = email;
+  draftSites.push(site);
+  siteListBox.textContent = JSON.stringify(draftSites, null, 2);
+  ['businessName','trade','location','phone','email'].forEach(id => document.getElementById(id).value = '');
+}
+
+async function submitBatch() {
+  if (!draftSites.length) return log('No sites added');
+  try {
+    const data = await api('/api/batches/contractor-sites', {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ sites: draftSites })
+    });
+    log(data);
+    draftSites = [];
+    siteListBox.textContent = '';
+    loadBatches();
+    loadApprovals();
+  } catch (e) { log(String(e)); }
+}
+
+async function submitJson() {
+  try {
+    const payload = JSON.parse(document.getElementById('rawJson').value);
+    const data = await api('/api/batches/contractor-sites', {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify(payload)
+    });
+    log(data);
+    loadBatches();
+    loadApprovals();
+  } catch (e) { log(String(e)); }
+}
+
+loadApprovals();
+loadBatches();
+</script>
+</body>
+</html>
