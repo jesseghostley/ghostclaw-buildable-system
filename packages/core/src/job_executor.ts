@@ -5,10 +5,94 @@ import { assignmentStore } from './assignment';
 import { eventBus } from './event_bus';
 import type { Artifact } from './runtime_loop';
 import { resolveTokens } from './design_tokens';
+import { deflateRawSync } from 'zlib';
 
 /** If token is just a color, prepend '1px solid'; if already a full shorthand, use as-is. */
 function borderVal(v: string): string {
   return v.includes(' ') ? v : `1px solid ${v}`;
+}
+
+/**
+ * Build a ZIP file buffer in memory from a map of { path: content } entries.
+ * Uses Node built-in zlib — no third-party dependencies.
+ */
+function buildZipBuffer(entries: Record<string, string>): Buffer {
+  const parts: Buffer[] = [];
+  const centralDir: Buffer[] = [];
+  let offset = 0;
+
+  for (const [name, content] of Object.entries(entries)) {
+    const nameBytes = Buffer.from(name, 'utf-8');
+    const data = Buffer.from(content, 'utf-8');
+    const compressed = deflateRawSync(data);
+    const crc = crc32(data);
+
+    // Local file header
+    const local = Buffer.alloc(30 + nameBytes.length);
+    local.writeUInt32LE(0x04034b50, 0);   // signature
+    local.writeUInt16LE(20, 4);            // version needed
+    local.writeUInt16LE(0, 6);             // flags
+    local.writeUInt16LE(8, 8);             // compression: deflate
+    local.writeUInt16LE(0, 10);            // mod time
+    local.writeUInt16LE(0, 12);            // mod date
+    local.writeUInt32LE(crc, 14);          // crc-32
+    local.writeUInt32LE(compressed.length, 18);  // compressed size
+    local.writeUInt32LE(data.length, 22);        // uncompressed size
+    local.writeUInt16LE(nameBytes.length, 26);   // filename length
+    local.writeUInt16LE(0, 28);            // extra field length
+    nameBytes.copy(local, 30);
+
+    // Central directory entry
+    const central = Buffer.alloc(46 + nameBytes.length);
+    central.writeUInt32LE(0x02014b50, 0);  // signature
+    central.writeUInt16LE(20, 4);          // version made by
+    central.writeUInt16LE(20, 6);          // version needed
+    central.writeUInt16LE(0, 8);           // flags
+    central.writeUInt16LE(8, 10);          // compression: deflate
+    central.writeUInt16LE(0, 12);          // mod time
+    central.writeUInt16LE(0, 14);          // mod date
+    central.writeUInt32LE(crc, 16);        // crc-32
+    central.writeUInt32LE(compressed.length, 20); // compressed size
+    central.writeUInt32LE(data.length, 24);       // uncompressed size
+    central.writeUInt16LE(nameBytes.length, 28);  // filename length
+    central.writeUInt16LE(0, 30);          // extra field length
+    central.writeUInt16LE(0, 32);          // comment length
+    central.writeUInt16LE(0, 34);          // disk number start
+    central.writeUInt16LE(0, 36);          // internal attrs
+    central.writeUInt32LE(0, 38);          // external attrs
+    central.writeUInt32LE(offset, 42);     // local header offset
+    nameBytes.copy(central, 46);
+
+    parts.push(local, compressed);
+    centralDir.push(central);
+    offset += local.length + compressed.length;
+  }
+
+  // End of central directory
+  const centralDirBuf = Buffer.concat(centralDir);
+  const eocd = Buffer.alloc(22);
+  eocd.writeUInt32LE(0x06054b50, 0);      // signature
+  eocd.writeUInt16LE(0, 4);               // disk number
+  eocd.writeUInt16LE(0, 6);               // central dir disk
+  eocd.writeUInt16LE(centralDir.length, 8);    // entries on disk
+  eocd.writeUInt16LE(centralDir.length, 10);   // total entries
+  eocd.writeUInt32LE(centralDirBuf.length, 12); // central dir size
+  eocd.writeUInt32LE(offset, 16);              // central dir offset
+  eocd.writeUInt16LE(0, 20);              // comment length
+
+  return Buffer.concat([...parts, centralDirBuf, eocd]);
+}
+
+/** CRC-32 (ISO 3309) — small, zero-dependency implementation. */
+function crc32(buf: Buffer): number {
+  let crc = 0xffffffff;
+  for (let i = 0; i < buf.length; i++) {
+    crc ^= buf[i];
+    for (let j = 0; j < 8; j++) {
+      crc = (crc >>> 1) ^ (crc & 1 ? 0xedb88320 : 0);
+    }
+  }
+  return (crc ^ 0xffffffff) >>> 0;
 }
 
 export type JobHandler = (inputPayload: Record<string, unknown>) => Record<string, unknown>;
@@ -215,7 +299,7 @@ const JOB_HANDLERS: Record<string, JobHandler> = {
         ),
         '',
         '## Deploy to cPanel',
-        `1. Upload the \`${s.slug}/\` folder contents to \`public_html/\``,
+        `1. Extract \`${s.slug}.zip\` or upload the \`${s.slug}/\` folder to \`public_html/\``,
         '2. Replace placeholder assets listed above',
         '3. Review and customize placeholder content',
         '4. Verify schema.json with Google Rich Results Test',
@@ -224,12 +308,23 @@ const JOB_HANDLERS: Record<string, JobHandler> = {
       ].join('\n');
       s.files['HANDOFF.md'] = handoff;
 
+      // Record zip filename in manifest
+      const zipFilename = `${s.slug}.zip`;
+      (s.manifest as Record<string, unknown>).zipFilename = zipFilename;
+      // Re-serialize manifest.json to include zipFilename
+      s.files['manifest.json'] = JSON.stringify(s.manifest, null, 2);
+
       // Re-key files under slug/ prefix for clean package structure
       const prefixed: Record<string, string> = {};
       for (const [filename, content] of Object.entries(s.files)) {
         prefixed[`${s.slug}/${filename}`] = content as string;
       }
       s.files = prefixed;
+
+      // Build zip buffer from the prefixed file map
+      const zipBuf = buildZipBuffer(prefixed);
+      (s as Record<string, unknown>).zipBase64 = zipBuf.toString('base64');
+      (s as Record<string, unknown>).zipFilename = zipFilename;
     });
 
     return { siteCount: builtSites.length, sites: builtSites, handoffReady: true };

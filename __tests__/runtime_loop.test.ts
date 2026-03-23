@@ -96,6 +96,7 @@ describe('processSignal', () => {
     expect(site.manifest.trade).toBe('hvac');
     expect(site.manifest.pages).toEqual(['index.html', 'services.html', 'contact.html']);
     expect(site.manifest.status).toBe('draft');
+    expect(site.manifest.zipFilename).toBe('summit-hvac.zip');
     expect(site.manifest.assets['logo.png'].status).toBe('placeholder');
     expect(site.manifest.assets['hero.jpg'].status).toBe('placeholder');
     expect(site.manifest.content.tagline.status).toBe('placeholder');
@@ -144,6 +145,7 @@ describe('processSignal', () => {
     expect(site.files[`${s}/HANDOFF.md`]).toContain('**Slug:** summit-hvac');
     expect(site.files[`${s}/HANDOFF.md`]).toContain('## Placeholder Assets');
     expect(site.files[`${s}/HANDOFF.md`]).toContain('## Deploy to cPanel');
+    expect(site.files[`${s}/HANDOFF.md`]).toContain('summit-hvac.zip');
     expect(site.files[`${s}/HANDOFF.md`]).toContain('public_html/');
 
     // Per-page meta
@@ -564,5 +566,71 @@ describe('Form and card token integration', () => {
 
     expect(index).toContain('border:2px solid #dc2626');
     expect(index).not.toContain('border:1px solid 2px solid');
+  });
+});
+
+describe('Zip export', () => {
+  it('produces a valid zip buffer per site', () => {
+    const result = processSignal({
+      name: 'contractor_site_requested',
+      payload: {
+        sites: [
+          { businessName: 'Zip Co', trade: 'plumbing', location: 'NYC' },
+        ],
+      },
+    });
+
+    const content = JSON.parse(result.artifacts[0].content);
+    const site = content.sites[0];
+
+    // zipFilename and zipBase64 are present
+    expect(site.zipFilename).toBe('zip-co.zip');
+    expect(typeof site.zipBase64).toBe('string');
+    expect(site.zipBase64.length).toBeGreaterThan(0);
+
+    // Decodes to a valid buffer starting with ZIP magic bytes (PK\x03\x04)
+    const buf = Buffer.from(site.zipBase64, 'base64');
+    expect(buf[0]).toBe(0x50); // 'P'
+    expect(buf[1]).toBe(0x4b); // 'K'
+    expect(buf[2]).toBe(0x03);
+    expect(buf[3]).toBe(0x04);
+
+    // manifest.json inside the zip includes zipFilename
+    expect(site.manifest.zipFilename).toBe('zip-co.zip');
+  });
+
+  it('zip contains all slug-prefixed files', () => {
+    const { execSync } = require('child_process');
+    const { writeFileSync, unlinkSync } = require('fs');
+    const { join } = require('path');
+    const os = require('os');
+
+    const result = processSignal({
+      name: 'contractor_site_requested',
+      payload: {
+        sites: [
+          { businessName: 'Zip List', trade: 'hvac', location: 'LA', email: 'a@b.co' },
+        ],
+      },
+    });
+
+    const content = JSON.parse(result.artifacts[0].content);
+    const site = content.sites[0];
+    const zipPath = join(os.tmpdir(), `test-${Date.now()}.zip`);
+
+    try {
+      writeFileSync(zipPath, Buffer.from(site.zipBase64, 'base64'));
+      const listing = execSync(`unzip -l "${zipPath}"`, { encoding: 'utf-8' });
+
+      // All 6 files present under slug prefix
+      expect(listing).toContain('zip-list/index.html');
+      expect(listing).toContain('zip-list/services.html');
+      expect(listing).toContain('zip-list/contact.html');
+      expect(listing).toContain('zip-list/manifest.json');
+      expect(listing).toContain('zip-list/schema.json');
+      expect(listing).toContain('zip-list/HANDOFF.md');
+    } finally {
+      try { unlinkSync(zipPath); } catch { /* cleanup */ }
+    }
   });
 });
