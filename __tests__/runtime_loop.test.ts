@@ -712,6 +712,169 @@ describe('Local SEO and conversion sections', () => {
   });
 });
 
+describe('Batch generation', () => {
+  it('generates batch manifest for multi-site run', () => {
+    const result = processSignal({
+      name: 'contractor_site_requested',
+      payload: {
+        sites: [
+          { businessName: 'Alpha HVAC', trade: 'hvac', location: 'Denver, CO' },
+          { businessName: 'Beta Plumbing', trade: 'plumbing', location: 'Austin, TX' },
+          { businessName: 'Gamma Electric', trade: 'electric', location: 'Seattle, WA' },
+        ],
+      },
+    });
+
+    const content = JSON.parse(result.artifacts[0].content);
+    expect(content.siteCount).toBe(3);
+
+    const bm = content.batchManifest;
+    expect(bm.version).toBe('1.0');
+    expect(bm.generatedAt).toBeDefined();
+    expect(bm.siteCount).toBe(3);
+    expect(bm.sites).toHaveLength(3);
+
+    // Each entry has expected fields
+    expect(bm.sites[0].slug).toBe('alpha-hvac');
+    expect(bm.sites[0].trade).toBe('hvac');
+    expect(bm.sites[0].location).toBe('Denver, CO');
+    expect(bm.sites[0].zipFilename).toBe('alpha-hvac.zip');
+    expect(bm.sites[0].status).toBe('draft');
+    expect(bm.sites[0].pages).toEqual(['index.html', 'services.html', 'contact.html']);
+    expect(bm.sites[0].priority).toBe(1);
+
+    expect(bm.sites[1].slug).toBe('beta-plumbing');
+    expect(bm.sites[1].priority).toBe(1);
+    expect(bm.sites[2].slug).toBe('gamma-electric');
+    expect(bm.sites[2].priority).toBe(1);
+  });
+
+  it('generates batch handoff markdown', () => {
+    const result = processSignal({
+      name: 'contractor_site_requested',
+      payload: {
+        sites: [
+          { businessName: 'Alpha HVAC', trade: 'hvac', location: 'Denver, CO' },
+          { businessName: 'Beta Plumbing', trade: 'plumbing', location: 'Austin, TX' },
+          { businessName: 'Gamma Electric', trade: 'electric', location: 'Seattle, WA' },
+        ],
+      },
+    });
+
+    const content = JSON.parse(result.artifacts[0].content);
+    const bh = content.batchHandoff;
+
+    expect(bh).toContain('# Batch Handoff — 3 sites');
+    expect(bh).toContain('| # | Business | Trade | Location | Zip | Status |');
+    expect(bh).toContain('| 1 | Alpha HVAC | hvac | Denver, CO | alpha-hvac.zip | draft |');
+    expect(bh).toContain('| 2 | Beta Plumbing | plumbing | Austin, TX | beta-plumbing.zip | draft |');
+    expect(bh).toContain('| 3 | Gamma Electric | electric | Seattle, WA | gamma-electric.zip | draft |');
+    expect(bh).toContain('## Per-site handoff');
+    expect(bh).toContain('## Quick deploy');
+    expect(bh).toContain('BATCH_MANIFEST.json');
+  });
+
+  it('each site gets independent zip', () => {
+    const result = processSignal({
+      name: 'contractor_site_requested',
+      payload: {
+        sites: [
+          { businessName: 'Zip A', trade: 'hvac', location: 'LA' },
+          { businessName: 'Zip B', trade: 'plumbing', location: 'NYC' },
+          { businessName: 'Zip C', trade: 'roofing', location: 'SF' },
+        ],
+      },
+    });
+
+    const content = JSON.parse(result.artifacts[0].content);
+    const filenames = content.sites.map((s: Record<string, unknown>) => s.zipFilename);
+    const bases = content.sites.map((s: Record<string, unknown>) => s.zipBase64);
+
+    // All zip filenames are distinct
+    expect(new Set(filenames).size).toBe(3);
+    expect(filenames).toEqual(['zip-a.zip', 'zip-b.zip', 'zip-c.zip']);
+
+    // All zip buffers are distinct and valid
+    for (const b64 of bases) {
+      expect(typeof b64).toBe('string');
+      const buf = Buffer.from(b64 as string, 'base64');
+      expect(buf[0]).toBe(0x50);
+      expect(buf[1]).toBe(0x4b);
+    }
+  });
+
+  it('deduplicates identical slugs', () => {
+    const result = processSignal({
+      name: 'contractor_site_requested',
+      payload: {
+        sites: [
+          { businessName: 'Same Name', trade: 'hvac', location: 'LA' },
+          { businessName: 'Same Name', trade: 'plumbing', location: 'NYC' },
+          { businessName: 'Same Name', trade: 'roofing', location: 'SF' },
+        ],
+      },
+    });
+
+    const content = JSON.parse(result.artifacts[0].content);
+    const slugs = content.sites.map((s: Record<string, unknown>) => s.slug);
+    expect(slugs).toEqual(['same-name', 'same-name-2', 'same-name-3']);
+
+    // Each has its own zip filename
+    const zips = content.sites.map((s: Record<string, unknown>) => s.zipFilename);
+    expect(zips).toEqual(['same-name.zip', 'same-name-2.zip', 'same-name-3.zip']);
+
+    // File keys are correctly prefixed per deduped slug
+    expect(Object.keys(content.sites[0].files)[0]).toMatch(/^same-name\//);
+    expect(Object.keys(content.sites[1].files)[0]).toMatch(/^same-name-2\//);
+    expect(Object.keys(content.sites[2].files)[0]).toMatch(/^same-name-3\//);
+
+    // Batch manifest reflects deduped slugs
+    expect(content.batchManifest.sites[1].slug).toBe('same-name-2');
+    expect(content.batchManifest.sites[2].slug).toBe('same-name-3');
+  });
+
+  it('single-site run still produces batch manifest', () => {
+    const result = processSignal({
+      name: 'contractor_site_requested',
+      payload: {
+        sites: [
+          { businessName: 'Solo Co', trade: 'hvac', location: 'Denver' },
+        ],
+      },
+    });
+
+    const content = JSON.parse(result.artifacts[0].content);
+    expect(content.batchManifest).toBeDefined();
+    expect(content.batchManifest.siteCount).toBe(1);
+    expect(content.batchManifest.sites[0].slug).toBe('solo-co');
+    expect(content.batchManifest.sites[0].priority).toBe(1);
+
+    expect(content.batchHandoff).toBeDefined();
+    expect(content.batchHandoff).toContain('# Batch Handoff — 1 site');
+  });
+
+  it('per-site files stay slug-prefixed in multi-site batch', () => {
+    const result = processSignal({
+      name: 'contractor_site_requested',
+      payload: {
+        sites: [
+          { businessName: 'Prefix A', trade: 'hvac', location: 'LA' },
+          { businessName: 'Prefix B', trade: 'plumbing', location: 'NYC' },
+          { businessName: 'Prefix C', trade: 'roofing', location: 'SF' },
+        ],
+      },
+    });
+
+    const content = JSON.parse(result.artifacts[0].content);
+    for (const site of content.sites) {
+      const keys = Object.keys(site.files);
+      for (const key of keys) {
+        expect(key.startsWith(`${site.slug}/`)).toBe(true);
+      }
+    }
+  });
+});
+
 describe('Zip export', () => {
   it('produces a valid zip buffer per site', () => {
     const result = processSignal({

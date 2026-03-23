@@ -159,13 +159,22 @@ const JOB_HANDLERS: Record<string, JobHandler> = {
     // Resolve design tokens: payload override → DESIGN.md → defaults
     const t = resolveTokens(payload.designMarkdown as string | undefined);
 
-    const builtSites = sites.map((site) => {
+    // Pre-compute deduplicated slugs to prevent collisions in multi-site batches
+    const slugCounts: Record<string, number> = {};
+    const dedupedSlugs: string[] = sites.map((site) => {
+      const base = (site.businessName || 'Contractor').toLowerCase().replace(/[^a-z0-9]+/g, '-');
+      const count = (slugCounts[base] ?? 0) + 1;
+      slugCounts[base] = count;
+      return count === 1 ? base : `${base}-${count}`;
+    });
+
+    const builtSites = sites.map((site, siteIndex) => {
       const name = site.businessName || 'Contractor';
       const trade = site.trade || 'General';
       const location = site.location || '';
       const phone = site.phone || '';
       const email = site.email || '';
-      const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, '-');
+      const slug = dedupedSlugs[siteIndex];
 
       const nav = [
         `<nav style="background:${t.colors.surface};padding:${t.layout['nav-padding']};display:flex;gap:24px;align-items:center">`,
@@ -389,7 +398,45 @@ const JOB_HANDLERS: Record<string, JobHandler> = {
       (s as Record<string, unknown>).zipFilename = zipFilename;
     });
 
-    return { siteCount: builtSites.length, sites: builtSites, handoffReady: true };
+    // Build batch-level manifest for finishing agents
+    const batchManifest = {
+      version: '1.0',
+      generatedAt: new Date().toISOString(),
+      siteCount: builtSites.length,
+      sites: builtSites.map((s) => ({
+        slug: s.slug,
+        businessName: s.businessName,
+        trade: s.manifest.trade,
+        location: s.manifest.location,
+        zipFilename: (s as Record<string, unknown>).zipFilename as string,
+        status: s.manifest.status,
+        pages: s.manifest.pages,
+        priority: 1,
+      })),
+    };
+
+    // Build batch-level handoff markdown
+    const tableRows = builtSites.map((s, i) =>
+      `| ${i + 1} | ${s.businessName} | ${s.manifest.trade} | ${s.manifest.location} | ${(s as Record<string, unknown>).zipFilename} | ${s.manifest.status} |`,
+    );
+    const batchHandoff = [
+      `# Batch Handoff — ${builtSites.length} site${builtSites.length === 1 ? '' : 's'}`,
+      '',
+      '| # | Business | Trade | Location | Zip | Status |',
+      '|---|----------|-------|----------|-----|--------|',
+      ...tableRows,
+      '',
+      '## Per-site handoff',
+      'Each slug/ folder contains its own HANDOFF.md with asset and content checklists.',
+      '',
+      '## Quick deploy',
+      '1. Extract each .zip to its own subdirectory under public_html/',
+      '2. Work through each site\'s HANDOFF.md',
+      '3. Update BATCH_MANIFEST.json status from "draft" to "live" as sites go live',
+      '',
+    ].join('\n');
+
+    return { siteCount: builtSites.length, sites: builtSites, batchManifest, batchHandoff, handoffReady: true };
   },
 };
 
