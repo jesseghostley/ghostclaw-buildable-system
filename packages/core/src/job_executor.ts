@@ -7,6 +7,105 @@ import type { Artifact } from './runtime_loop';
 
 export type JobHandler = (inputPayload: Record<string, unknown>) => Record<string, unknown>;
 
+type LegacySiteInput = {
+  businessName?: string;
+  trade?: string;
+  location?: string;
+  phone?: string;
+  email?: string;
+};
+
+type SiteConfigInput = {
+  _business?: {
+    business_name?: string;
+    phone?: string;
+    email?: string;
+    address?: {
+      city?: string;
+      state?: string;
+    };
+  };
+  _services?: Array<{
+    name?: string;
+  }>;
+};
+
+type NormalizedSiteInput = {
+  businessName: string;
+  trade: string;
+  location: string;
+  phone?: string;
+  email?: string;
+  serviceNames: string[];
+};
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null;
+}
+
+function normalizeSiteFromSiteConfig(config: SiteConfigInput): NormalizedSiteInput {
+  const businessName = config._business?.business_name?.trim() ?? '';
+  const city = config._business?.address?.city?.trim() ?? '';
+  const state = config._business?.address?.state?.trim() ?? '';
+  const location = [city, state].filter(Boolean).join(', ');
+  const serviceNames = (config._services ?? [])
+    .map((s) => s.name?.trim() ?? '')
+    .filter(Boolean);
+
+  if (!businessName || !location || serviceNames.length === 0) {
+    throw new Error(
+      'SITE_CONFIG input must include _business.business_name, _business.address.city/state, and at least one _services[].name.',
+    );
+  }
+
+  return {
+    businessName,
+    trade: serviceNames[0],
+    location,
+    phone: config._business?.phone?.trim() || undefined,
+    email: config._business?.email?.trim() || undefined,
+    serviceNames,
+  };
+}
+
+function normalizeLegacySite(site: LegacySiteInput): NormalizedSiteInput {
+  const businessName = site.businessName?.trim() ?? '';
+  const trade = site.trade?.trim() ?? '';
+  const location = site.location?.trim() ?? '';
+
+  if (!businessName || !trade || !location) {
+    throw new Error('Legacy site input requires businessName, trade, and location.');
+  }
+
+  return {
+    businessName,
+    trade,
+    location,
+    phone: site.phone?.trim() || undefined,
+    email: site.email?.trim() || undefined,
+    serviceNames: [trade],
+  };
+}
+
+function normalizeSitesPayload(payload: Record<string, unknown>): NormalizedSiteInput[] {
+  const siteConfigs = payload.siteConfigs;
+  if (Array.isArray(siteConfigs)) {
+    return siteConfigs.map((cfg) => normalizeSiteFromSiteConfig((cfg ?? {}) as SiteConfigInput));
+  }
+
+  const siteConfig = payload.siteConfig;
+  if (isRecord(siteConfig)) {
+    return [normalizeSiteFromSiteConfig(siteConfig as SiteConfigInput)];
+  }
+
+  if ('_business' in payload || '_services' in payload) {
+    return [normalizeSiteFromSiteConfig(payload as SiteConfigInput)];
+  }
+
+  const sites = (Array.isArray(payload.sites) ? payload.sites : [payload]) as LegacySiteInput[];
+  return sites.map(normalizeLegacySite);
+}
+
 const JOB_HANDLERS: Record<string, JobHandler> = {
   draft_cluster_outline: (inputPayload) => ({
     result: `Cluster outline generated for ${String(inputPayload.signalName ?? 'unknown_signal')}`,
@@ -22,14 +121,12 @@ const JOB_HANDLERS: Record<string, JobHandler> = {
   }),
   build_site_page: (inputPayload) => {
     const payload = (inputPayload.signalPayload ?? {}) as Record<string, unknown>;
-    const sites = (Array.isArray(payload.sites) ? payload.sites : [payload]) as Array<
-      Record<string, string>
-    >;
+    const sites = normalizeSitesPayload(payload);
 
     const builtSites = sites.map((site) => {
-      const name = site.businessName || 'Contractor';
-      const trade = site.trade || 'General';
-      const location = site.location || '';
+      const name = site.businessName;
+      const trade = site.trade;
+      const location = site.location;
       const phone = site.phone || '';
       const email = site.email || '';
       const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, '-');
@@ -85,12 +182,9 @@ const JOB_HANDLERS: Record<string, JobHandler> = {
       const servicesDesc = `Professional ${trade} services offered by ${name} in ${location}.`;
       const servicesBody = [
         `<h1>${trade.charAt(0).toUpperCase() + trade.slice(1)} Services</h1>`,
-        `<p>${name} offers a full range of ${trade} services in the ${location} area:</p>`,
+        `<p>${name} offers trusted services in the ${location} area:</p>`,
         '<ul>',
-        `<li>Residential ${trade}</li>`,
-        `<li>Commercial ${trade}</li>`,
-        `<li>Emergency ${trade} repair</li>`,
-        `<li>${trade.charAt(0).toUpperCase() + trade.slice(1)} installation &amp; maintenance</li>`,
+        ...site.serviceNames.map((serviceName) => `<li>${serviceName}</li>`),
         '</ul>',
         '<p><a href="contact.html" style="color:#60a5fa">Request a quote &rarr;</a></p>',
       ].join('\n');
@@ -116,19 +210,12 @@ const JOB_HANDLERS: Record<string, JobHandler> = {
           trade,
           location,
           pages: ['index.html', 'services.html', 'contact.html'],
-          assets: {
-            'logo.png': { status: 'placeholder', note: 'Replace with business logo (recommended 300x100)' },
-            'hero.jpg': { status: 'placeholder', note: 'Replace with hero/banner image (recommended 1200x600)' },
-            'og-image.jpg': { status: 'placeholder', note: 'Social sharing image (recommended 1200x630)' },
-          },
           content: {
-            tagline: { status: 'placeholder', value: `Professional ${trade} services`, note: 'Replace with business tagline' },
-            aboutText: { status: 'placeholder', value: '', note: 'Add 2-3 sentences about the business' },
-            serviceList: { status: 'auto-generated', note: 'Review and customize service descriptions' },
-            testimonials: { status: 'placeholder', value: [], note: 'Add customer testimonials (name, quote, rating)' },
+            tagline: `Professional ${trade} services`,
+            serviceList: site.serviceNames,
           },
           schema: 'schema.json',
-          status: 'draft',
+          status: 'ready',
         },
         schema: {
           '@context': 'https://schema.org',

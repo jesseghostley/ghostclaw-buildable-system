@@ -93,11 +93,9 @@ describe('processSignal', () => {
     expect(site.manifest.slug).toBe('summit-hvac');
     expect(site.manifest.trade).toBe('hvac');
     expect(site.manifest.pages).toEqual(['index.html', 'services.html', 'contact.html']);
-    expect(site.manifest.status).toBe('draft');
-    expect(site.manifest.assets['logo.png'].status).toBe('placeholder');
-    expect(site.manifest.assets['hero.jpg'].status).toBe('placeholder');
-    expect(site.manifest.content.tagline.status).toBe('placeholder');
-    expect(site.manifest.content.testimonials.status).toBe('placeholder');
+    expect(site.manifest.status).toBe('ready');
+    expect(site.manifest.content.tagline).toBe('Professional hvac services');
+    expect(site.manifest.content.serviceList).toEqual(['hvac']);
     expect(site.manifest.generatedAt).toBeDefined();
 
     // manifest.json and schema.json are valid JSON strings in files
@@ -117,6 +115,7 @@ describe('processSignal', () => {
     // Page-specific content
     expect(site.files['index.html']).toContain('Summit HVAC');
     expect(site.files['services.html']).toContain('Hvac Services');
+    expect(site.files['services.html']).toContain('<li>hvac</li>');
     expect(site.files['contact.html']).toContain('303-555-1234');
     expect(site.files['contact.html']).toContain('info@summithvac.com');
 
@@ -124,6 +123,42 @@ describe('processSignal', () => {
     expect(site.meta.index.title).toContain('Summit HVAC');
     expect(site.meta.services.title).toContain('Services');
     expect(site.meta.contact.title).toContain('Contact');
+  });
+
+  it('accepts SITE_CONFIG-shaped input and generates a ready site artifact', () => {
+    const result = processSignal({
+      name: 'contractor_site_requested',
+      payload: {
+        siteConfig: {
+          _business: {
+            business_name: 'Evergreen Plumbing Co.',
+            phone: '(303) 555-0101',
+            email: 'contact@evergreenplumbing.co',
+            address: {
+              city: 'Boulder',
+              state: 'CO',
+            },
+          },
+          _services: [
+            { name: 'Drain Cleaning' },
+            { name: 'Water Heater Repair' },
+          ],
+        },
+      },
+    });
+
+    const content = JSON.parse(result.artifacts[0].content);
+    const site = content.sites[0];
+
+    expect(site.businessName).toBe('Evergreen Plumbing Co.');
+    expect(site.manifest.status).toBe('ready');
+    expect(site.manifest.trade).toBe('Drain Cleaning');
+    expect(site.manifest.location).toBe('Boulder, CO');
+    expect(site.manifest.content.serviceList).toEqual(['Drain Cleaning', 'Water Heater Repair']);
+    expect(site.files['services.html']).toContain('<li>Drain Cleaning</li>');
+    expect(site.files['services.html']).toContain('<li>Water Heater Repair</li>');
+    expect(site.files['contact.html']).toContain('(303) 555-0101');
+    expect(site.files['contact.html']).toContain('contact@evergreenplumbing.co');
   });
 
   it('throws for an unknown signal name', () => {
