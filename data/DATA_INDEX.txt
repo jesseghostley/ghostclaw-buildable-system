@@ -1,0 +1,81 @@
+============================================================
+GhostClaw — System Definition
+============================================================
+
+GhostClaw is a runtime-first AI Agent Operating System that
+executes structured business workflows through a controlled
+pipeline:
+
+  Signal → Planner → Jobs → Agents → Skills → Artifacts →
+  Approval → Publish → Audit
+
+It is not a content generator. It is an execution system.
+
+============================================================
+Core Rules
+============================================================
+
+1. One agent completes each site end-to-end
+2. SITE_CONFIG.json is the single source of truth
+3. No placeholder content allowed
+4. Outputs must be deploy-ready
+5. All actions must be auditable
+
+============================================================
+Primary Use Case
+============================================================
+
+Contractor website factory producing 15+ deploy-ready sites
+per week with zero rework.
+
+============================================================
+Execution Flow
+============================================================
+
+Input (CSV/JSON) → GhostClaw → Approval → Finisher Agent → Deployment
+
+============================================================
+Agents
+============================================================
+
+- GhostClaw  = execution runtime (orchestrator)
+- Claude     = builder / finisher (builds and completes sites)
+- MaxClaw    = production finisher (final QA)
+- ChatGPT    = strategy / operator layer (planning, SOPs)
+- Manus      = deployment (script execution)
+
+============================================================
+Goal
+============================================================
+
+Scalable, repeatable, error-free production system for
+contractor marketing.
+
+============================================================
+Infrastructure
+============================================================
+
+Deployment Server (WHM/cPanel):
+  Host: mi3-sr116.supercp.com
+  Ports: 2087 (WHM), 2083 (cPanel)
+
+Hostinger VPS (Docker):
+  Host: srv1501574.hstgr.cloud
+  IP: 31.97.65.212
+  SSH: root@31.97.65.212
+  Running: traefik (reverse proxy), openclaw-chch
+
+Domain:
+  ghostclaw.cloud (ns1.dns-parking.com, ns2.dns-parking.com)
+
+AI Providers:
+  nexos.ai — AI credits
+  Oxylabs  — scraping/data credits
+
+============================================================
+This File
+============================================================
+
+This is the canonical system definition for GhostClaw.
+It lives in every repo that is part of the GhostClaw ecosystem.
+If this file contradicts Claude memory, this file wins.

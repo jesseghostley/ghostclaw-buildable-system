@@ -1,0 +1,33 @@
+{
+  "version": "1.0.0",
+  "system": "ghostclaw",
+  "description": "Enforcement rules for all GhostClaw blueprints and agent executions",
+  "rules": [
+    "one-agent-per-site",
+    "site_config_required",
+    "no-placeholder-content",
+    "deploy-ready-output"
+  ],
+  "rule_definitions": {
+    "one-agent-per-site": {
+      "description": "Each site is assigned to exactly one agent. That agent completes the entire site end-to-end.",
+      "enforcement": "hard",
+      "violation_action": "reject"
+    },
+    "site_config_required": {
+      "description": "Every site build must have a valid SITE_CONFIG.json. No site can be built without one.",
+      "enforcement": "hard",
+      "violation_action": "reject"
+    },
+    "no-placeholder-content": {
+      "description": "No placeholder text, fake phone numbers, lorem ipsum, or [brackets] allowed in any output.",
+      "enforcement": "hard",
+      "violation_action": "reject"
+    },
+    "deploy-ready-output": {
+      "description": "All outputs must be immediately deployable without human editing or cleanup.",
+      "enforcement": "hard",
+      "violation_action": "reject"
+    }
+  }
+}
