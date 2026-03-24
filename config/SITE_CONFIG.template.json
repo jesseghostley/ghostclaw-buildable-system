@@ -1,0 +1,65 @@
+{
+  "$schema": "SITE_CONFIG template — fill all fields before building",
+  "version": "1.0.0",
+
+  "_deployment": {
+    "domain": "example-contractor.com",
+    "username": "cpanel_username",
+    "zip_file": "sites/example-contractor.zip",
+    "ssl": true,
+    "plan": "oavtimgu_basic"
+  },
+
+  "_business": {
+    "business_name": "Example Roofing & Restoration",
+    "owner_name": "John Smith",
+    "phone": "(501) 555-1234",
+    "email": "john@example-contractor.com",
+    "address": {
+      "street": "123 Main St",
+      "city": "Little Rock",
+      "state": "AR",
+      "zip": "72201"
+    },
+    "service_area": ["Little Rock", "North Little Rock", "Conway"],
+    "license_number": "AR-12345"
+  },
+
+  "_services": [
+    {
+      "name": "Storm Damage Repair",
+      "slug": "storm-damage-repair",
+      "description": "Full storm damage assessment and repair for roofing, siding, and gutters."
+    },
+    {
+      "name": "Roof Replacement",
+      "slug": "roof-replacement",
+      "description": "Complete roof replacement with quality materials and expert installation."
+    }
+  ],
+
+  "_theme": {
+    "primary_color": "#1a365d",
+    "secondary_color": "#e53e3e",
+    "font_family": "Inter, sans-serif",
+    "logo_path": "assets/logo.png"
+  },
+
+  "_seo": {
+    "title_template": "{business_name} | {service} in {city}, {state}",
+    "meta_description_template": "{business_name} provides expert {service} in {city}, {state}. Call {phone} for a free estimate.",
+    "schema_type": "LocalBusiness",
+    "google_business_profile": ""
+  },
+
+  "_content": {
+    "hero_headline": "Trusted Storm Damage Experts in {city}",
+    "hero_subheadline": "Fast, reliable restoration when you need it most.",
+    "cta_text": "Get Your Free Estimate",
+    "cta_phone": "{phone}",
+    "about_text": "",
+    "testimonials": []
+  },
+
+  "_notes": "This is a template. Replace ALL values with real business data before building. Any field with {brackets} is a variable that gets resolved at build time."
+}
