@@ -45,9 +45,11 @@ npm run build
 
 | Resource | Host | Purpose |
 |----------|------|---------|
-| Hostinger VPS | srv1501574.hstgr.cloud (31.97.65.212) | Docker host — traefik, openclaw |
+| Hostinger VPS | srv1501574.hstgr.cloud | Docker host — traefik, openclaw |
 | WHM/cPanel | mi3-sr116.supercp.com | Site deployment server |
 | Domain | ghostclaw.cloud | System domain |
+
+**Credentials**: Stored in `.env` (never committed).
 
 ## Rules
 
