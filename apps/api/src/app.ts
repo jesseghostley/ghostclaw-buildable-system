@@ -23,7 +23,7 @@ declare global {
 const app = express();
 
 app.use(express.json());
-app.use(express.static(path.join(__dirname, '..', 'public')));
+app.use(express.static(path.join(process.cwd(), 'apps', 'api', 'public')));
 
 // Attach runtime context so all routes can access stores via req.app.locals.runtimeCtx
 app.locals.runtimeCtx = defaultRuntimeContext;
