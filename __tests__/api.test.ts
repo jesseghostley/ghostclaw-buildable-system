@@ -1,9 +1,6 @@
 import request from 'supertest';
 import app from '../apps/api/src/app';
 import { runtimeStore, resetIdCounters } from '../packages/core/src/runtime_loop';
-import { jobQueue } from '../packages/core/src/job_queue';
-import { skillInvocationStore } from '../packages/core/src/skill_invocation';
-import { assignmentStore } from '../packages/core/src/assignment';
 import type { RuntimeContext } from '../packages/core/src/runtime_context';
 
 const ctx = app.locals.runtimeCtx as RuntimeContext;
@@ -15,14 +12,17 @@ beforeEach(() => {
   runtimeStore.artifacts.length = 0;
   runtimeStore.skillInvocations.length = 0;
   runtimeStore.assignments.length = 0;
-  jobQueue.reset();
-  skillInvocationStore.reset();
-  assignmentStore.reset();
   resetIdCounters();
-  // Reset context-owned stores that are separate InMemoryStore instances
+  // Reset all context-owned stores
   ctx.stores.signalStore.reset();
   ctx.stores.planStore.reset();
+  ctx.stores.jobStore.reset();
+  ctx.stores.assignmentStore.reset();
+  ctx.stores.skillInvocationStore.reset();
   ctx.stores.artifactStore.reset();
+  ctx.stores.publishEventStore.reset();
+  ctx.stores.auditLogStore.reset();
+  ctx.stores.runtimeEventLogStore.reset();
 });
 
 describe('GET /api/health', () => {

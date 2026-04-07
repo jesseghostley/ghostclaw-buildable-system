@@ -1,15 +1,13 @@
 import request from 'supertest';
 import app from '../apps/api/src/app';
 import { runtimeStore } from '../packages/core/src/runtime_loop';
-import { jobQueue } from '../packages/core/src/job_queue';
-import { skillInvocationStore } from '../packages/core/src/skill_invocation';
-import { assignmentStore } from '../packages/core/src/assignment';
 import {
   registerRuntimeEventLogSubscribers,
   resetEventLogSubscriberState,
 } from '../packages/core/src/runtime_event_log_subscriber';
-import { runtimeEventLog } from '../packages/core/src/runtime_event_log';
-import { eventBus } from '../packages/core/src/event_bus';
+import type { RuntimeContext } from '../packages/core/src/runtime_context';
+
+const ctx = app.locals.runtimeCtx as RuntimeContext;
 
 beforeEach(() => {
   runtimeStore.signals.length = 0;
@@ -18,13 +16,16 @@ beforeEach(() => {
   runtimeStore.artifacts.length = 0;
   runtimeStore.skillInvocations.length = 0;
   runtimeStore.assignments.length = 0;
-  jobQueue.reset();
-  skillInvocationStore.reset();
-  assignmentStore.reset();
-  runtimeEventLog.reset();
+  ctx.stores.jobStore.reset();
+  ctx.stores.skillInvocationStore.reset();
+  ctx.stores.assignmentStore.reset();
+  ctx.stores.runtimeEventLogStore.reset();
+  ctx.stores.signalStore.reset();
+  ctx.stores.planStore.reset();
+  ctx.stores.artifactStore.reset();
   resetEventLogSubscriberState();
-  eventBus.reset();
-  registerRuntimeEventLogSubscribers(eventBus, runtimeEventLog);
+  ctx.eventBus.reset();
+  registerRuntimeEventLogSubscribers(ctx.eventBus, ctx.stores.runtimeEventLogStore);
 });
 
 describe('GET /api/runtime-events', () => {

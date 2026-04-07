@@ -8,8 +8,9 @@ import jobsRouter from './routes/jobs';
 import runtimeEventsRouter from './routes/runtime_events';
 import ghostMartRouter from './routes/ghost_mart';
 import { registerRuntimeEventLogSubscribers } from '../../../packages/core/src/runtime_event_log_subscriber';
-import { defaultRuntimeContext } from '../../../packages/core/src/runtime_context';
+import { createRuntimeContext } from '../../../packages/core/src/runtime_context';
 import type { RuntimeContext } from '../../../packages/core/src/runtime_context';
+import type { StorageMode } from '../../../packages/core/src/storage/storage_config';
 
 declare global {
   // eslint-disable-next-line @typescript-eslint/no-namespace
@@ -25,12 +26,19 @@ const app = express();
 app.use(express.json());
 app.use(express.static(path.join(process.cwd(), 'apps', 'api', 'public')));
 
+// Resolve storage mode from environment (default: in-memory for dev/test)
+const storageMode = (process.env.STORAGE_MODE ?? 'memory') as StorageMode;
+const runtimeCtx = createRuntimeContext({
+  mode: storageMode,
+  sqlitePath: storageMode === 'sqlite' ? (process.env.SQLITE_PATH ?? 'data/ghostclaw.db') : undefined,
+});
+
 // Attach runtime context so all routes can access stores via req.app.locals.runtimeCtx
-app.locals.runtimeCtx = defaultRuntimeContext;
+app.locals.runtimeCtx = runtimeCtx;
 
 registerRuntimeEventLogSubscribers(
-  defaultRuntimeContext.eventBus,
-  defaultRuntimeContext.stores.runtimeEventLogStore,
+  runtimeCtx.eventBus,
+  runtimeCtx.stores.runtimeEventLogStore,
 );
 
 app.get('/api/health', (_req, res) => {
