@@ -1,8 +1,5 @@
 import { Router } from 'express';
-import {
-  skillInvocationStore,
-  type SkillInvocationStatus,
-} from '../../../../packages/core/src/skill_invocation';
+import type { SkillInvocationStatus } from '../../../../packages/core/src/skill_invocation';
 
 const router = Router();
 
@@ -15,7 +12,8 @@ const VALID_STATUSES = new Set<string>([
 ]);
 
 router.get('/', (req, res) => {
-  let invocations = skillInvocationStore.listAll();
+  const ctx = req.app.locals.runtimeCtx;
+  let invocations = ctx.stores.skillInvocationStore.listAll();
 
   const { status, agent, workspace, skill } = req.query;
 
@@ -45,7 +43,8 @@ router.get('/', (req, res) => {
 });
 
 router.get('/:id', (req, res) => {
-  const invocation = skillInvocationStore.getById(req.params.id);
+  const ctx = req.app.locals.runtimeCtx;
+  const invocation = ctx.stores.skillInvocationStore.getById(req.params.id);
   if (!invocation) {
     res.status(404).json({ error: 'Skill invocation not found.' });
     return;
