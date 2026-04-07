@@ -233,6 +233,67 @@ describe('GET /api/skill-invocations/:id', () => {
   });
 });
 
+describe('GET /api/signals (list)', () => {
+  it('returns empty array on fresh store', async () => {
+    const res = await request(app).get('/api/signals');
+    expect(res.status).toBe(200);
+    expect(Array.isArray(res.body)).toBe(true);
+    expect(res.body).toHaveLength(0);
+  });
+
+  it('returns signals after processing', async () => {
+    await request(app)
+      .post('/api/signals')
+      .send({ name: 'keyword_opportunity_detected' });
+
+    const res = await request(app).get('/api/signals');
+    expect(res.status).toBe(200);
+    expect(res.body).toHaveLength(1);
+    expect(res.body[0].name).toBe('keyword_opportunity_detected');
+  });
+});
+
+describe('GET /api/jobs (list)', () => {
+  it('returns empty array on fresh store', async () => {
+    const res = await request(app).get('/api/jobs');
+    expect(res.status).toBe(200);
+    expect(Array.isArray(res.body)).toBe(true);
+    expect(res.body).toHaveLength(0);
+  });
+
+  it('returns jobs after processing', async () => {
+    await request(app)
+      .post('/api/signals')
+      .send({ name: 'runtime_error_detected' });
+
+    const res = await request(app).get('/api/jobs');
+    expect(res.status).toBe(200);
+    expect(res.body).toHaveLength(1);
+    expect(res.body[0].jobType).toBe('run_diagnostics');
+    expect(res.body[0].status).toBe('completed');
+  });
+});
+
+describe('GET /api/ghost-mart (root index)', () => {
+  it('returns service info and endpoint list', async () => {
+    const res = await request(app).get('/api/ghost-mart');
+    expect(res.status).toBe(200);
+    expect(res.body.service).toBe('ghost-mart');
+    expect(res.body.packageCount).toBe(0);
+    expect(Array.isArray(res.body.endpoints)).toBe(true);
+    expect(res.body.endpoints.length).toBeGreaterThan(0);
+  });
+});
+
+describe('GET / (dashboard)', () => {
+  it('returns 200 with HTML content', async () => {
+    const res = await request(app).get('/');
+    expect(res.status).toBe(200);
+    expect(res.headers['content-type']).toMatch(/html/);
+    expect(res.text).toContain('GhostClaw Runtime Dashboard');
+  });
+});
+
 describe('GET /api/jobs/:id/skill-invocations', () => {
   it('returns empty array for a job with no invocations', async () => {
     const res = await request(app).get('/api/jobs/nonexistent_job/skill-invocations');

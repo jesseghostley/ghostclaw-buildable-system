@@ -3,6 +3,11 @@ import { processSignal } from '../../../../packages/core/src/runtime_loop';
 
 const router = Router();
 
+router.get('/', (req, res) => {
+  const ctx = req.app.locals.runtimeCtx;
+  res.json(ctx.stores.signalStore.listAll());
+});
+
 router.post('/', (req, res) => {
   const name = req.body?.name;
 
