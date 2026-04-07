@@ -28,6 +28,9 @@ import { SqliteJobStore } from './sqlite/SqliteJobStore';
 import { SqliteSkillInvocationStore } from './sqlite/SqliteSkillInvocationStore';
 import { SqliteArtifactStore } from './sqlite/SqliteArtifactStore';
 import { SqliteAuditLogStore } from './sqlite/SqliteAuditLogStore';
+import { SqliteSignalStore } from './sqlite/SqliteSignalStore';
+import { SqlitePlanStore } from './sqlite/SqlitePlanStore';
+import { SqliteAssignmentStore } from './sqlite/SqliteAssignmentStore';
 
 export type StoreBundle = {
   signalStore: ISignalStore;
@@ -52,10 +55,10 @@ export function createStores(config: StorageConfig): StoreBundle {
     const db = new Database(config.sqlitePath);
 
     return {
-      signalStore: new InMemorySignalStore(),
-      planStore: new InMemoryPlanStore(),
+      signalStore: new SqliteSignalStore(db),
+      planStore: new SqlitePlanStore(db),
       jobStore: new SqliteJobStore(db),
-      assignmentStore: new InMemoryAssignmentStore(),
+      assignmentStore: new SqliteAssignmentStore(db),
       skillInvocationStore: new SqliteSkillInvocationStore(db),
       artifactStore: new SqliteArtifactStore(db),
       publishEventStore: new InMemoryPublishEventStore(),

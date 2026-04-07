@@ -3,9 +3,11 @@ import { jobQueue } from './job_queue';
 import { listPlannerStrategies } from './planner_registry';
 import { runtimeStore } from './runtime_loop';
 import { skillInvocationStore, type SkillInvocation, type SkillInvocationStatus } from './skill_invocation';
+import type { RuntimeContext } from './runtime_context';
 
-function getJobCounts() {
-  const jobs = jobQueue.list();
+function getJobCounts(ctx?: RuntimeContext) {
+  const jobStore = ctx?.stores.jobStore ?? jobQueue;
+  const jobs = jobStore.list();
 
   return {
     totalJobs: jobs.length,
@@ -26,27 +28,39 @@ function countInvocationsByStatus(invocations: SkillInvocation[]): Record<SkillI
   );
 }
 
-export function getRuntimeStatus() {
-  const queueCounts = getJobCounts();
-  const invocations = skillInvocationStore.listAll();
+export function getRuntimeStatus(ctx?: RuntimeContext) {
+  const queueCounts = getJobCounts(ctx);
+  const siStore = ctx?.stores.skillInvocationStore ?? skillInvocationStore;
+  const invocations = siStore.listAll();
+
+  const totalSignals = ctx
+    ? ctx.stores.signalStore.listAll().length
+    : runtimeStore.signals.length;
+  const totalPlans = ctx
+    ? ctx.stores.planStore.listAll().length
+    : runtimeStore.plans.length;
+  const totalArtifacts = ctx
+    ? ctx.stores.artifactStore.listAll().length
+    : runtimeStore.artifacts.length;
 
   return {
-    totalSignals: runtimeStore.signals.length,
-    totalPlans: runtimeStore.plans.length,
+    totalSignals,
+    totalPlans,
     ...queueCounts,
-    totalArtifacts: runtimeStore.artifacts.length,
+    totalArtifacts,
     registeredAgents: agentRegistry.listAgents().length,
     totalSkillInvocations: invocations.length,
     skillInvocationsByStatus: countInvocationsByStatus(invocations),
   };
 }
 
-export function getQueueStatus() {
-  const queueCounts = getJobCounts();
+export function getQueueStatus(ctx?: RuntimeContext) {
+  const jobStore = ctx?.stores.jobStore ?? jobQueue;
+  const queueCounts = getJobCounts(ctx);
 
   return {
     ...queueCounts,
-    jobs: jobQueue.list(),
+    jobs: jobStore.list(),
   };
 }
 
@@ -62,13 +76,15 @@ export function getAgentStatus() {
   };
 }
 
-export function getPlannerStrategyStatus() {
+export function getPlannerStrategyStatus(ctx?: RuntimeContext) {
   const strategies = listPlannerStrategies();
-  const recentPlans = runtimeStore.plans.slice(-10);
+  const plans = ctx
+    ? ctx.stores.planStore.listAll()
+    : runtimeStore.plans;
+  const recentPlans = plans.slice(-10);
 
   const strategyUsage: Record<string, number> = {};
-  // Count total plans resolved per strategy across all plan history
-  for (const plan of runtimeStore.plans) {
+  for (const plan of plans) {
     strategyUsage[plan.strategyId] = (strategyUsage[plan.strategyId] ?? 0) + 1;
   }
 
@@ -91,15 +107,20 @@ export function getPlannerStrategyStatus() {
   };
 }
 
-export function getArtifactStatus() {
+export function getArtifactStatus(ctx?: RuntimeContext) {
+  const artifacts = ctx
+    ? ctx.stores.artifactStore.listAll()
+    : runtimeStore.artifacts;
+
   return {
-    totalArtifacts: runtimeStore.artifacts.length,
-    artifacts: runtimeStore.artifacts,
+    totalArtifacts: artifacts.length,
+    artifacts,
   };
 }
 
-export function getSkillInvocationStatus() {
-  const invocations = skillInvocationStore.listAll();
+export function getSkillInvocationStatus(ctx?: RuntimeContext) {
+  const siStore = ctx?.stores.skillInvocationStore ?? skillInvocationStore;
+  const invocations = siStore.listAll();
 
   return {
     totalInvocations: invocations.length,

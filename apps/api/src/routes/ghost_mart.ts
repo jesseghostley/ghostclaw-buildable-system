@@ -26,6 +26,26 @@ const router = Router();
 
 const VALID_PACKAGE_TYPES = new Set<PackageType>(['skill', 'agent', 'blueprint']);
 
+// ─── GET / ──────────────────────────────────────────────────────────────────
+
+router.get('/', (_req, res) => {
+  res.json({
+    service: 'ghost-mart',
+    packageCount: ghostMartPackageStore.listAll().length,
+    endpoints: [
+      'GET    /api/ghost-mart/packages',
+      'GET    /api/ghost-mart/packages/:id',
+      'POST   /api/ghost-mart/packages/discover',
+      'POST   /api/ghost-mart/install',
+      'GET    /api/ghost-mart/workspaces/:id/packages',
+      'POST   /api/ghost-mart/packages/:id/enable',
+      'POST   /api/ghost-mart/packages/:id/disable',
+      'POST   /api/ghost-mart/packages/:id/uninstall',
+      'POST   /api/ghost-mart/packages/:id/update',
+    ],
+  });
+});
+
 // ─── GET /packages ──────────────────────────────────────────────────────────
 
 router.get('/packages', (req, res) => {

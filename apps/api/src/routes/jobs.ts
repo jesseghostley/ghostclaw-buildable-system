@@ -1,10 +1,15 @@
 import { Router } from 'express';
-import { skillInvocationStore } from '../../../../packages/core/src/skill_invocation';
 
 const router = Router();
 
+router.get('/', (req, res) => {
+  const ctx = req.app.locals.runtimeCtx;
+  res.json(ctx.stores.jobStore.list());
+});
+
 router.get('/:id/skill-invocations', (req, res) => {
-  const invocations = skillInvocationStore.listByJobId(req.params.id);
+  const ctx = req.app.locals.runtimeCtx;
+  const invocations = ctx.stores.skillInvocationStore.listByJobId(req.params.id);
   res.json(invocations);
 });
 

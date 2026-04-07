@@ -4,352 +4,155 @@ import { skillInvocationStore } from './skill_invocation';
 import { assignmentStore } from './assignment';
 import { eventBus } from './event_bus';
 import type { Artifact } from './runtime_loop';
+import { getSkill } from './skills';
+import type { RuntimeContext } from './runtime_context';
+import type { QueueJob } from './job_queue';
+import type { IJobStore } from './storage/interfaces/IJobStore';
+import type { ISkillInvocationStore } from './storage/interfaces/ISkillInvocationStore';
+import type { IAssignmentStore } from './storage/interfaces/IAssignmentStore';
+import type { EventBus } from './event_bus';
+import type { RuntimeEventMap } from './runtime_events';
 
-export type JobHandler = (inputPayload: Record<string, unknown>) => Record<string, unknown>;
+export type { JobHandler } from './skills';
 
-type LegacySiteInput = {
-  businessName?: string;
-  trade?: string;
-  location?: string;
-  phone?: string;
-  email?: string;
-};
+function _executeJob(
+  job: QueueJob,
+  jobStore: IJobStore,
+  siStore: ISkillInvocationStore,
+  aStore: IAssignmentStore,
+  bus: EventBus<RuntimeEventMap>,
+): Artifact | null {
+  const assignedAgent = agentRegistry.findAgentForJob(job.jobType);
+  if (!assignedAgent) {
+    jobStore.markFailed(job.id);
+    return null;
+  }
 
-type SiteConfigInput = {
-  _business?: {
-    business_name?: string;
-    phone?: string;
-    email?: string;
-    address?: {
-      city?: string;
-      state?: string;
+  job.assignedAgent = assignedAgent.agentName;
+  job.updatedAt = Date.now();
+  jobStore.markRunning(job.id);
+
+  bus.emit('job.assigned', { ...job, agentName: assignedAgent.agentName });
+
+  const assignmentId = `assign_${job.id}`;
+  aStore.create({
+    id: assignmentId,
+    jobId: job.id,
+    agentName: assignedAgent.agentName,
+    reason: `Agent selected by capability match for job type '${job.jobType}'.`,
+    createdAt: Date.now(),
+  });
+
+  const skill = getSkill(job.jobType);
+  if (!skill) {
+    jobStore.markFailed(job.id);
+    return null;
+  }
+
+  const invocationId = `inv_${job.id}`;
+
+  const invocation = siStore.create({
+    id: invocationId,
+    workspaceId: 'default',
+    planId: job.planId,
+    jobId: job.id,
+    assignmentId,
+    agentId: assignedAgent.agentName,
+    skillId: job.jobType,
+    status: 'pending',
+    inputPayload: job.inputPayload,
+    outputPayload: null,
+    artifactIds: [],
+    error: null,
+    retryCount: job.retryCount,
+    fallbackUsed: false,
+    startedAt: Date.now(),
+    completedAt: null,
+  });
+
+  siStore.updateStatus(invocationId, 'running');
+  bus.emit('skill.invocation.started', invocation);
+
+  try {
+    const outputPayload = skill.execute(job.inputPayload);
+    job.outputPayload = outputPayload;
+    job.updatedAt = Date.now();
+    jobStore.markComplete(job.id);
+
+    const artifactId = `artifact_${job.id}`;
+    const completedAt = Date.now();
+
+    siStore.updateStatus(invocationId, 'completed', {
+      outputPayload,
+      artifactIds: [artifactId],
+      completedAt,
+    });
+    bus.emit('skill.invocation.completed', siStore.getById(invocationId)!);
+
+    return {
+      id: artifactId,
+      jobId: job.id,
+      skillInvocationId: invocationId,
+      type: job.jobType,
+      content: JSON.stringify(outputPayload),
+      createdAt: completedAt,
     };
-  };
-  _services?: Array<{
-    name?: string;
-  }>;
-};
+  } catch (err) {
+    const errorMessage = err instanceof Error ? err.message : String(err);
+    console.error(`[SkillInvocation] Invocation ${invocationId} failed for job ${job.id}:`, errorMessage);
 
-type NormalizedSiteInput = {
-  businessName: string;
-  trade: string;
-  location: string;
-  phone?: string;
-  email?: string;
-  serviceNames: string[];
-};
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null;
-}
-
-function normalizeSiteFromSiteConfig(config: SiteConfigInput): NormalizedSiteInput {
-  const businessName = config._business?.business_name?.trim() ?? '';
-  const city = config._business?.address?.city?.trim() ?? '';
-  const state = config._business?.address?.state?.trim() ?? '';
-  const location = [city, state].filter(Boolean).join(', ');
-  const serviceNames = (config._services ?? [])
-    .map((s) => s.name?.trim() ?? '')
-    .filter(Boolean);
-
-  if (!businessName || !location || serviceNames.length === 0) {
-    throw new Error(
-      'SITE_CONFIG input must include _business.business_name, _business.address.city/state, and at least one _services[].name.',
-    );
-  }
-
-  return {
-    businessName,
-    trade: serviceNames[0],
-    location,
-    phone: config._business?.phone?.trim() || undefined,
-    email: config._business?.email?.trim() || undefined,
-    serviceNames,
-  };
-}
-
-function normalizeLegacySite(site: LegacySiteInput): NormalizedSiteInput {
-  const businessName = site.businessName?.trim() ?? '';
-  const trade = site.trade?.trim() ?? '';
-  const location = site.location?.trim() ?? '';
-
-  if (!businessName || !trade || !location) {
-    throw new Error('Legacy site input requires businessName, trade, and location.');
-  }
-
-  return {
-    businessName,
-    trade,
-    location,
-    phone: site.phone?.trim() || undefined,
-    email: site.email?.trim() || undefined,
-    serviceNames: [trade],
-  };
-}
-
-function normalizeSitesPayload(payload: Record<string, unknown>): NormalizedSiteInput[] {
-  const siteConfigs = payload.siteConfigs;
-  if (Array.isArray(siteConfigs)) {
-    return siteConfigs.map((cfg) => normalizeSiteFromSiteConfig((cfg ?? {}) as SiteConfigInput));
-  }
-
-  const siteConfig = payload.siteConfig;
-  if (isRecord(siteConfig)) {
-    return [normalizeSiteFromSiteConfig(siteConfig as SiteConfigInput)];
-  }
-
-  if ('_business' in payload || '_services' in payload) {
-    return [normalizeSiteFromSiteConfig(payload as SiteConfigInput)];
-  }
-
-  const sites = (Array.isArray(payload.sites) ? payload.sites : [payload]) as LegacySiteInput[];
-  return sites.map(normalizeLegacySite);
-}
-
-const JOB_HANDLERS: Record<string, JobHandler> = {
-  draft_cluster_outline: (inputPayload) => ({
-    result: `Cluster outline generated for ${String(inputPayload.signalName ?? 'unknown_signal')}`,
-  }),
-  refresh_page_sections: (inputPayload) => ({
-    result: `Page sections refreshed for ${String(inputPayload.signalName ?? 'unknown_signal')}`,
-  }),
-  scaffold_skill_package: (inputPayload) => ({
-    result: `Skill package scaffolded for ${String(inputPayload.signalName ?? 'unknown_signal')}`,
-  }),
-  run_diagnostics: (inputPayload) => ({
-    result: `Diagnostics run for ${String(inputPayload.signalName ?? 'unknown_signal')}`,
-  }),
-  build_site_page: (inputPayload) => {
-    const payload = (inputPayload.signalPayload ?? {}) as Record<string, unknown>;
-    const sites = normalizeSitesPayload(payload);
-
-    const builtSites = sites.map((site) => {
-      const name = site.businessName;
-      const trade = site.trade;
-      const location = site.location;
-      const phone = site.phone || '';
-      const email = site.email || '';
-      const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, '-');
-
-      const nav = [
-        '<nav style="background:#1e293b;padding:12px 24px;display:flex;gap:24px">',
-        `<a href="index.html" style="color:#93c5fd;text-decoration:none;font-weight:bold">${name}</a>`,
-        '<a href="services.html" style="color:#cbd5e1;text-decoration:none">Services</a>',
-        '<a href="contact.html" style="color:#cbd5e1;text-decoration:none">Contact</a>',
-        '</nav>',
-      ].join('\n');
-
-      const footer = [
-        '<footer style="background:#1e293b;padding:24px;text-align:center;color:#94a3b8;margin-top:48px">',
-        `<p>&copy; ${new Date().getFullYear()} ${name}. ${trade} services in ${location}.</p>`,
-        '</footer>',
-      ].join('\n');
-
-      function page(title: string, desc: string, body: string): string {
-        return [
-          '<!doctype html>',
-          '<html lang="en">',
-          '<head>',
-          '<meta charset="UTF-8"/>',
-          '<meta name="viewport" content="width=device-width, initial-scale=1.0"/>',
-          `<title>${title}</title>`,
-          `<meta name="description" content="${desc}"/>`,
-          '<style>body{font-family:Arial,sans-serif;margin:0;color:#e2e8f0;background:#0f172a}',
-          'main{max-width:800px;margin:0 auto;padding:24px}h1{margin:0 0 16px}p{line-height:1.6}</style>',
-          '</head>',
-          '<body>',
-          nav,
-          '<main>',
-          body,
-          '</main>',
-          footer,
-          '</body>',
-          '</html>',
-        ].join('\n');
-      }
-
-      const indexTitle = `${name} \u2013 ${trade} in ${location}`;
-      const indexDesc = `${name} provides professional ${trade} services in ${location}.`;
-      const indexBody = [
-        `<h1>${name}</h1>`,
-        `<p>Professional ${trade} services in ${location}.</p>`,
-        `<p>${name} delivers reliable, high-quality ${trade} solutions for residential and commercial clients.</p>`,
-        '<p><a href="services.html" style="color:#60a5fa">View our services &rarr;</a></p>',
-        '<p><a href="contact.html" style="color:#60a5fa">Get in touch &rarr;</a></p>',
-      ].join('\n');
-
-      const servicesTitle = `Services \u2013 ${name}`;
-      const servicesDesc = `Professional ${trade} services offered by ${name} in ${location}.`;
-      const servicesBody = [
-        `<h1>${trade.charAt(0).toUpperCase() + trade.slice(1)} Services</h1>`,
-        `<p>${name} offers trusted services in the ${location} area:</p>`,
-        '<ul>',
-        ...site.serviceNames.map((serviceName) => `<li>${serviceName}</li>`),
-        '</ul>',
-        '<p><a href="contact.html" style="color:#60a5fa">Request a quote &rarr;</a></p>',
-      ].join('\n');
-
-      const contactTitle = `Contact \u2013 ${name}`;
-      const contactDesc = `Contact ${name} for ${trade} services in ${location}.`;
-      const contactBody = [
-        '<h1>Contact Us</h1>',
-        `<p>Reach out to ${name} for ${trade} services in ${location}.</p>`,
-        phone ? `<p><strong>Phone:</strong> ${phone}</p>` : '',
-        email ? `<p><strong>Email:</strong> <a href="mailto:${email}" style="color:#60a5fa">${email}</a></p>` : '',
-        location ? `<p><strong>Location:</strong> ${location}</p>` : '',
-      ].filter(Boolean).join('\n');
-
-      return {
-        slug,
-        businessName: name,
-        manifest: {
-          version: '1.0',
-          generatedAt: new Date().toISOString(),
-          slug,
-          businessName: name,
-          trade,
-          location,
-          pages: ['index.html', 'services.html', 'contact.html'],
-          content: {
-            tagline: `Professional ${trade} services`,
-            serviceList: site.serviceNames,
-          },
-          schema: 'schema.json',
-          status: 'ready',
-        },
-        schema: {
-          '@context': 'https://schema.org',
-          '@type': 'LocalBusiness',
-          name,
-          description: `Professional ${trade} services`,
-          address: { '@type': 'PostalAddress', addressLocality: location },
-          ...(phone && { telephone: phone }),
-          ...(email && { email }),
-        },
-        files: {
-          'manifest.json': '', // populated below
-          'schema.json': '', // populated below
-          'index.html': page(indexTitle, indexDesc, indexBody),
-          'services.html': page(servicesTitle, servicesDesc, servicesBody),
-          'contact.html': page(contactTitle, contactDesc, contactBody),
-        },
-        meta: {
-          index: { title: indexTitle, description: indexDesc },
-          services: { title: servicesTitle, description: servicesDesc },
-          contact: { title: contactTitle, description: contactDesc },
-        },
-      };
+    const retryCount = job.retryCount + 1;
+    siStore.updateStatus(invocationId, 'failed', {
+      error: errorMessage,
+      retryCount,
+      completedAt: Date.now(),
     });
 
-    // Populate self-referencing JSON files after structure is built
-    builtSites.forEach((s) => {
-      s.files['manifest.json'] = JSON.stringify(s.manifest, null, 2);
-      s.files['schema.json'] = JSON.stringify(s.schema, null, 2);
-    });
+    console.warn(`[SkillInvocation] Retry attempt ${retryCount} for job ${job.id} (skill: ${job.jobType})`);
+    jobStore.markFailed(job.id);
+    bus.emit('skill.invocation.failed', siStore.getById(invocationId)!);
+    return null;
+  }
+}
 
-    return { siteCount: builtSites.length, sites: builtSites, handoffReady: true };
-  },
-};
+/**
+ * Execute a single pre-built job (must already be enqueued).
+ * Returns the artifact produced, or null if execution failed.
+ */
+export function executeOneJob(jobId: string, ctx?: RuntimeContext): Artifact | null {
+  const jobStore = ctx?.stores.jobStore ?? jobQueue;
+  const siStore = ctx?.stores.skillInvocationStore ?? skillInvocationStore;
+  const aStore = ctx?.stores.assignmentStore ?? assignmentStore;
+  const bus = ctx?.eventBus ?? eventBus;
 
-export function executeJobs(): Artifact[] {
+  const job = jobStore.dequeue();
+  if (!job || job.id !== jobId) {
+    return null;
+  }
+  return _executeJob(job, jobStore, siStore, aStore, bus);
+}
+
+/**
+ * Drain the queue and execute all jobs. Used for single-step workflows
+ * and backward compatibility.
+ */
+export function executeJobs(ctx?: RuntimeContext): Artifact[] {
+  const jobStore = ctx?.stores.jobStore ?? jobQueue;
+  const siStore = ctx?.stores.skillInvocationStore ?? skillInvocationStore;
+  const aStore = ctx?.stores.assignmentStore ?? assignmentStore;
+  const bus = ctx?.eventBus ?? eventBus;
+
   const artifacts: Artifact[] = [];
 
   while (true) {
-    const job = jobQueue.dequeue();
+    const job = jobStore.dequeue();
     if (!job) {
       break;
     }
 
-    const assignedAgent = agentRegistry.findAgentForJob(job.jobType);
-    if (!assignedAgent) {
-      jobQueue.markFailed(job.id);
-      continue;
-    }
-
-    job.assignedAgent = assignedAgent.agentName;
-    job.updatedAt = Date.now();
-    jobQueue.markRunning(job.id);
-
-    eventBus.emit('job.assigned', { ...job, agentName: assignedAgent.agentName });
-
-    // Create a first-class Assignment record for this job-to-agent binding.
-    const assignmentId = `assign_${job.id}`;
-    assignmentStore.create({
-      id: assignmentId,
-      jobId: job.id,
-      agentName: assignedAgent.agentName,
-      reason: `Agent selected by capability match for job type '${job.jobType}'.`,
-      createdAt: Date.now(),
-    });
-
-    const handler = JOB_HANDLERS[job.jobType];
-    if (!handler) {
-      jobQueue.markFailed(job.id);
-      continue;
-    }
-
-    const invocationId = `inv_${job.id}`;
-
-    const invocation = skillInvocationStore.create({
-      id: invocationId,
-      workspaceId: 'default',
-      planId: job.planId,
-      jobId: job.id,
-      assignmentId,
-      agentId: assignedAgent.agentName,
-      skillId: job.jobType,
-      status: 'pending',
-      inputPayload: job.inputPayload,
-      outputPayload: null,
-      artifactIds: [],
-      error: null,
-      retryCount: job.retryCount,
-      fallbackUsed: false,
-      startedAt: Date.now(),
-      completedAt: null,
-    });
-
-    skillInvocationStore.updateStatus(invocationId, 'running');
-    eventBus.emit('skill.invocation.started', invocation);
-
-    try {
-      const outputPayload = handler(job.inputPayload);
-      job.outputPayload = outputPayload;
-      job.updatedAt = Date.now();
-      jobQueue.markComplete(job.id);
-
-      const artifactId = `artifact_${job.id}`;
-      const completedAt = Date.now();
-
-      skillInvocationStore.updateStatus(invocationId, 'completed', {
-        outputPayload,
-        artifactIds: [artifactId],
-        completedAt,
-      });
-      eventBus.emit('skill.invocation.completed', skillInvocationStore.getById(invocationId)!);
-
-      artifacts.push({
-        id: artifactId,
-        jobId: job.id,
-        skillInvocationId: invocationId,
-        type: job.jobType,
-        content: JSON.stringify(outputPayload),
-        createdAt: completedAt,
-      });
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : String(err);
-      console.error(`[SkillInvocation] Invocation ${invocationId} failed for job ${job.id}:`, errorMessage);
-
-      const retryCount = job.retryCount + 1;
-      skillInvocationStore.updateStatus(invocationId, 'failed', {
-        error: errorMessage,
-        retryCount,
-        completedAt: Date.now(),
-      });
-
-      console.warn(`[SkillInvocation] Retry attempt ${retryCount} for job ${job.id} (skill: ${job.jobType})`);
-      jobQueue.markFailed(job.id);
-      eventBus.emit('skill.invocation.failed', skillInvocationStore.getById(invocationId)!);
+    const artifact = _executeJob(job, jobStore, siStore, aStore, bus);
+    if (artifact) {
+      artifacts.push(artifact);
     }
   }
 

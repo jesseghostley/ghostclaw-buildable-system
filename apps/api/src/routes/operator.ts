@@ -1,6 +1,5 @@
 import { Router } from 'express';
-import { processSignal, runtimeStore } from '../../../../packages/core/src/runtime_loop';
-import { skillInvocationStore } from '../../../../packages/core/src/skill_invocation';
+import { processSignal } from '../../../../packages/core/src/runtime_loop';
 
 const router = Router();
 
@@ -20,21 +19,23 @@ router.post('/run', (req, res) => {
     return;
   }
 
+  const ctx = req.app.locals.runtimeCtx;
+
   try {
     const result = processSignal({
       name: COMMAND_ALIASES[command] ?? command,
       payload: req.body?.payload,
-    });
+    }, ctx);
 
     res.status(201).json({
       message: 'Command executed.',
       ...result,
       storeCounts: {
-        signals: runtimeStore.signals.length,
-        plans: runtimeStore.plans.length,
-        jobs: runtimeStore.jobs.length,
-        artifacts: runtimeStore.artifacts.length,
-        skillInvocations: skillInvocationStore.listAll().length,
+        signals: ctx.stores.signalStore.listAll().length,
+        plans: ctx.stores.planStore.listAll().length,
+        jobs: ctx.stores.jobStore.list().length,
+        artifacts: ctx.stores.artifactStore.listAll().length,
+        skillInvocations: ctx.stores.skillInvocationStore.listAll().length,
       },
     });
   } catch (error) {

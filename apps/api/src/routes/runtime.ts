@@ -9,24 +9,28 @@ import {
 
 const router = Router();
 
-router.get('/status', (_req, res) => {
-  res.json(getRuntimeStatus());
+router.get('/status', (req, res) => {
+  const ctx = req.app.locals.runtimeCtx;
+  res.json(getRuntimeStatus(ctx));
 });
 
-router.get('/queue', (_req, res) => {
-  res.json(getQueueStatus());
+router.get('/queue', (req, res) => {
+  const ctx = req.app.locals.runtimeCtx;
+  res.json(getQueueStatus(ctx));
 });
 
 router.get('/agents', (_req, res) => {
   res.json(getAgentStatus());
 });
 
-router.get('/artifacts', (_req, res) => {
-  res.json(getArtifactStatus());
+router.get('/artifacts', (req, res) => {
+  const ctx = req.app.locals.runtimeCtx;
+  res.json(getArtifactStatus(ctx));
 });
 
-router.get('/planner-strategies', (_req, res) => {
-  res.json(getPlannerStrategyStatus());
+router.get('/planner-strategies', (req, res) => {
+  const ctx = req.app.locals.runtimeCtx;
+  res.json(getPlannerStrategyStatus(ctx));
 });
 
 export default router;

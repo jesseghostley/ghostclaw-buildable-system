@@ -1,9 +1,12 @@
 import request from 'supertest';
 import app from '../apps/api/src/app';
-import { runtimeStore } from '../packages/core/src/runtime_loop';
+import { runtimeStore, resetIdCounters } from '../packages/core/src/runtime_loop';
 import { jobQueue } from '../packages/core/src/job_queue';
 import { skillInvocationStore } from '../packages/core/src/skill_invocation';
 import { assignmentStore } from '../packages/core/src/assignment';
+import type { RuntimeContext } from '../packages/core/src/runtime_context';
+
+const ctx = app.locals.runtimeCtx as RuntimeContext;
 
 beforeEach(() => {
   runtimeStore.signals.length = 0;
@@ -15,6 +18,11 @@ beforeEach(() => {
   jobQueue.reset();
   skillInvocationStore.reset();
   assignmentStore.reset();
+  resetIdCounters();
+  // Reset context-owned stores that are separate InMemoryStore instances
+  ctx.stores.signalStore.reset();
+  ctx.stores.planStore.reset();
+  ctx.stores.artifactStore.reset();
 });
 
 describe('GET /api/health', () => {
@@ -222,6 +230,67 @@ describe('GET /api/skill-invocations/:id', () => {
     expect(res.status).toBe(200);
     expect(res.body.id).toBe(invocation.id);
     expect(res.body.skillId).toBe('run_diagnostics');
+  });
+});
+
+describe('GET /api/signals (list)', () => {
+  it('returns empty array on fresh store', async () => {
+    const res = await request(app).get('/api/signals');
+    expect(res.status).toBe(200);
+    expect(Array.isArray(res.body)).toBe(true);
+    expect(res.body).toHaveLength(0);
+  });
+
+  it('returns signals after processing', async () => {
+    await request(app)
+      .post('/api/signals')
+      .send({ name: 'keyword_opportunity_detected' });
+
+    const res = await request(app).get('/api/signals');
+    expect(res.status).toBe(200);
+    expect(res.body).toHaveLength(1);
+    expect(res.body[0].name).toBe('keyword_opportunity_detected');
+  });
+});
+
+describe('GET /api/jobs (list)', () => {
+  it('returns empty array on fresh store', async () => {
+    const res = await request(app).get('/api/jobs');
+    expect(res.status).toBe(200);
+    expect(Array.isArray(res.body)).toBe(true);
+    expect(res.body).toHaveLength(0);
+  });
+
+  it('returns jobs after processing', async () => {
+    await request(app)
+      .post('/api/signals')
+      .send({ name: 'runtime_error_detected' });
+
+    const res = await request(app).get('/api/jobs');
+    expect(res.status).toBe(200);
+    expect(res.body).toHaveLength(1);
+    expect(res.body[0].jobType).toBe('run_diagnostics');
+    expect(res.body[0].status).toBe('completed');
+  });
+});
+
+describe('GET /api/ghost-mart (root index)', () => {
+  it('returns service info and endpoint list', async () => {
+    const res = await request(app).get('/api/ghost-mart');
+    expect(res.status).toBe(200);
+    expect(res.body.service).toBe('ghost-mart');
+    expect(res.body.packageCount).toBe(0);
+    expect(Array.isArray(res.body.endpoints)).toBe(true);
+    expect(res.body.endpoints.length).toBeGreaterThan(0);
+  });
+});
+
+describe('GET / (dashboard)', () => {
+  it('returns 200 with HTML content', async () => {
+    const res = await request(app).get('/');
+    expect(res.status).toBe(200);
+    expect(res.headers['content-type']).toMatch(/html/);
+    expect(res.text).toContain('GhostClaw Runtime Dashboard');
   });
 });
 

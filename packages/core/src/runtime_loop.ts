@@ -1,11 +1,12 @@
 import { routeSignal, type PlannerAction } from '../../planner/src/signal_router';
 import type { StrategyType } from '../../shared/src/types/planner_strategy';
 import { getPlannerStrategy } from './planner_registry';
-import { executeJobs } from './job_executor';
+import { executeJobs, executeOneJob } from './job_executor';
 import { jobQueue, type QueueJob } from './job_queue';
 import { skillInvocationStore, type SkillInvocation } from './skill_invocation';
 import { assignmentStore, type Assignment } from './assignment';
 import { eventBus } from './event_bus';
+import type { RuntimeContext } from './runtime_context';
 
 /**
  * =============================================================================
@@ -96,6 +97,11 @@ export type Artifact = {
   validationStatus?: 'pending' | 'pass' | 'fail';
 };
 
+/**
+ * In-memory accumulator for backward compatibility.  When no RuntimeContext
+ * is passed, processSignal() populates this object so existing tests and
+ * API routes continue to work unchanged.
+ */
 export const runtimeStore = {
   signals: [] as Signal[],
   plans: [] as Plan[],
@@ -105,15 +111,33 @@ export const runtimeStore = {
   assignments: [] as Assignment[],
 };
 
-function nextId(prefix: string, index: number): string {
-  return `${prefix}_${index + 1}`;
+let _signalCounter = 0;
+let _planCounter = 0;
+let _jobCounter = 0;
+
+export function resetIdCounters(): void {
+  _signalCounter = 0;
+  _planCounter = 0;
+  _jobCounter = 0;
+}
+
+function nextSignalId(): string {
+  return `signal_${++_signalCounter}`;
+}
+
+function nextPlanId(): string {
+  return `plan_${++_planCounter}`;
+}
+
+function nextJobId(): string {
+  return `job_${++_jobCounter}`;
 }
 
 function createPlan(signal: Signal): Plan {
   const decision = routeSignal(signal);
   const strategy = getPlannerStrategy(decision.strategyId);
   return {
-    id: nextId('plan', runtimeStore.plans.length),
+    id: nextPlanId(),
     signalId: signal.id,
     action: decision.plannerAction,
     strategyId: decision.strategyId,
@@ -125,33 +149,18 @@ function createPlan(signal: Signal): Plan {
   };
 }
 
-function createJobs(plan: Plan, signal: Signal): Job[] {
-  const jobTypeByAction: Record<PlannerAction, string[]> = {
-    generate_content_cluster: ['draft_cluster_outline'],
-    optimize_existing_page: ['refresh_page_sections'],
-    create_new_skill: ['scaffold_skill_package'],
-    handle_runtime_error: ['run_diagnostics'],
-    build_contractor_site: ['build_site_page'],
-  };
+const jobTypeByAction: Record<PlannerAction, string[]> = {
+  generate_content_cluster: ['draft_cluster_outline'],
+  optimize_existing_page: ['refresh_page_sections'],
+  create_new_skill: ['scaffold_skill_package'],
+  handle_runtime_error: ['run_diagnostics'],
+  build_contractor_site: ['build_site_page'],
+};
 
-  return jobTypeByAction[plan.action].map((jobType, index) => ({
-    id: nextId('job', runtimeStore.jobs.length + index),
-    planId: plan.id,
-    jobType,
-    assignedAgent: null,
-    status: 'queued',
-    inputPayload: {
-      signalName: signal.name,
-      signalPayload: signal.payload ?? null,
-    },
-    outputPayload: null,
-    retryCount: 0,
-    createdAt: Date.now(),
-    updatedAt: Date.now(),
-  }));
-}
-
-export function processSignal(input: Pick<Signal, 'name' | 'payload'>): {
+export function processSignal(
+  input: Pick<Signal, 'name' | 'payload'>,
+  ctx?: RuntimeContext,
+): {
   signal: Signal;
   plan: Plan;
   jobs: Job[];
@@ -159,42 +168,95 @@ export function processSignal(input: Pick<Signal, 'name' | 'payload'>): {
   skillInvocations: SkillInvocation[];
   assignments: Assignment[];
 } {
+  // Resolve stores: use context if provided, otherwise fall back to singletons
+  const jobStore = ctx?.stores.jobStore ?? jobQueue;
+  const siStore = ctx?.stores.skillInvocationStore ?? skillInvocationStore;
+  const aStore = ctx?.stores.assignmentStore ?? assignmentStore;
+  const bus = ctx?.eventBus ?? eventBus;
+
   const signal: Signal = {
-    id: nextId('signal', runtimeStore.signals.length),
+    id: nextSignalId(),
     name: input.name,
     payload: input.payload,
     createdAt: Date.now(),
   };
+
+  // Persist to store if context provided
+  if (ctx) {
+    ctx.stores.signalStore.create(signal);
+  }
   runtimeStore.signals.push(signal);
-  eventBus.emit('signal.received', signal);
+  bus.emit('signal.received', signal);
 
   const plan = createPlan(signal);
+  if (ctx) {
+    ctx.stores.planStore.create(plan);
+  }
   runtimeStore.plans.push(plan);
-  eventBus.emit('plan.created', plan);
+  bus.emit('plan.created', plan);
 
-  const jobs = createJobs(plan, signal);
-  jobs.forEach((job) => {
-    jobQueue.enqueue(job);
-    eventBus.emit('job.queued', job);
-  });
-  runtimeStore.jobs.push(...jobs);
+  const jobTypes = jobTypeByAction[plan.action];
+  const allJobs: Job[] = [];
+  const allArtifacts: Artifact[] = [];
+  let stepContext: Record<string, unknown> = {};
 
-  const artifacts = executeJobs();
-  runtimeStore.artifacts.push(...artifacts);
+  // Execute jobs sequentially, forwarding each job's output as stepContext to the next.
+  for (let i = 0; i < jobTypes.length; i++) {
+    const job: Job = {
+      id: nextJobId(),
+      planId: plan.id,
+      jobType: jobTypes[i],
+      assignedAgent: null,
+      status: 'queued',
+      inputPayload: {
+        signalName: signal.name,
+        signalPayload: signal.payload ?? null,
+        ...(Object.keys(stepContext).length > 0 ? { stepContext } : {}),
+      },
+      outputPayload: null,
+      retryCount: 0,
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+    };
 
-  artifacts.forEach((artifact) => {
-    eventBus.emit('artifact.created', artifact);
-  });
+    jobStore.enqueue(job);
+    bus.emit('job.queued', job);
+    allJobs.push(job);
 
-  const newInvocations = skillInvocationStore.listAll().filter(
-    (inv) => jobs.some((job) => job.id === inv.jobId),
+    const artifact = executeOneJob(job.id, ctx);
+    if (artifact) {
+      allArtifacts.push(artifact);
+      bus.emit('artifact.created', artifact);
+
+      // Persist artifact to store if context provided
+      if (ctx) {
+        ctx.stores.artifactStore.create(artifact);
+      }
+
+      // Forward this job's output to the next step
+      if (job.outputPayload) {
+        stepContext = { ...stepContext, [job.jobType]: job.outputPayload };
+      }
+    } else {
+      // Job failed — stop the chain
+      break;
+    }
+  }
+
+  runtimeStore.jobs.push(...allJobs);
+  runtimeStore.artifacts.push(...allArtifacts);
+
+  const jobIds = new Set(allJobs.map((j) => j.id));
+
+  const newInvocations = siStore.listAll().filter(
+    (inv) => jobIds.has(inv.jobId),
   );
   runtimeStore.skillInvocations.push(...newInvocations);
 
-  const newAssignments = assignmentStore.listAll().filter(
-    (asgn) => jobs.some((job) => job.id === asgn.jobId),
+  const newAssignments = aStore.listAll().filter(
+    (asgn) => jobIds.has(asgn.jobId),
   );
   runtimeStore.assignments.push(...newAssignments);
 
-  return { signal, plan, jobs, artifacts, skillInvocations: newInvocations, assignments: newAssignments };
+  return { signal, plan, jobs: allJobs, artifacts: allArtifacts, skillInvocations: newInvocations, assignments: newAssignments };
 }
