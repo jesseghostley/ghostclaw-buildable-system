@@ -3,27 +3,86 @@
 Standard operating procedure for batch site deployment to cPanel hosting via WHM API.
 Based on the successful Batch 1 deployment (5 Arkansas storm damage contractor sites).
 
+## Standard Deployment Flow
+
+```
+build/finish → hosting truth collection → approval review → hosting adapter deploy → verification → deploy-state recording
+```
+
+| Stage | Tool | Output | Canonical? |
+|-------|------|--------|------------|
+| Build/finish | Site builder | Site zips, SITE_CONFIG.json | Yes |
+| Hosting truth collection | `hosting_truth_collector.py` | Proposed deploy-map files | No — proposed only |
+| Approval review | Human | Promote proposed → canonical | Yes (after promotion) |
+| Hosting adapter deploy | `deploy.py` / deploy scripts | Live cPanel accounts + files | Yes |
+| Verification | Deploy script / manual | Per-site status report | Yes |
+| Deploy-state recording | Deploy script | `deploy_final_results.json`, canonical deploy-map | Yes |
+
 ---
 
-## 1. Precheck
+## 1. Precheck — Hosting Truth Collection
 
-Before any deployment action:
+Before any deployment action, run the **Hosting Truth Collector** (`hosting_truth_collector.py`).
 
-1. **Load batch source of truth** — read DEPLOY_MANIFEST.json or manifest.json
+The collector reads local truth files and live WHM state, then outputs **proposed** deploy-map files. It does not deploy anything or write canonical state.
+
+### 1a. Collector inputs
+
+- `manifest.json` or `DEPLOY_MANIFEST.json`
+- Per-site `SITE_CONFIG.json`
+- Prior `deploy_final_results.json` (if exists)
+- `sites_manifest.json` (if exists)
+- Live WHM inventory via API
+
+### 1b. Collector outputs (proposed, not canonical)
+
+- `/srv/ghostclaw/deploy-map/proposed/CPANEL_ACCOUNT_MAP.proposed.json`
+- `/srv/ghostclaw/deploy-map/proposed/DOMAIN_OWNERSHIP_AUDIT.proposed.json`
+- `/srv/ghostclaw/deploy-map/proposed/sites/<domain>.json`
+- `/srv/ghostclaw/discovery/HOSTING_TRUTH_SUMMARY_<date>.md`
+- `/srv/ghostclaw/discovery/runs/<timestamp>-hosting-truth-run.json`
+
+### 1c. Collector checks
+
+1. **Load batch source of truth** — read manifest
 2. **Validate domains** — no duplicates within batch, no duplicates across prior batches
 3. **Validate usernames** — each ≤16 characters, unique, no collisions with existing server accounts
-4. **Validate zip files** — each site zip exists, is valid, contains exactly 6 files (index.html, about.html, contact.html, style.css, schema.json, SITE_CONFIG.json)
-5. **Connect to WHM** — verify API token authenticates (HTTP 200 on version endpoint)
+4. **Validate zip files** — each site zip exists, is valid, contains exactly 6 files
+5. **Connect to WHM** — verify API token authenticates
 6. **Query live server state** — run `listaccts` to get all existing accounts
 7. **Check each domain** — is it a primary domain, addon, parked, or absent?
 8. **Check each username** — does it already exist on the server?
 9. **Check DNS zones** — are there stale zones from deleted accounts?
 10. **Check account limits** — is the reseller at capacity?
+11. **Score confidence** — high / medium / low / blocked per domain
+12. **Flag conflicts** — source-of-truth disagreements, addon contamination, username mismatches
+
+### 1d. Confidence gate
+
+- **High confidence** domains can proceed to approval review
+- **Medium confidence** domains need targeted verification before approval
+- **Low confidence** or **blocked** domains must be resolved before any deployment
 
 **Stop if:** WHM auth fails, manifest has duplicates, zip files missing, or deploy context is ambiguous.
 
+### 1e. Approval review (human step)
+
+After the collector runs, a human reviews the proposed outputs and decides:
+
+- Which domains to promote to canonical deploy-map
+- Which domains need further investigation
+- Which conflicts to resolve
+
+Only **high-confidence records** should be promoted. Promotion copies proposed files to canonical paths:
+
+- `/srv/ghostclaw/deploy-map/CPANEL_ACCOUNT_MAP.json`
+- `/srv/ghostclaw/deploy-map/DOMAIN_OWNERSHIP_AUDIT.json`
+- `/srv/ghostclaw/deploy-map/sites/<domain>.json`
+
+**Proposed files are never automatically promoted.** Approval stays separate from discovery.
+
 ### Batch 1 proof:
-Precheck discovered 3 existing accounts (2 with correct usernames, 1 with wrong username), 2 domains registered as addon domains under a different account, and a 100-account reseller limit. All were resolved before deployment proceeded.
+Collector discovered all 5 domains at high confidence. All promoted to canonical after review. Prior to collector existence, manual precheck discovered 3 existing accounts (2 with correct usernames, 1 with wrong username), 2 addon domains, and a 100-account reseller limit.
 
 ---
 
