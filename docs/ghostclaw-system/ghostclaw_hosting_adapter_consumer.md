@@ -23,8 +23,17 @@ Canonical truth order:
 ## Standard deployment flow
 
 ```
-build/finish → hosting truth collection → approval review → hosting adapter deploy → verification → deploy-state recording
+build/finish → hosting truth collection → Hermes system reach check → approval review → hosting adapter deploy → verification → deploy-state recording
 ```
+
+The **Hermes system reach check** is a required gate. It verifies that updates made by Claude have reached real GhostClaw system paths (`/srv/ghostclaw/...`, repo working trees, git remotes) and are not trapped in a sandbox-only location.
+
+Hermes gate rules:
+- `SYSTEM-REACHING` → deployment may continue
+- `SANDBOX-ONLY` → deployment must stop
+- `MIXED / NEEDS FIX` → deployment must stop
+
+Report is saved to `/srv/ghostclaw/discovery/HERMES_SYSTEM_REACH_CHECK_<timestamp>.md`.
 
 ## Discovery layer — Hosting Truth Collector
 
@@ -56,23 +65,24 @@ Canonical deploy-map (after promotion):
 For each batch:
 1. read batch truth
 2. **run hosting truth collector** (discovery)
-3. **review proposed outputs** (human approval gate)
-4. **promote high-confidence records to canonical deploy-map**
-5. validate domains and assigned usernames against canonical deploy-map
-6. package one deploy zip per site
-7. package one batch bundle
-8. generate handoff-manifest.json
-9. generate index.html download center
-10. publish handoff files
-11. run live precheck against canonical deploy-map
-12. choose deploy mode explicitly:
+3. **run Hermes system reach check** (gate) — stop if verdict is `SANDBOX-ONLY` or `MIXED / NEEDS FIX`
+4. **review proposed outputs** (human approval gate)
+5. **promote high-confidence records to canonical deploy-map**
+6. validate domains and assigned usernames against canonical deploy-map
+7. package one deploy zip per site
+8. package one batch bundle
+9. generate handoff-manifest.json
+10. generate index.html download center
+11. publish handoff files
+12. run live precheck against canonical deploy-map
+13. choose deploy mode explicitly:
     - first-deploy
     - update-deploy
     - repair-deploy
-13. create backup when required
-14. deploy
-15. verify
-16. write deployment result and update deploy-state
+14. create backup when required
+15. deploy
+16. verify
+17. write deployment result and update deploy-state
 
 Return only:
 - what was completed

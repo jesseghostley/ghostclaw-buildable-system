@@ -6,17 +6,24 @@ Based on the successful Batch 1 deployment (5 Arkansas storm damage contractor s
 ## Standard Deployment Flow
 
 ```
-build/finish → hosting truth collection → approval review → hosting adapter deploy → verification → deploy-state recording
+build/finish → hosting truth collection → Hermes system reach check → approval review → hosting adapter deploy → verification → deploy-state recording
 ```
 
 | Stage | Tool | Output | Canonical? |
 |-------|------|--------|------------|
 | Build/finish | Site builder | Site zips, SITE_CONFIG.json | Yes |
 | Hosting truth collection | `hosting_truth_collector.py` | Proposed deploy-map files | No — proposed only |
+| Hermes system reach check | `hermes_system_reach_check.py` | System reach report + verdict | Gate |
 | Approval review | Human | Promote proposed → canonical | Yes (after promotion) |
 | Hosting adapter deploy | `deploy.py` / deploy scripts | Live cPanel accounts + files | Yes |
 | Verification | Deploy script / manual | Per-site status report | Yes |
 | Deploy-state recording | Deploy script | `deploy_final_results.json`, canonical deploy-map | Yes |
+
+**Hermes gate rules:**
+- Verdict `SYSTEM-REACHING` → deployment may continue
+- Verdict `SANDBOX-ONLY` → deployment must stop
+- Verdict `MIXED / NEEDS FIX` → deployment must stop
+- Report saved to `/srv/ghostclaw/discovery/HERMES_SYSTEM_REACH_CHECK_<timestamp>.md`
 
 ---
 
