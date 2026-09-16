@@ -105,6 +105,14 @@ implementation_sequence:
   - /case-studies/
   - /about/
 
+implementation_checkpoint:
+  route_fixture: __tests__/fixtures/agile-v2-site-routes.json
+  rendered_non_homepage_routes: 10
+  remaining_planned_routes:
+    - /projects/
+    - /case-studies/
+    - /about/
+
 validation:
   fail_if:
     - dead_internal_link
