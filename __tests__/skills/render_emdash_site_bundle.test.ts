@@ -15,13 +15,16 @@ describe('render_emdash_site_bundle skill', () => {
     expect(files['system/index.html']).toContain('One connected growth system');
     expect(files['ai-websites/index.html']).toContain('built from a system');
     expect(files['local-seo/index.html']).toContain('work your company actually does');
+    expect(files['conversion-learning/index.html']).toContain('Build once. Learn continuously.');
+    expect(files['conversion-learning/index.html']).toContain('Measure the right outcome');
     expect(files['contractors/index.html']).toContain('Built for the niche');
-    expect(files['contractors/restoration/index.html']).toContain('urgency, trust and local response');
-    expect(files['contractors/roofing/index.html']).toContain('search to inspection');
-    expect(files['contractors/foundation-repair/index.html']).toContain('request an inspection');
-    expect(files['contractors/garage-doors/index.html']).toContain('emergency repair intent');
-    expect(files['contractors/epoxy-flooring/index.html']).toContain('visual proof');
+    expect(files['contractors/restoration/index.html']).toContain('emergency search traffic');
+    expect(files['contractors/roofing/index.html']).toContain('storm demand');
+    expect(files['contractors/foundation-repair/index.html']).toContain('qualified inspection');
+    expect(files['contractors/garage-doors/index.html']).toContain('repair, replacement and emergency intent');
+    expect(files['contractors/epoxy-flooring/index.html']).toContain('visual project proof');
     expect(files['get-started/index.html']).toContain('Find the constraint');
+    expect(files['get-started/index.html']).toContain('improve after measurement is connected');
   });
 
   it('emits unique canonicals and preview noindex directives', () => {
@@ -30,6 +33,7 @@ describe('render_emdash_site_bundle skill', () => {
     expect(files['system/index.html']).toContain('<link rel="canonical" href="https://agilemarketingsystems.com/system/">');
     expect(files['ai-websites/index.html']).toContain('<link rel="canonical" href="https://agilemarketingsystems.com/ai-websites/">');
     expect(files['local-seo/index.html']).toContain('<link rel="canonical" href="https://agilemarketingsystems.com/local-seo/">');
+    expect(files['conversion-learning/index.html']).toContain('<link rel="canonical" href="https://agilemarketingsystems.com/conversion-learning/">');
     expect(files['contractors/restoration/index.html']).toContain('<link rel="canonical" href="https://agilemarketingsystems.com/contractors/restoration/">');
     expect(files['contractors/index.html']).toContain('<link rel="canonical" href="https://agilemarketingsystems.com/contractors/">');
     expect(files['get-started/index.html']).toContain('<meta name="robots" content="noindex,nofollow">');
@@ -43,6 +47,14 @@ describe('render_emdash_site_bundle skill', () => {
     expect(html).not.toContain('action=');
   });
 
+  it('keeps conversion-learning copy free of unsupported performance claims', () => {
+    const output = skill.execute({ fixture }) as Record<string, unknown>;
+    const html = (output.files as Record<string, string>)['conversion-learning/index.html'];
+    expect(html).not.toMatch(/\b(?:2x|100%|50%|30%)\b/i);
+    expect(html).not.toContain('guaranteed conversion lift');
+    expect(html).toContain('Qualified leads, booked calls and revenue');
+  });
+
   it('classifies internal links as resolved, planned, or dead', () => {
     const output = skill.execute({ fixture }) as Record<string, unknown>;
     const report = output.linkReport as { resolved: string[]; planned: string[]; dead: string[] };
@@ -50,6 +62,7 @@ describe('render_emdash_site_bundle skill', () => {
       '/system/',
       '/ai-websites/',
       '/local-seo/',
+      '/conversion-learning/',
       '/contractors/',
       '/contractors/restoration/',
       '/contractors/roofing/',
