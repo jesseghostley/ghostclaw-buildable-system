@@ -27,12 +27,7 @@
   "plannedRoutes": [
     "/projects/",
     "/case-studies/",
-    "/about/",
-    "/contractors/restoration/",
-    "/contractors/roofing/",
-    "/contractors/foundation-repair/",
-    "/contractors/garage-doors/",
-    "/contractors/epoxy-flooring/"
+    "/about/"
   ],
   "routes": [
     {
@@ -95,6 +90,76 @@
         {"title": "Epoxy Flooring", "body": "Residential/commercial segmentation, visual proof, project galleries and local landing pages.", "href": "/contractors/epoxy-flooring/"}
       ],
       "primaryCta": {"label": "Map My Contractor System", "href": "/get-started/", "event": "cta_contractors_get_started"}
+    },
+    {
+      "path": "/contractors/restoration/",
+      "title": "AI Website & Growth System for Restoration Companies | Agile Marketing Systems",
+      "description": "A restoration-specific website and growth system for emergency lead capture, water, fire and mold services, insurance education, local SEO and project proof.",
+      "eyebrow": "Restoration Contractors",
+      "headline": "A restoration growth system built around urgency, trust and local response",
+      "intro": "Restoration companies need fast emergency conversion paths, clear service architecture and proof that supports both homeowners and referral partners.",
+      "sections": [
+        {"heading": "Emergency lead capture", "body": "High-intent calls, forms and service paths prioritize water, fire, mold and storm-loss inquiries without burying urgent visitors in generic navigation."},
+        {"heading": "Insurance-aware education", "body": "Approved educational content can explain process, documentation and next steps without making unsupported coverage or claim promises."},
+        {"heading": "Project proof engine", "body": "Verified jobs can become local project pages, service proof and case-study inputs while keeping customer facts and outcomes controlled."}
+      ],
+      "primaryCta": {"label": "Map My Restoration System", "href": "/get-started/", "event": "cta_restoration_get_started"}
+    },
+    {
+      "path": "/contractors/roofing/",
+      "title": "AI Website & Growth System for Roofing Contractors | Agile Marketing Systems",
+      "description": "A roofing-specific website and growth system for inspections, storm demand, repair and replacement, financing, local SEO and verified project proof.",
+      "eyebrow": "Roofing Contractors",
+      "headline": "Turn roofing demand into a clearer path from search to inspection",
+      "intro": "Roofing websites should separate urgent storm and repair intent from planned replacement decisions while making financing, proof and service areas easy to understand.",
+      "sections": [
+        {"heading": "Repair, replacement and storm intent", "body": "Different buyer needs receive distinct conversion paths instead of being forced through one generic roofing page."},
+        {"heading": "Inspection and financing workflows", "body": "Approved offers, scheduling and financing information can be connected to the right calls to action without inventing terms or guarantees."},
+        {"heading": "Project and seasonal content", "body": "Verified roofing work can support project galleries, local relevance and seasonal campaigns tied to actual services and markets."}
+      ],
+      "primaryCta": {"label": "Map My Roofing System", "href": "/get-started/", "event": "cta_roofing_get_started"}
+    },
+    {
+      "path": "/contractors/foundation-repair/",
+      "title": "AI Website & Growth System for Foundation Repair | Agile Marketing Systems",
+      "description": "A foundation-repair website and growth system for symptom education, inspections, high-consideration leads, financing, local SEO and verified project proof.",
+      "eyebrow": "Foundation Repair",
+      "headline": "Build trust before the homeowner is ready to request an inspection",
+      "intro": "Foundation repair is a high-consideration sale. The system should help homeowners understand symptoms, solutions and next steps before asking them to convert.",
+      "sections": [
+        {"heading": "Symptom-led architecture", "body": "Cracks, settling, bowing walls, water intrusion and related concerns can route visitors into the right educational and service paths."},
+        {"heading": "Inspection-focused conversion", "body": "Lead forms and calls to action can gather the right context for an inspection without diagnosing conditions the contractor has not verified."},
+        {"heading": "Proof for high-ticket decisions", "body": "Verified projects, process explanations and approved financing information help reduce uncertainty without invented outcomes or guarantees."}
+      ],
+      "primaryCta": {"label": "Map My Foundation Repair System", "href": "/get-started/", "event": "cta_foundation_get_started"}
+    },
+    {
+      "path": "/contractors/garage-doors/",
+      "title": "AI Website & Growth System for Garage Door Companies | Agile Marketing Systems",
+      "description": "A garage-door website and growth system for repair, replacement, emergency service, product education, local SEO, maintenance and project proof.",
+      "eyebrow": "Garage Door Companies",
+      "headline": "Separate emergency repair intent from the replacement buying journey",
+      "intro": "Garage door companies serve two very different buyers: people who need help now and people comparing replacement options. The system should handle both clearly.",
+      "sections": [
+        {"heading": "Repair and emergency demand", "body": "Broken springs, openers and stuck doors can route directly toward fast contact and scheduling paths."},
+        {"heading": "Replacement education", "body": "Door styles, materials, insulation and approved product information can support shoppers without making unsupported product claims."},
+        {"heading": "Local service and maintenance", "body": "Service-area pages, maintenance offers and verified project proof can strengthen local relevance and repeat-customer pathways."}
+      ],
+      "primaryCta": {"label": "Map My Garage Door System", "href": "/get-started/", "event": "cta_garage_doors_get_started"}
+    },
+    {
+      "path": "/contractors/epoxy-flooring/",
+      "title": "AI Website & Growth System for Epoxy Flooring Contractors | Agile Marketing Systems",
+      "description": "An epoxy-flooring website and growth system for residential and commercial leads, visual project proof, local SEO, coatings education and quote requests.",
+      "eyebrow": "Epoxy Flooring",
+      "headline": "Make visual proof and project fit do more of the selling",
+      "intro": "Epoxy and coating buyers want to see relevant spaces, understand the process and know whether the contractor handles their type of project before requesting a quote.",
+      "sections": [
+        {"heading": "Residential and commercial paths", "body": "Garage floors, basements and residential spaces can be separated from warehouses, shops and commercial coating opportunities."},
+        {"heading": "Visual project proof", "body": "Verified before-and-after photos and project details can become reusable proof across project pages, service pages and local content."},
+        {"heading": "Quote-ready education", "body": "Approved information about preparation, coating systems and project variables helps visitors understand fit without inventing pricing or performance guarantees."}
+      ],
+      "primaryCta": {"label": "Map My Epoxy Flooring System", "href": "/get-started/", "event": "cta_epoxy_get_started"}
     },
     {
       "path": "/get-started/",
