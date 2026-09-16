@@ -1,0 +1,111 @@
+{
+  "site": {
+    "name": "Agile Marketing Systems",
+    "canonical": "https://agilemarketingsystems.com/"
+  },
+  "seo": {
+    "title": "AI Website & Growth Systems for Contractors | Agile Marketing Systems",
+    "description": "Contractor-specific AI websites, local search infrastructure, project proof, lead capture, automation, content, reputation and reporting in one connected growth system."
+  },
+  "hero": {
+    "eyebrow": "AI Website & Growth Systems for Contractors",
+    "headline": "Turn Your Website Into a Growth System",
+    "subhead": "We build contractor-specific websites, local SEO infrastructure, lead capture, automation, project publishing and AI-powered growth systems that work together instead of making you manage five different vendors.",
+    "primaryCta": {
+      "label": "See What We’d Build for Your Market",
+      "href": "/get-started/",
+      "event": "cta_hero_get_started"
+    },
+    "secondaryCta": {
+      "label": "Explore the System",
+      "href": "/system/",
+      "event": "cta_hero_explore_system"
+    }
+  },
+  "problem": {
+    "heading": "Your website probably isn’t the real problem.",
+    "body": "Most contractors do not have one marketing problem. They have a chain of disconnected systems that create bottlenecks between visibility, trust, lead capture and follow-up.",
+    "items": [
+      "A website that does not convert",
+      "SEO disconnected from the sales process",
+      "Leads sitting in inboxes",
+      "Completed projects never turned into proof",
+      "Reviews scattered across platforms",
+      "Content created inconsistently",
+      "CRM and automation bolted on later"
+    ]
+  },
+  "system": {
+    "heading": "One connected contractor growth system",
+    "cards": [
+      {"title": "AI Website", "body": "Conversion-focused, fast, niche-specific and locally structured."},
+      {"title": "Local Search", "body": "Service pages, location pages, schema, internal linking and project signals."},
+      {"title": "Project Engine", "body": "Turn completed jobs into case studies, proof pages, local content and social material."},
+      {"title": "Lead Capture", "body": "Forms, calls, tracking, qualification and routing."},
+      {"title": "Automation", "body": "Follow-up, scheduling, notifications and CRM workflows."},
+      {"title": "Reputation", "body": "Review generation and proof distribution."},
+      {"title": "Content Engine", "body": "Niche-specific educational, authority and proof content."},
+      {"title": "Reporting", "body": "See what is producing leads and where the next constraint is."}
+    ]
+  },
+  "niches": {
+    "heading": "Built for the niche, not adapted afterward",
+    "cards": [
+      {"title": "Restoration", "body": "Emergency lead capture, water/fire/mold architecture, insurance content, project documentation and rapid-response CTAs.", "href": "/contractors/restoration/"},
+      {"title": "Roofing", "body": "Storm and insurance pages, financing, inspections, project galleries and seasonal campaigns.", "href": "/contractors/roofing/"},
+      {"title": "Foundation Repair", "body": "Diagnostic lead forms, symptom pages, high-ticket education, case studies and financing.", "href": "/contractors/foundation-repair/"},
+      {"title": "Garage Doors", "body": "Repair/replacement split, emergency service, product galleries, local pages and maintenance offers.", "href": "/contractors/garage-doors/"},
+      {"title": "Epoxy Flooring", "body": "Residential and commercial service segmentation, visual proof, local landing pages and project galleries.", "href": "/contractors/epoxy-flooring/"}
+    ]
+  },
+  "projects": {
+    "heading": "Every completed job should make the next sale easier.",
+    "body": "The Project/Proof Engine turns verified completed work into reusable local-search, sales and content assets.",
+    "cards": [],
+    "hideWhenEmpty": true
+  },
+  "process": {
+    "heading": "From configuration to launch",
+    "steps": [
+      {"title": "Diagnose the constraint", "body": "Identify what is limiting lead flow, conversion, follow-up or visibility."},
+      {"title": "Configure the niche system", "body": "Choose the right site structure, offers, services, automations, proof model and growth modules."},
+      {"title": "Build and launch", "body": "Generate and QA the production site from structured configuration."},
+      {"title": "Connect the operating layer", "body": "Connect forms, CRM, scheduling, reporting, reviews and analytics."},
+      {"title": "Grow what is working", "body": "Expand projects, niche content, locations, campaigns and automations based on evidence."}
+    ]
+  },
+  "technology": {
+    "heading": "Built to be fast, portable and yours",
+    "body": "The front end is designed for fast delivery and structured publishing without making the contractor dependent on a bloated presentation stack.",
+    "bullets": [
+      "Cloudflare delivery",
+      "Structured EmDash rendering",
+      "Website Factory configuration and orchestration",
+      "Client-controlled domain, content and business data",
+      "Exportable site output",
+      "Controlled AI-assisted page generation"
+    ]
+  },
+  "caseStudies": {
+    "heading": "Proof from real systems",
+    "cards": [],
+    "hideWhenEmpty": true
+  },
+  "faq": {
+    "heading": "Frequently asked questions",
+    "items": [
+      {"question": "Is this just a website package?", "answer": "No. The website is the presentation layer of a broader contractor growth system that can include local search, proof publishing, lead capture, automation, reputation, content and reporting."},
+      {"question": "Do all contractor niches get the same setup?", "answer": "No. The common operating layer is standardized, while niche-specific modules, page architecture, proof and lead workflows are configured around the contractor’s market and sales process."},
+      {"question": "Does AI invent claims or customer results?", "answer": "No. Pricing, guarantees, reviews, service areas, licenses and customer outcomes must come from verified structured source data."}
+    ]
+  },
+  "finalCta": {
+    "heading": "See what your contractor growth system should look like.",
+    "body": "We’ll map the current stack, identify the biggest constraint and show what we would build around the niche and market.",
+    "primaryCta": {
+      "label": "Build My Growth Plan",
+      "href": "/get-started/",
+      "event": "cta_footer_build_growth_plan"
+    }
+  }
+}
