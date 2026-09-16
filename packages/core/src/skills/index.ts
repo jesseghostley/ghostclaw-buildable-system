@@ -10,6 +10,7 @@ import draftClusterOutlineSkill from './draft_cluster_outline';
 import refreshPageSectionsSkill from './refresh_page_sections';
 import scaffoldSkillPackageSkill from './scaffold_skill_package';
 import runDiagnosticsSkill from './run_diagnostics';
+import renderEmdashHomepageSkill from './render_emdash_homepage';
 
 const skillRegistry = new Map<string, SkillModule>();
 
@@ -22,6 +23,7 @@ registerSkill(draftClusterOutlineSkill);
 registerSkill(refreshPageSectionsSkill);
 registerSkill(scaffoldSkillPackageSkill);
 registerSkill(runDiagnosticsSkill);
+registerSkill(renderEmdashHomepageSkill);
 
 export function getSkill(skillId: string): SkillModule | undefined {
   return skillRegistry.get(skillId);
