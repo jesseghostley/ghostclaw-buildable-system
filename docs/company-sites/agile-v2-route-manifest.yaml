@@ -1,4 +1,4 @@
-version: 0.1
+version: 0.2
 status: draft
 site: agilemarketingsystems.com
 purpose: route contract for the multi-page Agile V2 flagship
@@ -13,19 +13,19 @@ routes:
     type: product_system
     intent: explain the connected AI Website & Growth System
     primary_cta: /get-started/
-    status: planned
+    status: renderable
 
   - path: /ai-websites/
     type: capability
     intent: explain the contractor AI website layer and Website Factory model
     primary_cta: /get-started/
-    status: planned
+    status: renderable
 
   - path: /local-seo/
     type: capability
     intent: explain local-search architecture, service/location/project content and technical SEO
     primary_cta: /get-started/
-    status: planned
+    status: renderable
 
   - path: /projects/
     type: proof_index
@@ -42,7 +42,7 @@ routes:
   - path: /contractors/
     type: niche_index
     intent: route visitors into contractor-specific system configurations
-    status: planned
+    status: renderable
 
   - path: /contractors/restoration/
     type: niche_landing
@@ -78,7 +78,7 @@ routes:
     type: conversion
     intent: contractor growth-system intake and strategy-call path
     form_policy: no_placeholder_endpoint_in_production
-    status: planned
+    status: renderable
 
 route_rules:
   - every public route must emit unique title and meta description
