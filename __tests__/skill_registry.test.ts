@@ -1,8 +1,8 @@
 import { getSkill, listSkills, skillRegistry } from '../packages/core/src/skills';
 
 describe('Skill Registry', () => {
-  it('has all seven registered skills', () => {
-    expect(skillRegistry.size).toBe(7);
+  it('has all eight registered skills', () => {
+    expect(skillRegistry.size).toBe(8);
   });
 
   it('returns a skill by id', () => {
@@ -26,6 +26,13 @@ describe('Skill Registry', () => {
     expect(typeof skill!.execute).toBe('function');
   });
 
+  it('returns the execution integrity scanner by id', () => {
+    const skill = getSkill('scan_execution_integrity');
+    expect(skill).toBeDefined();
+    expect(skill!.skillId).toBe('scan_execution_integrity');
+    expect(typeof skill!.execute).toBe('function');
+  });
+
   it('returns undefined for unknown skill', () => {
     expect(getSkill('nonexistent_skill')).toBeUndefined();
   });
@@ -41,6 +48,7 @@ describe('Skill Registry', () => {
       'render_emdash_site_bundle',
       'run_diagnostics',
       'scaffold_skill_package',
+      'scan_execution_integrity',
     ]);
   });
 
