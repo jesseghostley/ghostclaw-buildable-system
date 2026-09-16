@@ -13,6 +13,7 @@ import runDiagnosticsSkill from './run_diagnostics';
 import renderEmdashHomepageSkill from './render_emdash_homepage';
 import renderEmdashSiteBundleSkill from './render_emdash_site_bundle';
 import scanExecutionIntegritySkill from './scan_execution_integrity';
+import scanSlaTransitionsSkill from './scan_sla_transitions';
 
 const skillRegistry = new Map<string, SkillModule>();
 
@@ -28,6 +29,7 @@ registerSkill(runDiagnosticsSkill);
 registerSkill(renderEmdashHomepageSkill);
 registerSkill(renderEmdashSiteBundleSkill);
 registerSkill(scanExecutionIntegritySkill);
+registerSkill(scanSlaTransitionsSkill);
 
 export function getSkill(skillId: string): SkillModule | undefined {
   return skillRegistry.get(skillId);
