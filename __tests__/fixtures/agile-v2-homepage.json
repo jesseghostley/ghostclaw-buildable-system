@@ -3,6 +3,32 @@
     "name": "Agile Marketing Systems",
     "canonical": "https://agilemarketingsystems.com/"
   },
+  "brand": {
+    "nav": [
+      {"label": "System", "href": "/system/"},
+      {"label": "AI Websites", "href": "/ai-websites/"},
+      {"label": "Local SEO", "href": "/local-seo/"},
+      {"label": "Projects", "href": "/projects/"},
+      {"label": "Case Studies", "href": "/case-studies/"},
+      {"label": "Contractors", "href": "/contractors/"},
+      {"label": "About", "href": "/about/"}
+    ],
+    "headerCta": {
+      "label": "See What We’d Build",
+      "href": "/get-started/",
+      "event": "cta_header_get_started"
+    },
+    "footer": {
+      "tagline": "AI Website & Growth Systems for Contractors",
+      "links": [
+        {"label": "System", "href": "/system/"},
+        {"label": "Projects", "href": "/projects/"},
+        {"label": "Case Studies", "href": "/case-studies/"},
+        {"label": "Get Started", "href": "/get-started/"}
+      ],
+      "legal": "Agile Marketing Systems Inc. — AI Website & Growth Systems for Contractors"
+    }
+  },
   "seo": {
     "title": "AI Website & Growth Systems for Contractors | Agile Marketing Systems",
     "description": "Contractor-specific AI websites, local search infrastructure, project proof, lead capture, automation, content, reputation and reporting in one connected growth system."
