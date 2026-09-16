@@ -35,3 +35,14 @@ jobs:
 
       - name: Test suite
         run: npm test -- --runInBand
+
+      - name: Build Agile V2 preview
+        run: npm run preview:agile-v2
+
+      - name: Upload Agile V2 preview artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: agile-v2-preview
+          path: outputs/agile-v2-preview/
+          if-no-files-found: error
+          retention-days: 14
