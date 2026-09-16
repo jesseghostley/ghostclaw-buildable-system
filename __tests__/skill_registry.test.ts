@@ -1,8 +1,8 @@
 import { getSkill, listSkills, skillRegistry } from '../packages/core/src/skills';
 
 describe('Skill Registry', () => {
-  it('has all eight registered skills', () => {
-    expect(skillRegistry.size).toBe(8);
+  it('has all nine registered skills', () => {
+    expect(skillRegistry.size).toBe(9);
   });
 
   it('returns a skill by id', () => {
@@ -33,6 +33,13 @@ describe('Skill Registry', () => {
     expect(typeof skill!.execute).toBe('function');
   });
 
+  it('returns the SLA transition scanner by id', () => {
+    const skill = getSkill('scan_sla_transitions');
+    expect(skill).toBeDefined();
+    expect(skill!.skillId).toBe('scan_sla_transitions');
+    expect(typeof skill!.execute).toBe('function');
+  });
+
   it('returns undefined for unknown skill', () => {
     expect(getSkill('nonexistent_skill')).toBeUndefined();
   });
@@ -49,6 +56,7 @@ describe('Skill Registry', () => {
       'run_diagnostics',
       'scaffold_skill_package',
       'scan_execution_integrity',
+      'scan_sla_transitions',
     ]);
   });
 
