@@ -1,4 +1,4 @@
-version: 0.4
+version: 0.5
 status: draft
 site: agilemarketingsystems.com
 purpose: route contract for the multi-page Agile V2 flagship
@@ -11,27 +11,33 @@ routes:
 
   - path: /system/
     type: product_system
-    intent: explain the connected AI Website & Growth System
-    primary_cta: /get-started/
+    intent: explain the connected AI Website & Growth System and contractor throughput model
+    primary_cta: /growth-constraint-audit/
     status: renderable
 
   - path: /ai-websites/
     type: capability
     intent: explain the contractor AI website layer and Website Factory model
-    primary_cta: /get-started/
+    primary_cta: /growth-constraint-audit/
     status: renderable
 
   - path: /local-seo/
     type: capability
-    intent: explain local-search architecture, service/location/project content and technical SEO
-    primary_cta: /get-started/
+    intent: explain local-search architecture as one possible intervention when visibility is the active constraint
+    primary_cta: /growth-constraint-audit/
     status: renderable
 
   - path: /conversion-learning/
     type: capability
-    intent: explain the post-launch measurement, controlled experimentation and canon-promotion loop
-    primary_cta: /get-started/
+    intent: explain controlled testing as a subordinate constraint-relief tool
+    primary_cta: /growth-constraint-audit/
     status: renderable
+
+  - path: /growth-constraint-audit/
+    type: diagnostic_conversion
+    intent: identify the most likely bottleneck limiting profitable completed jobs
+    form_policy: no_placeholder_endpoint_in_production
+    status: planned
 
   - path: /projects/
     type: proof_index
@@ -93,6 +99,8 @@ route_rules:
   - proof routes may only use verified structured source records
   - no route may introduce invented pricing, guarantees, reviews, licenses, service areas or results
   - conversion-learning routes may explain process but may not claim a conversion lift without verified experiment evidence
+  - public growth recommendations must follow diagnose-before-prescribe and exploit-before-expand rules
+  - demand expansion must not be positioned as the default when capacity or downstream leakage is the active constraint
   - route output must remain exportable static HTML unless an approved runtime feature requires otherwise
   - production routes default to indexable; preview/staging output must remain noindex
   - legacy WordPress URLs require explicit preserve/rewrite/redirect/retire decisions before cutover
@@ -109,6 +117,7 @@ implementation_sequence:
   - /contractors/foundation-repair/
   - /contractors/garage-doors/
   - /contractors/epoxy-flooring/
+  - /growth-constraint-audit/
   - /projects/
   - /case-studies/
   - /about/
@@ -117,6 +126,7 @@ implementation_checkpoint:
   route_fixture: __tests__/fixtures/agile-v2-site-routes.json
   rendered_non_homepage_routes: 11
   remaining_planned_routes:
+    - /growth-constraint-audit/
     - /projects/
     - /case-studies/
     - /about/
@@ -130,6 +140,9 @@ validation:
     - unverified_proof_record
     - unverified_conversion_claim
     - placeholder_content_present
+    - demand_expansion_recommended_when_capacity_gate_suppresses_it
   warning_if:
     - proof_index_has_no_verified_records
     - route_has_no_contextual_internal_links
+    - growth_constraint_audit_endpoint_not_configured
+    - capacity_state_unknown
