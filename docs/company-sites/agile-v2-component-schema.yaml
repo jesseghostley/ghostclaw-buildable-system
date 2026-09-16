@@ -1,7 +1,136 @@
-version: 0.3
+version: 0.4
 status: draft
 site: agilemarketingsystems.com
-purpose: component and conversion-learning contract for AWF/EmDash rendering
+purpose: component, throughput, constraint, and conversion-learning contract for AWF/EmDash rendering
+
+optimization_model:
+  top_level_objective: profitable_completed_jobs_per_period
+  operating_loop:
+    - build
+    - measure
+    - diagnose_constraint
+    - exploit_constraint
+    - test_when_useful
+    - improve_throughput
+    - find_next_constraint
+    - repeat
+  rule: conversion testing is subordinate to diagnosed contractor throughput constraints
+
+throughput_chain:
+  - demand
+  - visibility
+  - trust
+  - lead_capture
+  - speed_to_lead
+  - appointment
+  - estimate
+  - close
+  - completed_job
+  - review_referral_repeat
+
+constraint_model:
+  allowed_categories:
+    - market
+    - visibility
+    - trust
+    - conversion
+    - response
+    - appointment
+    - estimate
+    - sales
+    - capacity
+    - reputation
+    - follow_up
+    - leadership_process
+  statuses:
+    - candidate
+    - diagnosing
+    - active
+    - being_exploited
+    - testing_intervention
+    - relieved
+    - superseded
+    - inconclusive
+  schema:
+    required:
+      - id
+      - category
+      - stage
+      - status
+      - hypothesis
+      - evidence
+      - throughput_metric
+      - interventions
+    optional:
+      - confidence
+      - owner
+      - first_observed_at
+      - last_evaluated_at
+      - supporting_metrics
+      - protected_facts
+      - supersedes_constraint_id
+      - relieved_by_intervention_id
+  rules:
+    - normally designate one primary active constraint per operating period
+    - diagnose before prescribing upstream demand expansion
+    - exploit the active constraint before expanding load upstream
+    - re-diagnose after material throughput improvement because the constraint may move
+
+capacity_model:
+  schema:
+    required:
+      - demand_pressure
+    optional:
+      - current_completed_jobs
+      - estimated_sustainable_capacity
+      - period
+      - source
+      - confidence
+      - suppress_demand_expansion
+  demand_pressure_states:
+    - underutilized
+    - balanced
+    - near_capacity
+    - over_capacity
+    - unknown
+  rules:
+    - when near_capacity or over_capacity, demand expansion must not be the default recommendation
+    - capacity may begin as operator or intake supplied data
+
+throughput_metrics:
+  preferred_primary_metrics:
+    - profitable_completed_job
+    - revenue
+    - closed_job
+    - qualified_lead
+    - booked_appointment
+    - completed_intake
+    - qualified_phone_call
+  allowed_constraint_metrics:
+    - qualified_lead_rate
+    - answered_qualified_lead_rate
+    - lead_response_rate
+    - median_speed_to_lead
+    - appointment_set_rate
+    - estimate_issued_rate
+    - close_rate
+    - completed_job_rate
+    - capacity_utilization
+    - review_request_completion_rate
+  supporting_metrics:
+    - cta_click
+    - secondary_cta_click
+    - demo_engagement
+    - form_start
+    - route_progression
+    - project_page_engagement
+    - scroll_depth
+    - engagement_time
+    - bounce
+  rules:
+    - use the deepest reliable downstream business outcome available
+    - supporting metrics cannot independently define success when downstream outcome data exists
+    - increased CTR is not a win if qualified jobs or downstream outcomes decline
 
 brand:
   optional:
@@ -98,6 +227,31 @@ components:
         - proof_refs
         - cta
 
+  contractor_constraint_audit:
+    required:
+      - headline
+      - categories
+      - output_model
+    allowed_categories:
+      - demand
+      - visibility
+      - trust
+      - conversion
+      - response
+      - sales
+      - follow_up
+      - reputation
+      - capacity
+    output_model:
+      required:
+        - primary_constraint
+        - evidence
+        - recommended_intervention
+        - primary_metric
+    rules:
+      - public copy must frame the audit as diagnosis, not a guarantee
+      - do not claim traffic is the constraint without evidence
+
   project_proof:
     required:
       - headline
@@ -137,6 +291,7 @@ components:
         - title
         - body
     rules:
+      - conversion testing is a constraint-relief tool, not the top-level optimization model
       - explain measurement and testing without inventing performance claims
       - primary business outcomes take precedence over vanity metrics
       - public copy must not imply a proven lift unless backed by verified experiment records
@@ -202,6 +357,7 @@ cta_schema:
     - view_niche
     - view_project
     - view_case_study
+    - start_constraint_audit
     - start_intake
     - book_strategy_call
     - submit_lead
@@ -214,7 +370,7 @@ cta_schema:
     - cta_footer_build_growth_plan
 
 experiments:
-  purpose: controlled conversion learning without changing verified business truth
+  purpose: controlled constraint-relief testing without changing verified business truth
   experiment_schema:
     required:
       - id
@@ -226,6 +382,7 @@ experiments:
       - variants
       - status
     optional:
+      - constraint_id
       - secondary_metrics
       - owner
       - start_at
@@ -233,54 +390,54 @@ experiments:
       - winner
       - promotion_status
       - minimum_sample
-    variant_schema:
-      required:
-        - id
-        - weight
-        - fields
-    allowed_initial_components:
-      - hero
-      - faq
-      - cta_band
-      - project_proof
-      - get_started_flow
-    preferred_primary_metrics:
-      - revenue
-      - closed_job
-      - qualified_lead
-      - booked_call
-      - completed_intake
-      - qualified_phone_call
-    allowed_secondary_metrics:
-      - cta_click
-      - secondary_cta_click
-      - demo_engagement
-      - form_start
-      - route_progression
-      - scroll_depth
-      - engagement_time
-      - bounce
-    locked_during_experiments:
-      - pricing
-      - guarantees
-      - customer_names
-      - testimonials
-      - project_outcomes
-      - case_study_metrics
-      - licenses
-      - certifications
-      - service_areas
-      - business_addresses
-      - phone_numbers
-      - regulatory_claims
-      - financing_terms
-      - factual_service_capabilities
+      - evidence_requirements
     rules:
+      - constraint_id is strongly preferred and required for managed optimization unless explicitly waived
+      - random experimentation is discouraged
       - primary business metric takes precedence over supporting engagement metrics
       - experiment may resolve as inconclusive
       - no automatic public performance claim from an experiment result
       - winner promotion back to canonical config requires an auditable approval step
       - no autonomous production traffic split in current implementation
+  variant_schema:
+    required:
+      - id
+      - weight
+      - fields
+  allowed_initial_components:
+    - hero
+    - faq
+    - cta_band
+    - project_proof
+    - get_started_flow
+  locked_during_experiments:
+    - pricing
+    - guarantees
+    - customer_names
+    - testimonials
+    - project_outcomes
+    - case_study_metrics
+    - licenses
+    - certifications
+    - service_areas
+    - business_addresses
+    - phone_numbers
+    - regulatory_claims
+    - financing_terms
+    - factual_service_capabilities
+
+client_qualification:
+  dimensions:
+    - viable_service_economics
+    - identifiable_market_opportunity
+    - measurable_funnel_stages
+    - integration_willingness
+    - proof_availability_or_buildability
+    - operational_willingness
+    - current_or_expandable_capacity
+    - decision_maker_participation
+    - sufficient_lead_or_job_value
+  rule: needing a website alone does not establish managed-service fit
 
 content_policy:
   allowed_agentic_actions:
@@ -289,6 +446,8 @@ content_policy:
     - select verified proof by reference
     - generate controlled service and location variants
     - refresh copy from approved structured facts
+    - propose candidate constraints from verified evidence
+    - propose smallest useful intervention for the active constraint
     - propose controlled experiment variants for approved experimentable fields
     - summarize experiment evidence without converting it into an unverified public claim
   prohibited_agentic_actions:
@@ -300,8 +459,10 @@ content_policy:
     - invent reviews
     - invent case study outcomes
     - invent regulatory claims
+    - assume traffic is the constraint without evidence
     - declare an experiment winner without configured evidence requirements
     - auto-promote a winner to production without approval
+    - autonomously change CRM routing, sales process, capacity commitments, or production offer
 
 validation:
   fail_if:
@@ -314,6 +475,8 @@ validation:
     - duplicate_title
     - experiment_changes_locked_fact
     - experiment_missing_primary_metric
+    - experiment_declares_winner_from_supporting_metric_only
+    - demand_expansion_recommended_while_capacity_gate_suppresses_it
   warning_if:
     - no_project_proof
     - no_case_study_proof
@@ -321,3 +484,5 @@ validation:
     - no_schema_markup
     - logo_asset_not_yet_verified
     - experiment_has_no_minimum_sample
+    - active_constraint_has_low_confidence
+    - capacity_state_unknown
