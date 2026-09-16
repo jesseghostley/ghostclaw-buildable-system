@@ -1,0 +1,76 @@
+{
+  "site": {
+    "name": "Agile Marketing Systems",
+    "origin": "https://agilemarketingsystems.com"
+  },
+  "brand": {
+    "nav": [
+      {"label": "System", "href": "/system/"},
+      {"label": "AI Websites", "href": "/ai-websites/"},
+      {"label": "Local SEO", "href": "/local-seo/"},
+      {"label": "Projects", "href": "/projects/"},
+      {"label": "Case Studies", "href": "/case-studies/"},
+      {"label": "Contractors", "href": "/contractors/"},
+      {"label": "About", "href": "/about/"}
+    ],
+    "headerCta": {"label": "See What We’d Build", "href": "/get-started/", "event": "cta_header_get_started"},
+    "footer": {
+      "tagline": "AI Website & Growth Systems for Contractors",
+      "links": [
+        {"label": "System", "href": "/system/"},
+        {"label": "Contractors", "href": "/contractors/"},
+        {"label": "Get Started", "href": "/get-started/"}
+      ],
+      "legal": "Agile Marketing Systems Inc. — AI Website & Growth Systems for Contractors"
+    }
+  },
+  "routes": [
+    {
+      "path": "/system/",
+      "title": "The Contractor AI Website & Growth System | Agile Marketing Systems",
+      "description": "See how Agile connects websites, local SEO, project proof, lead capture, automation, content, reputation and reporting into one contractor growth system.",
+      "eyebrow": "The System",
+      "headline": "One connected growth system instead of a stack of disconnected vendors",
+      "intro": "The website is the presentation layer. The real product is the operating system around it: local visibility, proof, lead capture, follow-up and measurable growth working from one structured foundation.",
+      "sections": [
+        {"heading": "Website and local search", "body": "Fast contractor-specific pages, structured services and markets, schema, internal linking and project signals are designed together."},
+        {"heading": "Lead capture and automation", "body": "Forms, calls, qualification, routing, scheduling and follow-up are connected to the same growth system rather than bolted on later."},
+        {"heading": "Project proof and content", "body": "Verified completed work becomes reusable proof, local-search content, case studies and sales material without inventing customer outcomes."},
+        {"heading": "Constraint-driven growth", "body": "Reporting is used to identify the limiting step in the funnel so the next improvement is aimed at throughput instead of random marketing activity."}
+      ],
+      "primaryCta": {"label": "See What We’d Build for Your Market", "href": "/get-started/", "event": "cta_system_get_started"}
+    },
+    {
+      "path": "/contractors/",
+      "title": "AI Website & Growth Systems by Contractor Niche | Agile Marketing Systems",
+      "description": "Explore contractor-specific Website Factory configurations for restoration, roofing, foundation repair, garage doors and epoxy flooring.",
+      "eyebrow": "Contractor Systems",
+      "headline": "Built for the niche, not adapted after the fact",
+      "intro": "The operating layer stays standardized while page architecture, offers, proof models and workflows change by trade and sales process.",
+      "cards": [
+        {"title": "Restoration", "body": "Emergency lead capture, water/fire/mold architecture, insurance content and project documentation.", "href": "/contractors/restoration/"},
+        {"title": "Roofing", "body": "Storm and insurance pages, financing, inspections, project galleries and seasonal campaigns.", "href": "/contractors/roofing/"},
+        {"title": "Foundation Repair", "body": "Diagnostic lead forms, symptom pages, high-ticket education, proof and financing.", "href": "/contractors/foundation-repair/"},
+        {"title": "Garage Doors", "body": "Repair/replacement segmentation, emergency service, product galleries and local pages.", "href": "/contractors/garage-doors/"},
+        {"title": "Epoxy Flooring", "body": "Residential/commercial segmentation, visual proof, project galleries and local landing pages.", "href": "/contractors/epoxy-flooring/"}
+      ],
+      "primaryCta": {"label": "Map My Contractor System", "href": "/get-started/", "event": "cta_contractors_get_started"}
+    },
+    {
+      "path": "/get-started/",
+      "title": "Get Started | Contractor Growth System | Agile Marketing Systems",
+      "description": "Start with a contractor growth-system assessment focused on the biggest constraint in visibility, conversion, proof or follow-up.",
+      "eyebrow": "Get Started",
+      "headline": "Find the constraint. Then build the system around it.",
+      "intro": "The first step is mapping your current website, local search, proof, lead capture and follow-up so we can identify what is actually limiting growth.",
+      "sections": [
+        {"heading": "What we’ll map", "body": "Your current site, primary services and markets, lead sources, proof assets, CRM/follow-up process and the bottlenecks between them."},
+        {"heading": "What you’ll get", "body": "A practical view of what should be standardized, what should be niche-specific and which system improvement should come first."}
+      ],
+      "conversion": {
+        "mode": "contact_later",
+        "message": "The production intake endpoint is not connected in this preview. This route intentionally does not submit data anywhere."
+      }
+    }
+  ]
+}
