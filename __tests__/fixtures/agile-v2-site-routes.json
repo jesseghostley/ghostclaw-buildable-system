@@ -24,6 +24,16 @@
       "legal": "Agile Marketing Systems Inc. — AI Website & Growth Systems for Contractors"
     }
   },
+  "plannedRoutes": [
+    "/projects/",
+    "/case-studies/",
+    "/about/",
+    "/contractors/restoration/",
+    "/contractors/roofing/",
+    "/contractors/foundation-repair/",
+    "/contractors/garage-doors/",
+    "/contractors/epoxy-flooring/"
+  ],
   "routes": [
     {
       "path": "/system/",
@@ -39,6 +49,36 @@
         {"heading": "Constraint-driven growth", "body": "Reporting is used to identify the limiting step in the funnel so the next improvement is aimed at throughput instead of random marketing activity."}
       ],
       "primaryCta": {"label": "See What We’d Build for Your Market", "href": "/get-started/", "event": "cta_system_get_started"}
+    },
+    {
+      "path": "/ai-websites/",
+      "title": "AI Websites for Contractors | Agile Marketing Systems",
+      "description": "See how Agile builds fast, structured contractor websites from niche configuration, verified business facts and reusable Website Factory components.",
+      "eyebrow": "AI Websites",
+      "headline": "A contractor website built from a system, not a blank page",
+      "intro": "The Website Factory starts with approved structure, niche modules, business facts, proof rules and conversion paths so AI accelerates production without inventing the business.",
+      "sections": [
+        {"heading": "Structured before generated", "body": "Services, markets, calls to action, proof sources and page relationships are defined in configuration before content is rendered."},
+        {"heading": "Niche-specific by design", "body": "The common operating layer is reusable, while service architecture, FAQs, lead flows and proof patterns change by contractor niche."},
+        {"heading": "Human QA stays in the loop", "body": "Generated output is checked for accuracy, links, claims, metadata, mobile behavior and conversion readiness before production release."},
+        {"heading": "Portable output", "body": "The front end remains static and exportable so the website is not trapped inside a proprietary presentation stack."}
+      ],
+      "primaryCta": {"label": "See What We’d Build", "href": "/get-started/", "event": "cta_ai_websites_get_started"}
+    },
+    {
+      "path": "/local-seo/",
+      "title": "Local SEO Systems for Contractors | Agile Marketing Systems",
+      "description": "Build contractor local-search infrastructure around services, locations, projects, internal links, schema and verified proof instead of isolated SEO tasks.",
+      "eyebrow": "Local SEO",
+      "headline": "Build local search around the work your company actually does",
+      "intro": "Local SEO works better when service pages, market pages, projects, proof and technical structure reinforce one another instead of living in separate campaigns.",
+      "sections": [
+        {"heading": "Service and market architecture", "body": "Core services and target markets are mapped into a deliberate site structure with unique intent instead of thin duplicate location pages."},
+        {"heading": "Projects become local signals", "body": "Verified completed jobs can support project pages, related service pages, local relevance and future case-study content."},
+        {"heading": "Technical foundations", "body": "Canonicals, metadata, schema, internal links, crawlability and index controls are treated as part of the build rather than cleanup work after launch."},
+        {"heading": "Growth by evidence", "body": "Expansion follows search visibility, lead quality and conversion evidence so content production stays tied to business throughput."}
+      ],
+      "primaryCta": {"label": "Map My Local Growth System", "href": "/get-started/", "event": "cta_local_seo_get_started"}
     },
     {
       "path": "/contractors/",
