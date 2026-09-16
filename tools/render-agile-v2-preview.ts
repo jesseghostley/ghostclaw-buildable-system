@@ -21,6 +21,10 @@ if (!homepageHtml) throw new Error('Homepage renderer did not produce index.html
 
 const bundleResult = bundleSkill.execute({ fixture: routeFixture }) as Record<string, unknown>;
 const routeFiles = bundleResult.files as Record<string, string>;
+const linkReport = bundleResult.linkReport as { resolved?: string[]; planned?: string[]; dead?: string[] } | undefined;
+if ((linkReport?.dead?.length ?? 0) > 0) {
+  throw new Error(`Preview has dead internal links: ${linkReport!.dead!.join(', ')}`);
+}
 
 fs.rmSync(outputDir, { recursive: true, force: true });
 fs.mkdirSync(outputDir, { recursive: true });
@@ -39,4 +43,5 @@ console.log(JSON.stringify({
   outputDir,
   files: ['index.html', ...Object.keys(routeFiles)].sort(),
   routesRendered: bundleResult.routesRendered,
+  linkReport,
 }, null, 2));
