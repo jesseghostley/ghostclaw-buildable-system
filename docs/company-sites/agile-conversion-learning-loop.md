@@ -1,86 +1,87 @@
 # Agile Conversion Learning Loop
 
 Status: Draft implementation contract
-Scope: Website Factory product architecture + `agilemarketingsystems.com` flagship reference implementation
+Scope: Website Factory experiment subsystem + `agilemarketingsystems.com` flagship reference implementation
 
-## Purpose
+## Governing relationship
 
-The Website Factory should not stop at generating and launching a contractor website. It should create a measurable conversion system that can learn from visitor behavior, test controlled variations, identify the current limiting step in the funnel, and promote verified winners back into the site configuration.
+Conversion learning is **not** the top-level optimization model.
 
-The flagship Agile Marketing Systems site should demonstrate this operating model directly.
+The governing model is the Contractor Throughput & Constraint Model documented in:
+
+`docs/company-sites/contractor-throughput-constraint-model.md`
+
+The top-level objective is **profitable completed jobs per period**.
+
+The operating loop is:
+
+**Build → Measure → Diagnose Constraint → Exploit Constraint → Test → Improve Throughput → Find Next Constraint → Repeat**
+
+Conversion testing sits inside that loop and should normally be used to relieve a diagnosed constraint.
 
 ## Product model
 
-The system is five connected layers:
-
 1. **Website Factory** — generate the niche-specific site from structured business facts, verified proof, approved brand rules, reusable components and route configuration.
-2. **Conversion Instrumentation** — track meaningful visitor actions such as qualified leads, booked calls, CTA interactions, form starts/completions, calls and route progression.
-3. **Experiment Engine** — generate controlled variants of approved components without changing verified business facts or inventing proof.
-4. **Learning Loop** — compare experiment outcomes against defined primary and secondary metrics and identify which variant improves the targeted constraint.
-5. **Canon Promotion** — after a winner meets the approved evidence threshold, promote its component values back into canonical `SITE_CONFIG` rather than leaving the winning variation as ad-hoc markup.
+2. **Measurement Layer** — connect web, call, booking, CRM, sales, completion, review and capacity signals where available.
+3. **Constraint Engine** — identify the stage currently limiting profitable completed jobs.
+4. **Intervention Planner** — choose the smallest useful intervention to exploit or relieve the active constraint.
+5. **Experiment Engine** — generate controlled variants when uncertainty warrants testing.
+6. **Throughput Evaluation** — judge outcomes by downstream business results rather than vanity metrics.
+7. **Canon Promotion** — after approval, promote proven presentation/workflow changes back into canonical configuration.
+8. **Re-Diagnosis** — find the next limiting constraint.
 
 ## Core principle
 
-**Build once. Learn continuously. Improve the constraint that matters.**
-
-The objective is not aesthetic churn. The objective is measurable improvement in qualified business outcomes.
+**Do not test because testing is available. Test because a diagnosed constraint creates a useful hypothesis.**
 
 ## Metric hierarchy
 
-Primary metrics should represent business outcomes whenever the integration permits it.
+Preferred business-outcome order:
 
-Preferred order:
+1. profitable completed job
+2. revenue / closed job
+3. closed job
+4. qualified lead
+5. booked appointment
+6. completed intake
+7. qualified phone call
 
-1. revenue / closed job attribution
-2. qualified lead
-3. booked strategy call / appointment
-4. completed intake or form submission
-5. phone call meeting duration/quality threshold
+Constraint-specific metrics may include response rate, speed-to-lead, appointment-set rate, estimate rate, close rate, capacity utilization and review-generation rate.
 
-Supporting metrics may include:
+Supporting metrics may include CTA clicks, form starts, route progression, scroll depth, engagement and bounce.
 
-- primary CTA click
-- secondary CTA click
-- demo/video engagement
-- form start
-- route progression
-- scroll depth
-- engagement time
-- bounce / exit behavior
-
-A supporting metric must not automatically override a worse primary business outcome.
+A supporting metric must not override a worse downstream business outcome.
 
 ## Experiment object
 
 ```yaml
 experiment:
-  id: homepage_hero_001
-  route: /
-  component: hero
-  objective: increase qualified contractor inquiries
-  hypothesis: a constraint-led headline will outperform the control for qualified lead rate
-  primary_metric: qualified_lead
+  id: trust_001_project_proof_hero
+  constraint_id: trust_001
+  route: /water-damage/
+  component: proof_strip
+  objective: relieve the active trust constraint
+  hypothesis: verified local project proof placed above the first CTA will improve qualified-lead rate
+  primary_metric: qualified_lead_rate
   secondary_metrics:
+    - project_page_engagement
     - cta_click
     - form_start
-    - bounce
   variants:
     - id: control
-      weight: 34
+      weight: 50
       fields:
-        headline: Turn Your Website Into a Growth System
-    - id: constraint
-      weight: 33
+        placement: below_services
+    - id: proof_high
+      weight: 50
       fields:
-        headline: Stop Losing Leads Between Your Website and Follow-Up
-    - id: outcome
-      weight: 33
-      fields:
-        headline: Build a Contractor Growth System That Turns More Traffic Into Jobs
+        placement: above_primary_cta
   status: draft
   winner: null
   promotion_status: not_evaluated
 ```
+
+Experiments without a `constraint_id` should be allowed only when explicitly justified, for example initial baseline research or a low-risk discovery test.
 
 ## Allowed experiment targets
 
@@ -98,7 +99,7 @@ Initially support controlled experiments on:
 - get-started step wording
 - booking/intake interaction flow
 
-Later support component-level layout treatments, provided accessibility and brand constraints remain intact.
+Not every intervention should be an A/B test. Response routing, follow-up workflows, sales process, reputation, or capacity changes may be better interventions for the active constraint.
 
 ## Locked data during experiments
 
@@ -123,23 +124,26 @@ Verified facts remain locked source data. Experiments change presentation and ap
 
 ## Agency-site implementation
 
-`agilemarketingsystems.com` should communicate that the product is not a one-time website build. The flagship should visibly demonstrate the cycle:
+The flagship should communicate the larger throughput model first:
 
-**Diagnose → Build → Measure → Test → Learn → Improve**
+**Measure the business → find the bottleneck → improve it → measure throughput → find the next bottleneck.**
 
-Recommended homepage addition:
+Conversion learning is one tool inside that system.
 
-### Built to improve after launch
+Recommended public message:
 
-Most websites are treated as finished projects. Ours are designed as measurable growth systems.
+### Built to improve the constraint that matters
 
-We instrument the important conversion paths, identify where prospects drop out, test controlled improvements and use evidence to decide what becomes the new standard.
+Most marketing starts by adding more traffic. We start by asking what is actually limiting profitable completed jobs.
 
-Suggested supporting cards:
+Sometimes the answer is visibility. Sometimes it is proof, conversion, response time, follow-up, close rate or capacity. Once the limiting step is clear, we improve that part of the system and measure whether throughput actually improves.
 
-- **Measure the right outcome** — Optimize around qualified leads, booked calls and revenue where available, not vanity clicks alone.
-- **Test the limiting step** — Focus experiments on the page, message or interaction that is actually constraining throughput.
-- **Promote proven winners** — Winning variants become part of the canonical configuration so the system learns instead of accumulating one-off edits.
+Supporting cards:
+
+- **Measure the right outcome** — Optimize around profitable completed jobs and downstream business outcomes where available.
+- **Diagnose before testing** — Experiments should target the active bottleneck, not random page elements.
+- **Exploit before expanding** — Do not buy or create more demand when the current system is leaking existing demand.
+- **Promote proven improvements** — Approved winners become canonical configuration or workflow rather than one-off edits.
 
 ## Website Factory workflow
 
@@ -149,9 +153,9 @@ Suggested supporting cards:
 
 ### Post-launch loop
 
-`Analytics → constraint diagnosis → experiment proposal → approval gate → variant render → traffic allocation → measurement → evaluation → canon promotion → audit`
+`Measurement → constraint diagnosis → exploit/intervention → experiment if useful → throughput evaluation → approval → canon/workflow promotion → re-diagnosis → audit`
 
-This fits the GhostClaw execution model:
+This fits GhostClaw:
 
 `Signal → Planner → Jobs → Agents → Skills → Artifacts → Approval → Publish → Audit`
 
@@ -166,24 +170,25 @@ Human approval is required before:
 - changing form destinations or booking behavior
 - promoting a winner when the result changes positioning materially
 - publishing a variant that uses new proof
-
-Low-risk wording tests may later be eligible for policy-controlled auto-approval, but that is not part of the initial implementation.
+- operational recommendations that materially alter lead routing, sales process or capacity commitments
 
 ## Mobile-first conversion design
 
-The factory should treat the conversion interaction itself as part of the product.
+The conversion interaction itself remains part of the product.
 
-For contractor traffic, especially paid-social traffic, `/get-started/` should evolve toward a low-friction thumb-friendly staged intake rather than a generic embedded form.
+For contractor traffic, `/get-started/` should evolve toward a low-friction staged intake that also captures enough context to begin a constraint diagnosis.
 
 Proposed sequence:
 
 1. Contractor trade / niche
-2. Primary growth constraint
+2. Current business goal
 3. Primary market / service area
 4. Current website
-5. Current lead source / rough lead-flow context
-6. Contact information
-7. Booking option
+5. Demand / lead-flow context
+6. Response / booking / sales context
+7. Capacity context
+8. Contact information
+9. Booking option
 
 No production form should render without a configured, approved submission endpoint.
 
@@ -192,6 +197,7 @@ No production form should render without a configured, approved submission endpo
 Each experiment record should preserve:
 
 - experiment ID
+- constraint ID
 - route
 - component
 - hypothesis
@@ -202,7 +208,7 @@ Each experiment record should preserve:
 - traffic weights
 - variant field diffs
 - sample counts
-- outcome summary
+- downstream outcome summary
 - decision
 - winner, if any
 - promotion commit / config change reference
@@ -210,59 +216,49 @@ Each experiment record should preserve:
 
 ## Evidence rules
 
-The platform should not claim an experiment winner merely because one variant has more raw clicks.
-
-Initial decision policy:
-
 - primary business metric takes precedence
-- minimum sample threshold must be configured before winner declaration
-- experiment may end as inconclusive
+- minimum sample/evidence thresholds must be configured before winner declaration
+- an experiment may end as inconclusive
+- a variant must not be called a winner because CTR improved while downstream outcomes worsened
 - no automatic public claims such as “X% conversion lift” without verified analytics records and approval
 - historical experiment outcomes are evidence records, not copy-generation prompts by default
 
-## Website Factory product positioning
-
-This adds a differentiated system layer to the offer:
-
-> We do not just build contractor websites. We build measurable website and growth systems designed to learn which messages, pages and conversion paths produce better qualified outcomes — then improve the constraint that matters.
-
-The public version should stay simpler than the internal architecture. The flagship can explain the learning loop without exposing internal credentials, model routing, infrastructure secrets or unverified performance claims.
-
 ## Implementation phases
 
-### Phase 1 — contract and flagship messaging
+### Phase 1 — constraint contract + flagship messaging
 
-- add experiment schema to component/site configuration
-- add a conversion-learning section to the Agile homepage
-- define primary/secondary metric hierarchy
-- preserve CTA analytics events
-- add tests preventing fabricated results
+- constraint schema
+- capacity schema
+- throughput-stage model
+- conversion experiments reference diagnosed constraints
+- Contractor Growth Constraint Audit route/funnel
 
 ### Phase 2 — experiment runtime
 
 - deterministic visitor assignment
 - experiment and variant identifiers in rendered output
 - event payload attribution
-- Cloudflare-compatible experiment routing or edge assignment
 - experiment state persistence
 
-### Phase 3 — reporting and evaluation
+### Phase 3 — throughput reporting and diagnosis
 
-- dashboard / operator view
-- qualified conversion comparison
-- experiment health / sample counts
-- inconclusive/winner decision state
+- operator view of funnel stages
+- constraint candidates with evidence/confidence
+- capacity gate
+- exploit-before-expand recommendations
 
-### Phase 4 — canon promotion
+### Phase 4 — canon/workflow promotion
 
-- approved winner writes back to structured config through an auditable change
+- approved winner writes back to structured config or approved operating workflow
 - rerender + QA
 - rollback reference retained
+- re-diagnose next constraint
 
 ## Non-goals for current PR
 
 - no production traffic splitting yet
 - no autonomous winner promotion
-- no claim that Agile or a client has achieved a specific conversion lift
+- no autonomous operational change to CRM, call routing or capacity
+- no claim that Agile or a client has achieved a specific lift
 - no live intake endpoint change
 - no DNS or production cutover
