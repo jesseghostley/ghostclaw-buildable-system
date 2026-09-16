@@ -12,32 +12,26 @@ routes:
   - path: /system/
     type: product_system
     intent: explain the connected AI Website & Growth System and contractor throughput model
-    primary_cta: /growth-constraint-audit/
+    primary_cta: /get-started/
     status: renderable
 
   - path: /ai-websites/
     type: capability
     intent: explain the contractor AI website layer and Website Factory model
-    primary_cta: /growth-constraint-audit/
+    primary_cta: /get-started/
     status: renderable
 
   - path: /local-seo/
     type: capability
     intent: explain local-search architecture as one possible intervention when visibility is the active constraint
-    primary_cta: /growth-constraint-audit/
+    primary_cta: /get-started/
     status: renderable
 
   - path: /conversion-learning/
     type: capability
     intent: explain controlled testing as a subordinate constraint-relief tool
-    primary_cta: /growth-constraint-audit/
+    primary_cta: /get-started/
     status: renderable
-
-  - path: /growth-constraint-audit/
-    type: diagnostic_conversion
-    intent: identify the most likely bottleneck limiting profitable completed jobs
-    form_policy: no_placeholder_endpoint_in_production
-    status: planned
 
   - path: /projects/
     type: proof_index
@@ -105,6 +99,13 @@ route_rules:
   - production routes default to indexable; preview/staging output must remain noindex
   - legacy WordPress URLs require explicit preserve/rewrite/redirect/retire decisions before cutover
 
+future_routes:
+  - path: /growth-constraint-audit/
+    type: diagnostic_conversion
+    intent: identify the most likely bottleneck limiting profitable completed jobs
+    form_policy: no_placeholder_endpoint_in_production
+    status: next_implementation
+
 implementation_sequence:
   - /get-started/
   - /system/
@@ -125,11 +126,12 @@ implementation_sequence:
 implementation_checkpoint:
   route_fixture: __tests__/fixtures/agile-v2-site-routes.json
   rendered_non_homepage_routes: 11
-  remaining_planned_routes:
-    - /growth-constraint-audit/
+  remaining_manifest_routes:
     - /projects/
     - /case-studies/
     - /about/
+  next_route_to_add_to_fixture:
+    - /growth-constraint-audit/
 
 validation:
   fail_if:
