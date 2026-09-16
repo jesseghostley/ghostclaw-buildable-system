@@ -1,0 +1,172 @@
+version: 0.1
+status: draft
+site: agilemarketingsystems.com
+purpose: component contract for AWF/EmDash rendering
+
+components:
+  hero:
+    required:
+      - eyebrow
+      - headline
+      - subhead
+      - primary_cta
+    optional:
+      - secondary_cta
+      - proof_strip
+      - media
+    rules:
+      - no unverified outcome claims
+      - no invented pricing or guarantees
+
+  problem_stack:
+    required:
+      - headline
+      - problems
+      - conclusion
+    problems_min: 3
+    problems_max: 8
+
+  system_grid:
+    required:
+      - headline
+      - modules
+    module_schema:
+      required:
+        - id
+        - title
+        - summary
+      optional:
+        - icon
+        - route
+        - proof_ref
+
+  niche_matrix:
+    required:
+      - headline
+      - intro
+      - niches
+    niche_schema:
+      required:
+        - id
+        - label
+        - positioning
+        - modules
+      optional:
+        - route
+        - proof_refs
+        - cta
+
+  project_proof:
+    required:
+      - headline
+      - intro
+      - project_refs
+    project_ref_schema:
+      required:
+        - id
+        - service
+        - market
+        - problem
+        - work_performed
+        - result_summary
+      optional:
+        - photos
+        - testimonial_ref
+        - related_service_route
+        - related_location_route
+
+  process_steps:
+    required:
+      - headline
+      - steps
+    step_schema:
+      required:
+        - number
+        - title
+        - summary
+
+  technology_ownership:
+    required:
+      - headline
+      - benefits
+    prohibited_public_detail:
+      - credentials
+      - secrets
+      - internal hostnames
+      - unpublished infrastructure identifiers
+
+  case_study_cards:
+    required:
+      - headline
+      - case_study_refs
+    case_study_ref_schema:
+      required:
+        - id
+        - title
+        - summary
+      optional:
+        - metric_refs
+        - project_refs
+        - route
+
+  faq:
+    required:
+      - items
+    item_schema:
+      required:
+        - question
+        - answer
+
+  cta_band:
+    required:
+      - headline
+      - body
+      - primary_cta
+    optional:
+      - secondary_cta
+
+cta_schema:
+  required:
+    - label
+    - href
+    - event
+  allowed_events:
+    - view_system
+    - view_niche
+    - view_project
+    - view_case_study
+    - start_intake
+    - book_strategy_call
+    - submit_lead
+
+content_policy:
+  allowed_agentic_actions:
+    - assemble approved components
+    - adapt approved copy by niche
+    - select verified proof by reference
+    - generate controlled service and location variants
+    - refresh copy from approved structured facts
+  prohibited_agentic_actions:
+    - invent pricing
+    - invent guarantees
+    - invent customer results
+    - invent licenses
+    - invent service areas
+    - invent reviews
+    - invent case study outcomes
+    - invent regulatory claims
+
+validation:
+  fail_if:
+    - placeholder_content_present
+    - required_component_field_missing
+    - unverified_claim_present
+    - dead_internal_link
+    - missing_primary_cta
+    - missing_canonical
+    - duplicate_title
+  warning_if:
+    - no_project_proof
+    - no_case_study_proof
+    - no_secondary_cta
+    - no_schema_markup
