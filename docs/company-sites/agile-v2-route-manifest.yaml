@@ -1,4 +1,4 @@
-version: 0.3
+version: 0.4
 status: draft
 site: agilemarketingsystems.com
 purpose: route contract for the multi-page Agile V2 flagship
@@ -24,6 +24,12 @@ routes:
   - path: /local-seo/
     type: capability
     intent: explain local-search architecture, service/location/project content and technical SEO
+    primary_cta: /get-started/
+    status: renderable
+
+  - path: /conversion-learning/
+    type: capability
+    intent: explain the post-launch measurement, controlled experimentation and canon-promotion loop
     primary_cta: /get-started/
     status: renderable
 
@@ -86,6 +92,7 @@ route_rules:
   - every internal navigation href must resolve to a rendered route before production cutover
   - proof routes may only use verified structured source records
   - no route may introduce invented pricing, guarantees, reviews, licenses, service areas or results
+  - conversion-learning routes may explain process but may not claim a conversion lift without verified experiment evidence
   - route output must remain exportable static HTML unless an approved runtime feature requires otherwise
   - production routes default to indexable; preview/staging output must remain noindex
   - legacy WordPress URLs require explicit preserve/rewrite/redirect/retire decisions before cutover
@@ -96,6 +103,7 @@ implementation_sequence:
   - /contractors/
   - /ai-websites/
   - /local-seo/
+  - /conversion-learning/
   - /contractors/restoration/
   - /contractors/roofing/
   - /contractors/foundation-repair/
@@ -107,7 +115,7 @@ implementation_sequence:
 
 implementation_checkpoint:
   route_fixture: __tests__/fixtures/agile-v2-site-routes.json
-  rendered_non_homepage_routes: 10
+  rendered_non_homepage_routes: 11
   remaining_planned_routes:
     - /projects/
     - /case-studies/
@@ -120,6 +128,7 @@ validation:
     - missing_canonical
     - missing_primary_cta_on_conversion_route
     - unverified_proof_record
+    - unverified_conversion_claim
     - placeholder_content_present
   warning_if:
     - proof_index_has_no_verified_records
