@@ -1,4 +1,4 @@
-version: 0.2
+version: 0.3
 status: draft
 site: agilemarketingsystems.com
 purpose: route contract for the multi-page Agile V2 flagship
@@ -47,27 +47,27 @@ routes:
   - path: /contractors/restoration/
     type: niche_landing
     niche: restoration
-    status: planned
+    status: renderable
 
   - path: /contractors/roofing/
     type: niche_landing
     niche: roofing
-    status: planned
+    status: renderable
 
   - path: /contractors/foundation-repair/
     type: niche_landing
     niche: foundation_repair
-    status: planned
+    status: renderable
 
   - path: /contractors/garage-doors/
     type: niche_landing
     niche: garage_doors
-    status: planned
+    status: renderable
 
   - path: /contractors/epoxy-flooring/
     type: niche_landing
     niche: epoxy_flooring
-    status: planned
+    status: renderable
 
   - path: /about/
     type: company
@@ -96,7 +96,11 @@ implementation_sequence:
   - /contractors/
   - /ai-websites/
   - /local-seo/
-  - niche landing pages
+  - /contractors/restoration/
+  - /contractors/roofing/
+  - /contractors/foundation-repair/
+  - /contractors/garage-doors/
+  - /contractors/epoxy-flooring/
   - /projects/
   - /case-studies/
   - /about/
