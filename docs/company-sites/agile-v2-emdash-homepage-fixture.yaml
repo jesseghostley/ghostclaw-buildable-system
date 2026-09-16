@@ -1,0 +1,218 @@
+fixture_version: 0.1
+fixture_name: agile-marketing-systems-homepage-v2
+status: draft
+source_of_truth: docs/company-sites/agile-v2-site-config-draft.yaml
+component_contract: docs/company-sites/agile-v2-component-schema.yaml
+
+page:
+  route: /
+  page_type: flagship_home
+  title: AI Website & Growth Systems for Contractors | Agile Marketing Systems
+  meta_description: Contractor-specific AI websites, local search infrastructure, project proof, lead capture, automation, and growth systems built to work together.
+  canonical: https://agilemarketingsystems.com/
+  primary_goal: start_intake
+  audience:
+    - contractor_owner
+    - home_service_operator
+
+sections:
+  - component: hero
+    props:
+      eyebrow: AI Website & Growth Systems for Contractors
+      headline: Turn Your Website Into a Growth System
+      subhead: We build contractor-specific websites, local search infrastructure, lead capture, automation, project publishing, and AI-powered growth systems that work together instead of making you manage five different vendors.
+      primary_cta:
+        label: See What We'd Build for Your Market
+        href: /get-started/
+        event: start_intake
+      secondary_cta:
+        label: Explore the System
+        href: /system/
+        event: view_system
+      proof_strip:
+        - Restoration
+        - Roofing
+        - Foundation Repair
+        - Garage Doors
+        - Epoxy Flooring
+        - Local Service Contractors
+
+  - component: problem_stack
+    props:
+      headline: Your website probably isn't the real problem.
+      problems:
+        - Website that doesn't convert consistently
+        - SEO disconnected from sales and follow-up
+        - Leads sitting in inboxes or missed after hours
+        - Completed projects never turned into proof
+        - Reviews scattered across platforms
+        - Content published inconsistently
+        - CRM and automation bolted on after the fact
+      conclusion: The bottleneck is the system around the website.
+
+  - component: system_grid
+    props:
+      headline: One connected contractor growth system
+      modules:
+        - id: ai_website
+          title: AI Website
+          summary: Fast, conversion-focused, niche-specific website infrastructure built from structured configuration.
+          route: /ai-websites/
+        - id: local_search
+          title: Local Search
+          summary: Service pages, location architecture, schema, internal linking, projects, and content designed to strengthen local visibility.
+          route: /local-seo/
+        - id: project_engine
+          title: Project & Proof Engine
+          summary: Turn completed jobs into project pages, case studies, social source material, and sales proof.
+          route: /projects/
+        - id: lead_capture
+          title: Lead Capture
+          summary: Forms, calls, qualification, routing, tracking, and conversion events.
+        - id: automation
+          title: Automation
+          summary: Follow-up, notifications, scheduling, CRM workflows, and operational handoffs.
+        - id: reputation
+          title: Reputation
+          summary: Review generation and structured proof distribution.
+        - id: content_engine
+          title: Content Engine
+          summary: Educational, authority, storytelling, project, and niche content built from approved facts.
+        - id: reporting
+          title: Reporting
+          summary: Understand what is creating opportunities and where the next growth constraint is forming.
+
+  - component: niche_matrix
+    props:
+      headline: Built for the niche, not adapted afterward
+      intro: We standardize the common operating layer, then configure the rest around the contractor niche, sales cycle, service mix, and local market.
+      niches:
+        - id: restoration
+          label: Restoration
+          positioning: Emergency response, insurance-driven content, project documentation, and service-area depth.
+          route: /contractors/restoration/
+          modules:
+            - emergency_lead_capture
+            - water_fire_mold_architecture
+            - insurance_content
+            - project_documentation
+            - call_tracking
+        - id: roofing
+          label: Roofing
+          positioning: Storm and insurance campaigns, inspections, financing, galleries, and seasonal demand capture.
+          route: /contractors/roofing/
+          modules:
+            - storm_pages
+            - inspection_leads
+            - financing
+            - project_galleries
+            - seasonal_campaigns
+        - id: foundation
+          label: Foundation Repair
+          positioning: High-intent symptom/problem education, inspections, financing, and proof-rich case studies.
+          route: /contractors/foundation-repair/
+          modules:
+            - symptom_pages
+            - diagnostic_forms
+            - financing
+            - case_studies
+        - id: garage_doors
+          label: Garage Doors
+          positioning: Repair and replacement split, emergency booking, products, maintenance, and local service coverage.
+          route: /contractors/garage-doors/
+          modules:
+            - repair_replacement_split
+            - emergency_service
+            - product_gallery
+            - maintenance
+        - id: epoxy
+          label: Epoxy Flooring
+          positioning: Visual proof, project galleries, quote capture, service-area growth, and residential/commercial segmentation.
+          route: /contractors/epoxy-flooring/
+          modules:
+            - gallery_first_proof
+            - estimate_capture
+            - residential_commercial_split
+
+  - component: project_proof
+    props:
+      headline: Every completed job should make the next sale easier.
+      intro: A completed project should become proof, local content, sales collateral, and source material for future marketing.
+      project_refs: []
+
+  - component: process_steps
+    props:
+      headline: From configuration to launch
+      steps:
+        - number: 1
+          title: Diagnose the Constraint
+          summary: Identify what is limiting visibility, lead flow, conversion, follow-up, or proof.
+        - number: 2
+          title: Configure the Niche System
+          summary: Select the right architecture, offers, services, automations, proof model, and growth modules.
+        - number: 3
+          title: Build and Launch
+          summary: AWF and EmDash produce the structured production site and supporting assets.
+        - number: 4
+          title: Connect the Operating Layer
+          summary: Forms, CRM, scheduling, reviews, analytics, and reporting are connected into the workflow.
+        - number: 5
+          title: Grow What Works
+          summary: Expand projects, service coverage, content, landing pages, and automations based on validated demand.
+
+  - component: technology_ownership
+    props:
+      headline: Built to be fast, portable, and yours
+      benefits:
+        - Cloudflare-based delivery for performance and resilience
+        - Structured site configuration rather than page-by-page chaos
+        - Exportable site outputs and no intentional content lock-in
+        - Client-controlled domain, content, and business data
+        - Controlled AI generation using approved facts and proof
+
+  - component: case_study_cards
+    props:
+      headline: Proof should show the system, not just the claim.
+      case_study_refs: []
+
+  - component: faq
+    props:
+      items:
+        - question: Is this just a website redesign?
+          answer: No. The website is one part of a connected contractor growth system that can include local search, project proof, lead capture, automations, reputation, content, and reporting.
+        - question: Is every contractor site the same?
+          answer: No. The common platform is standardized, while niche-specific modules, content, proof, offers, and workflows are configured around the contractor's business.
+        - question: Do clients own their website and data?
+          answer: The intended operating model keeps the client's domain, content, and business data under client ownership while Agile operates the managed technology layer during service.
+        - question: Does AI publish whatever it wants?
+          answer: No. AI operates from structured inputs, approved components, verified proof, and defined publishing rules. It cannot invent pricing, guarantees, results, licenses, reviews, or service areas.
+
+  - component: cta_band
+    props:
+      headline: See what your contractor growth system should look like.
+      body: We'll map the current stack, identify the limiting constraint, and show what we would build around the niche and market.
+      primary_cta:
+        label: Build My Growth Plan
+        href: /get-started/
+        event: start_intake
+
+render_expectations:
+  mobile_first: true
+  no_placeholder_content: true
+  no_unverified_metrics: true
+  no_unverified_testimonials: true
+  project_section_behavior_when_empty: hide_or_use_verified_demo_only
+  case_study_section_behavior_when_empty: hide_or_use_verified_demo_only
+
+qa:
+  required:
+    - homepage_renders
+    - primary_cta_present
+    - all_internal_routes_valid_or_stubbed_in_preview
+    - canonical_present
+    - title_unique
+    - meta_description_present
+    - no_horizontal_overflow
+    - no_placeholder_copy
+    - no_unverified_claims
+    - analytics_events_bound_to_ctas
