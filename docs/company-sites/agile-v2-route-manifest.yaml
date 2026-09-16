@@ -1,0 +1,114 @@
+version: 0.1
+status: draft
+site: agilemarketingsystems.com
+purpose: route contract for the multi-page Agile V2 flagship
+
+routes:
+  - path: /
+    type: homepage
+    source: __tests__/fixtures/agile-v2-homepage.json
+    status: renderable
+
+  - path: /system/
+    type: product_system
+    intent: explain the connected AI Website & Growth System
+    primary_cta: /get-started/
+    status: planned
+
+  - path: /ai-websites/
+    type: capability
+    intent: explain the contractor AI website layer and Website Factory model
+    primary_cta: /get-started/
+    status: planned
+
+  - path: /local-seo/
+    type: capability
+    intent: explain local-search architecture, service/location/project content and technical SEO
+    primary_cta: /get-started/
+    status: planned
+
+  - path: /projects/
+    type: proof_index
+    intent: index verified project/proof content only
+    data_policy: hide_empty_state_or_show_explanatory_nonproof_copy
+    status: planned
+
+  - path: /case-studies/
+    type: proof_index
+    intent: publish verified case studies only
+    data_policy: no_invented_metrics_or_results
+    status: planned
+
+  - path: /contractors/
+    type: niche_index
+    intent: route visitors into contractor-specific system configurations
+    status: planned
+
+  - path: /contractors/restoration/
+    type: niche_landing
+    niche: restoration
+    status: planned
+
+  - path: /contractors/roofing/
+    type: niche_landing
+    niche: roofing
+    status: planned
+
+  - path: /contractors/foundation-repair/
+    type: niche_landing
+    niche: foundation_repair
+    status: planned
+
+  - path: /contractors/garage-doors/
+    type: niche_landing
+    niche: garage_doors
+    status: planned
+
+  - path: /contractors/epoxy-flooring/
+    type: niche_landing
+    niche: epoxy_flooring
+    status: planned
+
+  - path: /about/
+    type: company
+    intent: explain Agile Marketing Systems Inc., operating philosophy and delivery model
+    status: planned
+
+  - path: /get-started/
+    type: conversion
+    intent: contractor growth-system intake and strategy-call path
+    form_policy: no_placeholder_endpoint_in_production
+    status: planned
+
+route_rules:
+  - every public route must emit unique title and meta description
+  - every public route must emit a canonical URL
+  - every internal navigation href must resolve to a rendered route before production cutover
+  - proof routes may only use verified structured source records
+  - no route may introduce invented pricing, guarantees, reviews, licenses, service areas or results
+  - route output must remain exportable static HTML unless an approved runtime feature requires otherwise
+  - production routes default to indexable; preview/staging output must remain noindex
+  - legacy WordPress URLs require explicit preserve/rewrite/redirect/retire decisions before cutover
+
+implementation_sequence:
+  - /get-started/
+  - /system/
+  - /contractors/
+  - /ai-websites/
+  - /local-seo/
+  - niche landing pages
+  - /projects/
+  - /case-studies/
+  - /about/
+
+validation:
+  fail_if:
+    - dead_internal_link
+    - duplicate_title
+    - missing_canonical
+    - missing_primary_cta_on_conversion_route
+    - unverified_proof_record
+    - placeholder_content_present
+  warning_if:
+    - proof_index_has_no_verified_records
+    - route_has_no_contextual_internal_links
