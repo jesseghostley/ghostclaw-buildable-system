@@ -6,7 +6,8 @@
     "dev": "ts-node apps/api/src/server.ts",
     "start": "ts-node apps/api/src/server.ts",
     "build": "tsc",
-    "test": "jest"
+    "test": "jest",
+    "preview:agile-v2": "ts-node tools/render-agile-v2-preview.ts"
   },
   "jest": {
     "preset": "ts-jest",
