@@ -7,12 +7,14 @@ const fixture = JSON.parse(fs.readFileSync(fixturePath, 'utf8')) as Record<strin
 const skill = getSkill('render_emdash_site_bundle')!;
 
 describe('render_emdash_site_bundle skill', () => {
-  it('renders the first three Agile V2 routes into static output paths', () => {
+  it('renders the Agile V2 route bundle into static output paths', () => {
     const output = skill.execute({ fixture }) as Record<string, unknown>;
     expect(output.status).toBe('preview_ready');
     expect(output.renderer).toBe('emdash-site-bundle-v1');
     const files = output.files as Record<string, string>;
     expect(files['system/index.html']).toContain('One connected growth system');
+    expect(files['ai-websites/index.html']).toContain('built from a system');
+    expect(files['local-seo/index.html']).toContain('work your company actually does');
     expect(files['contractors/index.html']).toContain('Built for the niche');
     expect(files['get-started/index.html']).toContain('Find the constraint');
   });
@@ -21,6 +23,8 @@ describe('render_emdash_site_bundle skill', () => {
     const output = skill.execute({ fixture }) as Record<string, unknown>;
     const files = output.files as Record<string, string>;
     expect(files['system/index.html']).toContain('<link rel="canonical" href="https://agilemarketingsystems.com/system/">');
+    expect(files['ai-websites/index.html']).toContain('<link rel="canonical" href="https://agilemarketingsystems.com/ai-websites/">');
+    expect(files['local-seo/index.html']).toContain('<link rel="canonical" href="https://agilemarketingsystems.com/local-seo/">');
     expect(files['contractors/index.html']).toContain('<link rel="canonical" href="https://agilemarketingsystems.com/contractors/">');
     expect(files['get-started/index.html']).toContain('<meta name="robots" content="noindex,nofollow">');
   });
@@ -31,6 +35,23 @@ describe('render_emdash_site_bundle skill', () => {
     expect(html).toContain('intentionally does not submit data anywhere');
     expect(html).not.toContain('<form');
     expect(html).not.toContain('action=');
+  });
+
+  it('classifies internal links as resolved, planned, or dead', () => {
+    const output = skill.execute({ fixture }) as Record<string, unknown>;
+    const report = output.linkReport as { resolved: string[]; planned: string[]; dead: string[] };
+    expect(report.resolved).toEqual(expect.arrayContaining(['/system/', '/ai-websites/', '/local-seo/', '/contractors/', '/get-started/']));
+    expect(report.planned).toEqual(expect.arrayContaining(['/projects/', '/case-studies/', '/about/', '/contractors/restoration/']));
+    expect(report.dead).toEqual([]);
+  });
+
+  it('flags unrecognized internal links as dead', () => {
+    const modified = JSON.parse(JSON.stringify(fixture));
+    modified.routes[0].cards = [{ title: 'Broken', href: '/not-a-real-route/' }];
+    const output = skill.execute({ fixture: modified }) as Record<string, unknown>;
+    expect(output.status).toBe('preview_has_dead_links');
+    const report = output.linkReport as { dead: string[] };
+    expect(report.dead).toContain('/not-a-real-route/');
   });
 
   it('rejects duplicate route titles', () => {
