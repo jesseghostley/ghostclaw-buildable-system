@@ -16,6 +16,11 @@ describe('render_emdash_site_bundle skill', () => {
     expect(files['ai-websites/index.html']).toContain('built from a system');
     expect(files['local-seo/index.html']).toContain('work your company actually does');
     expect(files['contractors/index.html']).toContain('Built for the niche');
+    expect(files['contractors/restoration/index.html']).toContain('urgency, trust and local response');
+    expect(files['contractors/roofing/index.html']).toContain('search to inspection');
+    expect(files['contractors/foundation-repair/index.html']).toContain('request an inspection');
+    expect(files['contractors/garage-doors/index.html']).toContain('emergency repair intent');
+    expect(files['contractors/epoxy-flooring/index.html']).toContain('visual proof');
     expect(files['get-started/index.html']).toContain('Find the constraint');
   });
 
@@ -25,6 +30,7 @@ describe('render_emdash_site_bundle skill', () => {
     expect(files['system/index.html']).toContain('<link rel="canonical" href="https://agilemarketingsystems.com/system/">');
     expect(files['ai-websites/index.html']).toContain('<link rel="canonical" href="https://agilemarketingsystems.com/ai-websites/">');
     expect(files['local-seo/index.html']).toContain('<link rel="canonical" href="https://agilemarketingsystems.com/local-seo/">');
+    expect(files['contractors/restoration/index.html']).toContain('<link rel="canonical" href="https://agilemarketingsystems.com/contractors/restoration/">');
     expect(files['contractors/index.html']).toContain('<link rel="canonical" href="https://agilemarketingsystems.com/contractors/">');
     expect(files['get-started/index.html']).toContain('<meta name="robots" content="noindex,nofollow">');
   });
@@ -40,8 +46,19 @@ describe('render_emdash_site_bundle skill', () => {
   it('classifies internal links as resolved, planned, or dead', () => {
     const output = skill.execute({ fixture }) as Record<string, unknown>;
     const report = output.linkReport as { resolved: string[]; planned: string[]; dead: string[] };
-    expect(report.resolved).toEqual(expect.arrayContaining(['/system/', '/ai-websites/', '/local-seo/', '/contractors/', '/get-started/']));
-    expect(report.planned).toEqual(expect.arrayContaining(['/projects/', '/case-studies/', '/about/', '/contractors/restoration/']));
+    expect(report.resolved).toEqual(expect.arrayContaining([
+      '/system/',
+      '/ai-websites/',
+      '/local-seo/',
+      '/contractors/',
+      '/contractors/restoration/',
+      '/contractors/roofing/',
+      '/contractors/foundation-repair/',
+      '/contractors/garage-doors/',
+      '/contractors/epoxy-flooring/',
+      '/get-started/',
+    ]));
+    expect(report.planned).toEqual(expect.arrayContaining(['/projects/', '/case-studies/', '/about/']));
     expect(report.dead).toEqual([]);
   });
 
