@@ -1,6 +1,7 @@
 import {
   evaluateExecutionIntegrity,
   isExecutableNextAction,
+  scanExecutionIntegrity,
   type ExecutionRecord,
 } from '../packages/core/src/execution';
 
@@ -87,6 +88,21 @@ describe('execution integrity', () => {
       nextAction: undefined,
     }));
     expect(result.integrityState).toBe('healthy');
+  });
+
+  it('reconciles multiple records into an operating-system integrity report', () => {
+    const report = scanExecutionIntegrity([
+      base({ objectId: 'lead_healthy' }),
+      base({ objectId: 'lead_orphaned', nextAction: undefined }),
+      base({ objectId: 'estimate_overdue', objectType: 'estimate', dueAt: '2026-09-15T12:00:00Z' }),
+      base({ objectId: 'idea_later', commitmentState: 'passive', queue: 'later', owner: undefined, nextAction: undefined }),
+    ], new Date('2026-09-16T12:00:00Z'));
+
+    expect(report.total).toBe(4);
+    expect(report.healthy).toBe(2);
+    expect(report.orphaned).toBe(1);
+    expect(report.overdue).toBe(1);
+    expect(report.findings.map((item) => item.objectId)).toEqual(expect.arrayContaining(['lead_orphaned', 'estimate_overdue']));
   });
 });
 
