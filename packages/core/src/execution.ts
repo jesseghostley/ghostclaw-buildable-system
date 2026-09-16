@@ -39,6 +39,25 @@ export type IntegrityResult = {
   reasons: string[];
 };
 
+export type IntegrityFinding = {
+  objectId: string;
+  objectType: string;
+  owner?: string;
+  queue: ExecutionQueue;
+  integrityState: IntegrityState;
+  reasons: string[];
+};
+
+export type IntegrityScan = {
+  total: number;
+  healthy: number;
+  orphaned: number;
+  overdue: number;
+  blocked: number;
+  stale: number;
+  findings: IntegrityFinding[];
+};
+
 function isTerminalQueue(queue: ExecutionQueue): boolean {
   return queue === 'completed' || queue === 'cancelled';
 }
@@ -94,6 +113,45 @@ export function evaluateExecutionIntegrity(
   }
 
   return { integrityState: 'healthy', reasons };
+}
+
+export function scanExecutionIntegrity(
+  records: ExecutionRecord[],
+  now = new Date(),
+): IntegrityScan {
+  const findings: IntegrityFinding[] = [];
+  const counts: Record<IntegrityState, number> = {
+    healthy: 0,
+    orphaned: 0,
+    overdue: 0,
+    stale: 0,
+    blocked: 0,
+  };
+
+  for (const record of records) {
+    const result = evaluateExecutionIntegrity(record, now);
+    counts[result.integrityState] += 1;
+    if (result.integrityState !== 'healthy') {
+      findings.push({
+        objectId: record.objectId,
+        objectType: record.objectType,
+        owner: record.owner,
+        queue: record.queue,
+        integrityState: result.integrityState,
+        reasons: result.reasons,
+      });
+    }
+  }
+
+  return {
+    total: records.length,
+    healthy: counts.healthy,
+    orphaned: counts.orphaned,
+    overdue: counts.overdue,
+    blocked: counts.blocked,
+    stale: counts.stale,
+    findings,
+  };
 }
 
 export function isExecutableNextAction(value?: string): boolean {
