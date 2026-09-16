@@ -1,0 +1,301 @@
+site:
+  id: agile-marketing-systems-v2
+  domain: agilemarketingsystems.com
+  brand: Agile Marketing Systems
+  product_name: Agile AI Website & Growth System
+  entity: AGILE MARKETING SYSTEMS INC.
+  audience: contractor_owner_operator
+  primary_vertical: contractors
+  status: planning
+  production_target: cloudflare
+  renderer: emdash
+  orchestrator: awf
+  runtime: ghostclaw
+
+positioning:
+  category: contractor_growth_system
+  eyebrow: AI Website & Growth Systems for Contractors
+  headline: Turn Your Website Into a Growth System
+  subheadline: >-
+    Contractor-specific websites, local search infrastructure, lead capture,
+    project publishing, automation, and AI-assisted growth systems designed
+    to work together instead of being managed across disconnected vendors.
+  primary_outcome: more_qualified_leads
+  secondary_outcomes:
+    - stronger_local_visibility
+    - faster_follow_up
+    - better_project_proof
+    - lower_marketing_fragmentation
+    - clearer_growth_measurement
+
+navigation:
+  - label: The System
+    href: /system/
+  - label: AI Websites
+    href: /ai-websites/
+  - label: Local SEO
+    href: /local-seo/
+  - label: Contractors
+    href: /contractors/
+  - label: Projects
+    href: /projects/
+  - label: Case Studies
+    href: /case-studies/
+  - label: How It Works
+    href: /how-it-works/
+  - label: About
+    href: /about/
+  - label: Get Started
+    href: /get-started/
+
+homepage:
+  page_type: flagship_home
+  primary_goal: booked_strategy_call
+  sections:
+    - hero
+    - constraint_problem
+    - connected_system
+    - niche_configuration
+    - project_proof_engine
+    - how_it_works
+    - technology_ownership
+    - case_studies
+    - final_cta
+
+  hero:
+    eyebrow: AI Website & Growth Systems for Contractors
+    headline: Turn Your Website Into a Growth System
+    body: >-
+      We build contractor-specific websites, local SEO infrastructure, lead
+      capture, automation, project publishing, and AI-powered growth systems
+      that work together as one operating system.
+    primary_cta:
+      label: See What We’d Build for Your Market
+      href: /get-started/
+      event: cta_market_plan
+    secondary_cta:
+      label: Explore the System
+      href: /system/
+      event: cta_explore_system
+    proof_strip:
+      - Restoration
+      - Roofing
+      - Foundation Repair
+      - Garage Doors
+      - Epoxy Flooring
+      - Other validated local-service niches
+
+  constraint_problem:
+    headline: Your website probably isn’t the real problem.
+    body: >-
+      Most contractors are running a chain of disconnected systems: a website
+      that does not convert consistently, SEO disconnected from sales,
+      projects that never become proof, leads trapped in inboxes, fragmented
+      review tools, inconsistent content, and automation bolted on later.
+    punchline: The bottleneck is the system around the website.
+
+  connected_system:
+    headline: One connected contractor growth system
+    modules:
+      - id: ai_website
+        title: AI Website
+        outcome: Fast, conversion-focused, niche-specific website infrastructure.
+      - id: local_search
+        title: Local Search
+        outcome: Service, location, schema, internal-link and topical-authority architecture.
+      - id: project_engine
+        title: Project Engine
+        outcome: Turn completed jobs into proof, case studies, local content and sales assets.
+      - id: lead_capture
+        title: Lead Capture
+        outcome: Forms, calls, qualification, routing and attribution.
+      - id: automation
+        title: Automation
+        outcome: Follow-up, scheduling, notifications and workflow handoffs.
+      - id: reputation
+        title: Reputation
+        outcome: Reviews and proof distributed where prospects evaluate trust.
+      - id: content_engine
+        title: Content Engine
+        outcome: Educational, authority, story and proof content from approved inputs.
+      - id: reporting
+        title: Reporting
+        outcome: Measure what produces leads and identify the next limiting constraint.
+
+  niche_configuration:
+    headline: Your niche changes the system.
+    body: >-
+      Standardize the common 60–80% of the contractor growth stack, then adapt
+      the remaining 20–40% around niche, service mix, sales cycle, urgency,
+      financing, project proof and local-market behavior.
+
+  project_proof_engine:
+    headline: Every completed job should make the next sale easier.
+    body: >-
+      A completed project can become a local SEO asset, case study, social
+      content source, sales proof, related-service signal and future landing-page input.
+    project_fields:
+      - service
+      - city
+      - problem
+      - work_performed
+      - photos
+      - result
+      - related_service
+      - related_location
+      - testimonial
+      - schema
+
+  how_it_works:
+    headline: From configuration to launch
+    steps:
+      - number: 1
+        title: Diagnose the constraint
+        body: Identify what is limiting visibility, lead flow, conversion, follow-up or proof.
+      - number: 2
+        title: Configure the niche system
+        body: Choose the right architecture, offers, automations, proof model and growth modules.
+      - number: 3
+        title: Build and launch
+        body: Generate and deploy the production site through the Website Factory workflow.
+      - number: 4
+        title: Connect the operating layer
+        body: Connect forms, CRM, scheduling, reporting, reviews and analytics.
+      - number: 5
+        title: Grow what is working
+        body: Expand projects, locations, content, offers and automation based on measured constraints.
+
+  technology_ownership:
+    headline: Built to be fast, portable, and yours
+    buyer_language:
+      - Fast edge-delivered production site
+      - Exportable website output
+      - Client-controlled domain, business data and content
+      - Controlled AI generation from approved structured facts
+      - Integrated forms, CRM, scheduling and reporting where appropriate
+    internal_stack:
+      cloudflare: production_delivery
+      emdash: rendering_and_page_generation
+      awf: configuration_and_orchestration
+      ghostclaw: runtime_and_agent_workflows
+
+  final_cta:
+    headline: See what your contractor growth system should look like.
+    body: >-
+      We’ll map your current stack, identify the biggest constraint, and show
+      what we would build around your niche and market.
+    primary_cta:
+      label: Build My Growth Plan
+      href: /get-started/
+      event: cta_build_growth_plan
+
+niches:
+  launch_candidates:
+    - restoration
+    - roofing
+    - foundation_repair
+    - garage_doors
+    - epoxy_flooring
+  configuration_rule:
+    common_stack_percent: 70
+    niche_specific_percent: 30
+
+content_types:
+  project:
+    first_class: true
+    required_fields:
+      - title
+      - service
+      - city
+      - problem
+      - work_performed
+      - result
+      - photos
+    optional_fields:
+      - testimonial
+      - duration
+      - related_service
+      - related_location
+      - schema
+  case_study:
+    first_class: true
+    required_fields:
+      - title
+      - client_or_anonymized_subject
+      - starting_problem
+      - system_changes
+      - verified_result
+      - proof_source
+
+agentic_generation:
+  allowed:
+    - assemble_approved_sections
+    - adapt_niche_language
+    - select_approved_proof
+    - generate_controlled_service_pages
+    - generate_controlled_location_pages
+    - generate_project_pages_from_verified_data
+    - refresh_copy_from_approved_inputs
+  prohibited_without_structured_source:
+    - pricing
+    - guarantees
+    - customer_results
+    - service_areas
+    - licenses
+    - reviews
+    - regulatory_claims
+    - case_study_outcomes
+
+seo:
+  legacy_domains:
+    - agilemarketingsystems.com
+    - agilecontractormarketing.com
+  migration_requirements:
+    - preserve_verified_equity
+    - do_not_redirect_hacked_spam_to_homepage
+    - use_410_or_clean_404_for_confirmed_spam
+    - preserve_legitimate_project_and_case_study_assets
+    - verify_claims_before_reuse
+    - maintain_redirect_map
+
+analytics:
+  events:
+    - cta_market_plan
+    - cta_explore_system
+    - cta_build_growth_plan
+    - niche_page_view
+    - project_view
+    - case_study_view
+    - lead_form_start
+    - lead_form_submit
+    - booked_strategy_call
+
+migration:
+  source_system: wordpress
+  strategy: rebuild_not_lift_and_shift
+  preserve:
+    - brand_assets
+    - verified_testimonials
+    - verified_case_studies
+    - legitimate_project_proof
+    - valuable_indexed_urls
+  rewrite:
+    - homepage_positioning
+    - generic_agency_copy
+    - outdated_service_copy
+    - outdated_pricing
+    - legacy_ctas
+  retire:
+    - thin_duplicate_content
+    - obsolete_offers
+    - hacked_spam
+    - unsupported_claims
+  cutover_gate:
+    - security_clean
+    - redirect_map_complete
+    - forms_verified
+    - analytics_verified
+    - schema_verified
+    - performance_pass
+    - accessibility_pass
+    - rollback_available
