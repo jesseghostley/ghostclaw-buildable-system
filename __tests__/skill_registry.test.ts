@@ -1,14 +1,21 @@
 import { getSkill, listSkills, skillRegistry } from '../packages/core/src/skills';
 
 describe('Skill Registry', () => {
-  it('has all five registered skills', () => {
-    expect(skillRegistry.size).toBe(5);
+  it('has all six registered skills', () => {
+    expect(skillRegistry.size).toBe(6);
   });
 
   it('returns a skill by id', () => {
     const skill = getSkill('build_site_page');
     expect(skill).toBeDefined();
     expect(skill!.skillId).toBe('build_site_page');
+    expect(typeof skill!.execute).toBe('function');
+  });
+
+  it('returns the EmDash homepage renderer by id', () => {
+    const skill = getSkill('render_emdash_homepage');
+    expect(skill).toBeDefined();
+    expect(skill!.skillId).toBe('render_emdash_homepage');
     expect(typeof skill!.execute).toBe('function');
   });
 
@@ -23,6 +30,7 @@ describe('Skill Registry', () => {
       'build_site_page',
       'draft_cluster_outline',
       'refresh_page_sections',
+      'render_emdash_homepage',
       'run_diagnostics',
       'scaffold_skill_package',
     ]);
