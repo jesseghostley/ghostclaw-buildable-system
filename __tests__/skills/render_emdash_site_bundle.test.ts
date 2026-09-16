@@ -24,7 +24,7 @@ describe('render_emdash_site_bundle skill', () => {
     expect(files['contractors/garage-doors/index.html']).toContain('repair, replacement and emergency intent');
     expect(files['contractors/epoxy-flooring/index.html']).toContain('visual project proof');
     expect(files['get-started/index.html']).toContain('Find the constraint');
-    expect(files['get-started/index.html']).toContain('improve after measurement is connected');
+    expect(files['get-started/index.html']).toContain('Once measurement is connected');
   });
 
   it('emits unique canonicals and preview noindex directives', () => {
