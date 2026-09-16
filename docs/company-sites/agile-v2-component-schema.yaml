@@ -1,9 +1,44 @@
-version: 0.1
+version: 0.2
 status: draft
 site: agilemarketingsystems.com
 purpose: component contract for AWF/EmDash rendering
 
+brand:
+  optional:
+    - logo_src
+    - logo_alt
+    - nav
+    - header_cta
+    - footer
+  rules:
+    - logo path must point to a verified bundled asset before production
+    - do not hotlink legacy WordPress media in production
+    - text brand fallback must render when no verified logo is configured
+    - customer logos and proof assets require verification before use
+  nav_item_schema:
+    required:
+      - label
+      - href
+  footer_schema:
+    optional:
+      - tagline
+      - links
+      - legal
+
 components:
+  site_header:
+    required:
+      - brand_identity
+    optional:
+      - nav
+      - header_cta
+      - mobile_menu
+    rules:
+      - structured from config
+      - preserve CTA analytics event when supplied
+      - mobile treatment must not cause horizontal overflow
+      - no JavaScript dependency required for basic menu access
+
   hero:
     required:
       - eyebrow
@@ -125,6 +160,17 @@ components:
     optional:
       - secondary_cta
 
+  site_footer:
+    required:
+      - company_name
+    optional:
+      - tagline
+      - links
+      - legal
+    rules:
+      - structured from config
+      - legal text must not imply unverified business claims
+
 cta_schema:
   required:
     - label
@@ -138,6 +184,10 @@ cta_schema:
     - start_intake
     - book_strategy_call
     - submit_lead
+    - cta_header_get_started
+    - cta_hero_get_started
+    - cta_hero_explore_system
+    - cta_footer_build_growth_plan
 
 content_policy:
   allowed_agentic_actions:
@@ -170,3 +220,4 @@ validation:
     - no_case_study_proof
     - no_secondary_cta
     - no_schema_markup
+    - logo_asset_not_yet_verified
