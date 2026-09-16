@@ -1,7 +1,7 @@
-version: 0.2
+version: 0.3
 status: draft
 site: agilemarketingsystems.com
-purpose: component contract for AWF/EmDash rendering
+purpose: component and conversion-learning contract for AWF/EmDash rendering
 
 brand:
   optional:
@@ -49,6 +49,13 @@ components:
       - secondary_cta
       - proof_strip
       - media
+    experimentable_fields:
+      - headline
+      - subhead
+      - primary_cta.label
+      - secondary_cta.label
+      - secondary_cta.enabled
+      - proof_strip.position
     rules:
       - no unverified outcome claims
       - no invented pricing or guarantees
@@ -120,6 +127,20 @@ components:
         - title
         - summary
 
+  conversion_learning:
+    required:
+      - headline
+      - body
+      - cards
+    card_schema:
+      required:
+        - title
+        - body
+    rules:
+      - explain measurement and testing without inventing performance claims
+      - primary business outcomes take precedence over vanity metrics
+      - public copy must not imply a proven lift unless backed by verified experiment records
+
   technology_ownership:
     required:
       - headline
@@ -184,10 +205,82 @@ cta_schema:
     - start_intake
     - book_strategy_call
     - submit_lead
+    - view_demo
+    - form_start
+    - form_complete
     - cta_header_get_started
     - cta_hero_get_started
     - cta_hero_explore_system
     - cta_footer_build_growth_plan
+
+experiments:
+  purpose: controlled conversion learning without changing verified business truth
+  experiment_schema:
+    required:
+      - id
+      - route
+      - component
+      - objective
+      - hypothesis
+      - primary_metric
+      - variants
+      - status
+    optional:
+      - secondary_metrics
+      - owner
+      - start_at
+      - end_at
+      - winner
+      - promotion_status
+      - minimum_sample
+    variant_schema:
+      required:
+        - id
+        - weight
+        - fields
+    allowed_initial_components:
+      - hero
+      - faq
+      - cta_band
+      - project_proof
+      - get_started_flow
+    preferred_primary_metrics:
+      - revenue
+      - closed_job
+      - qualified_lead
+      - booked_call
+      - completed_intake
+      - qualified_phone_call
+    allowed_secondary_metrics:
+      - cta_click
+      - secondary_cta_click
+      - demo_engagement
+      - form_start
+      - route_progression
+      - scroll_depth
+      - engagement_time
+      - bounce
+    locked_during_experiments:
+      - pricing
+      - guarantees
+      - customer_names
+      - testimonials
+      - project_outcomes
+      - case_study_metrics
+      - licenses
+      - certifications
+      - service_areas
+      - business_addresses
+      - phone_numbers
+      - regulatory_claims
+      - financing_terms
+      - factual_service_capabilities
+    rules:
+      - primary business metric takes precedence over supporting engagement metrics
+      - experiment may resolve as inconclusive
+      - no automatic public performance claim from an experiment result
+      - winner promotion back to canonical config requires an auditable approval step
+      - no autonomous production traffic split in current implementation
 
 content_policy:
   allowed_agentic_actions:
@@ -196,6 +289,8 @@ content_policy:
     - select verified proof by reference
     - generate controlled service and location variants
     - refresh copy from approved structured facts
+    - propose controlled experiment variants for approved experimentable fields
+    - summarize experiment evidence without converting it into an unverified public claim
   prohibited_agentic_actions:
     - invent pricing
     - invent guarantees
@@ -205,6 +300,8 @@ content_policy:
     - invent reviews
     - invent case study outcomes
     - invent regulatory claims
+    - declare an experiment winner without configured evidence requirements
+    - auto-promote a winner to production without approval
 
 validation:
   fail_if:
@@ -215,9 +312,12 @@ validation:
     - missing_primary_cta
     - missing_canonical
     - duplicate_title
+    - experiment_changes_locked_fact
+    - experiment_missing_primary_metric
   warning_if:
     - no_project_proof
     - no_case_study_proof
     - no_secondary_cta
     - no_schema_markup
     - logo_asset_not_yet_verified
+    - experiment_has_no_minimum_sample
