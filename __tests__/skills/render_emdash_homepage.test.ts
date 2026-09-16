@@ -5,6 +5,19 @@ const skill = getSkill('render_emdash_homepage')!;
 describe('render_emdash_homepage skill', () => {
   const fixture = {
     site: { name: 'Agile Marketing Systems Inc.', canonical: 'https://agilemarketingsystems.com/' },
+    brand: {
+      nav: [
+        { label: 'System', href: '/system/' },
+        { label: 'AI Websites', href: '/ai-websites/' },
+        { label: 'About', href: '/about/' },
+      ],
+      headerCta: { label: "See What We'd Build", href: '/get-started/', event: 'cta_header_get_started' },
+      footer: {
+        tagline: 'AI Website & Growth Systems for Contractors',
+        links: [{ label: 'Get Started', href: '/get-started/' }],
+        legal: 'Agile Marketing Systems Inc.',
+      },
+    },
     seo: {
       title: 'AI Website & Growth Systems for Contractors | Agile Marketing Systems',
       description: 'Contractor-specific AI websites, local search infrastructure, lead capture, automation, proof, and growth systems.',
@@ -72,6 +85,33 @@ describe('render_emdash_homepage skill', () => {
     expect(html).toContain('data-analytics-event="cta_final_growth_plan"');
   });
 
+  it('renders structured brand navigation, header CTA and footer', () => {
+    const output = skill.execute({ signalPayload: { homepageConfig: fixture } }) as Record<string, unknown>;
+    const html = (output.files as Record<string, string>)['index.html'];
+    expect(html).toContain('<a href="/system/">System</a>');
+    expect(html).toContain('<a href="/ai-websites/">AI Websites</a>');
+    expect(html).toContain('data-analytics-event="cta_header_get_started"');
+    expect(html).toContain('AI Website &amp; Growth Systems for Contractors');
+    expect(html).toContain('aria-label="Footer"');
+  });
+
+  it('uses a text brand fallback when no verified logo asset is configured', () => {
+    const output = skill.execute({ signalPayload: { homepageConfig: fixture } }) as Record<string, unknown>;
+    const html = (output.files as Record<string, string>)['index.html'];
+    expect(html).toContain('<a class="brand brand-text" href="/">Agile Marketing Systems Inc.</a>');
+    expect(html).not.toContain('<img');
+  });
+
+  it('renders a configured bundled logo path safely', () => {
+    const modified = JSON.parse(JSON.stringify(fixture));
+    modified.brand.logoSrc = '/assets/brand/agile-logo.png';
+    modified.brand.logoAlt = 'Agile <Marketing>';
+    const output = skill.execute({ signalPayload: { homepageConfig: modified } }) as Record<string, unknown>;
+    const html = (output.files as Record<string, string>)['index.html'];
+    expect(html).toContain('src="/assets/brand/agile-logo.png"');
+    expect(html).toContain('alt="Agile &lt;Marketing&gt;"');
+  });
+
   it('hides project and case-study sections when verified proof is empty', () => {
     const output = skill.execute({ signalPayload: { homepageConfig: fixture } }) as Record<string, unknown>;
     const sections = output.sectionsRendered as string[];
@@ -82,10 +122,13 @@ describe('render_emdash_homepage skill', () => {
   it('escapes untrusted text before rendering', () => {
     const modified = JSON.parse(JSON.stringify(fixture));
     modified.hero.headline = '<script>alert(1)</script>';
+    modified.brand.nav[0].label = '<img src=x onerror=alert(1)>';
     const output = skill.execute({ signalPayload: { homepageConfig: modified } }) as Record<string, unknown>;
     const html = (output.files as Record<string, string>)['index.html'];
     expect(html).toContain('&lt;script&gt;alert(1)&lt;/script&gt;');
     expect(html).not.toContain('<script>alert(1)</script>');
+    expect(html).toContain('&lt;img src=x onerror=alert(1)&gt;');
+    expect(html).not.toContain('<img src=x onerror=alert(1)>');
   });
 
   it('rejects fixtures missing required SEO or hero fields', () => {
