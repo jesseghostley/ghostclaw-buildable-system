@@ -1,8 +1,8 @@
 import { getSkill, listSkills, skillRegistry } from '../packages/core/src/skills';
 
 describe('Skill Registry', () => {
-  it('has all six registered skills', () => {
-    expect(skillRegistry.size).toBe(6);
+  it('has all seven registered skills', () => {
+    expect(skillRegistry.size).toBe(7);
   });
 
   it('returns a skill by id', () => {
@@ -19,6 +19,13 @@ describe('Skill Registry', () => {
     expect(typeof skill!.execute).toBe('function');
   });
 
+  it('returns the EmDash site bundle renderer by id', () => {
+    const skill = getSkill('render_emdash_site_bundle');
+    expect(skill).toBeDefined();
+    expect(skill!.skillId).toBe('render_emdash_site_bundle');
+    expect(typeof skill!.execute).toBe('function');
+  });
+
   it('returns undefined for unknown skill', () => {
     expect(getSkill('nonexistent_skill')).toBeUndefined();
   });
@@ -31,6 +38,7 @@ describe('Skill Registry', () => {
       'draft_cluster_outline',
       'refresh_page_sections',
       'render_emdash_homepage',
+      'render_emdash_site_bundle',
       'run_diagnostics',
       'scaffold_skill_package',
     ]);
