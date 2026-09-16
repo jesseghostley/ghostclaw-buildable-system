@@ -24,6 +24,13 @@ type BundleConfig = {
     footer?: { tagline?: string; links?: NavItem[]; legal?: string };
   };
   routes?: RouteConfig[];
+  plannedRoutes?: string[];
+};
+
+type LinkReport = {
+  resolved: string[];
+  planned: string[];
+  dead: string[];
 };
 
 function esc(value: string): string {
@@ -98,6 +105,26 @@ function renderRoute(route: RouteConfig, siteName: string, origin: string, brand
   ].join('');
 }
 
+function collectInternalHrefs(files: Record<string, string>): string[] {
+  const hrefs = new Set<string>();
+  const pattern = /href="(\/[^"#?]*\/?)"/g;
+  for (const html of Object.values(files)) {
+    for (const match of html.matchAll(pattern)) hrefs.add(match[1]);
+  }
+  return Array.from(hrefs).sort();
+}
+
+function validateLinks(files: Record<string, string>, renderedRoutes: Set<string>, plannedRoutes: Set<string>): LinkReport {
+  const report: LinkReport = { resolved: [], planned: [], dead: [] };
+  for (const href of collectInternalHrefs(files)) {
+    const normalized = href === '/' ? '/' : href.endsWith('/') ? href : `${href}/`;
+    if (renderedRoutes.has(normalized)) report.resolved.push(normalized);
+    else if (plannedRoutes.has(normalized)) report.planned.push(normalized);
+    else report.dead.push(normalized);
+  }
+  return report;
+}
+
 function execute(inputPayload: Record<string, unknown>): Record<string, unknown> {
   const payload = (inputPayload.signalPayload ?? inputPayload) as Record<string, unknown>;
   const config = (payload.siteConfig ?? payload.fixture ?? payload) as BundleConfig;
@@ -106,7 +133,7 @@ function execute(inputPayload: Record<string, unknown>): Record<string, unknown>
   const routes = config.routes ?? [];
   if (routes.length === 0) throw new Error('EmDash site bundle requires at least one route.');
 
-  const seenPaths = new Set<string>();
+  const seenPaths = new Set<string>(['/']);
   const seenTitles = new Set<string>();
   const files: Record<string, string> = {};
   for (const route of routes) {
@@ -119,11 +146,15 @@ function execute(inputPayload: Record<string, unknown>): Record<string, unknown>
     files[outputPath(routePath)] = renderRoute(route, siteName, origin, config.brand);
   }
 
+  const plannedRoutes = new Set((config.plannedRoutes ?? []).map(normalizeRoutePath));
+  const linkReport = validateLinks(files, seenPaths, plannedRoutes);
+
   return {
     renderer: 'emdash-site-bundle-v1',
-    status: 'preview_ready',
+    status: linkReport.dead.length === 0 ? 'preview_ready' : 'preview_has_dead_links',
     files,
     routesRendered: Array.from(seenPaths),
+    linkReport,
   };
 }
 
